@@ -1,0 +1,77 @@
+{
+    "inserts": {
+        "ENTITY/EXAMPLEPERSON": {
+            "columns": {
+                "_ID": 0,
+                "FIRSTNAME": 1,
+                "LASTNAME": 2
+            },
+            "rows": [
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:0",
+                    "Max",
+                    "Mustermann"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:1",
+                    "Maximilia",
+                    "Musterfrau"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:2",
+                    "Anton",
+                    "Platzhalter"
+                ]
+            ]
+        },
+        "ENTITY/EXAMPLEPERSON_ADDRESS": {
+            "columns": {
+                "_ID": 0,
+                "_ID1": 1,
+                "COUNTRY": 2,
+                "ZIP": 3,
+                "CITY": 4,
+                "STREET": 5,
+                "STREETNUMBER": 6
+            },
+            "rows": [
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:0",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS:0",
+                    "Germany",
+                    "10178",
+                    "Berlin",
+                    "Rosenthaler Str",
+                    "30"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:1",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS:1",
+                    "Austria",
+                    "1020",
+                    "Wien",
+                    "Lassallestra\u00dfe",
+                    "7B"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:2",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS:2",
+                    "Germany",
+                    "69190",
+                    "Walldorf",
+                    "16",
+                    "Dietmar-Hopp-Allee"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:2",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS:3",
+                    "Schweiz",
+                    "8058",
+                    "Z\u00fcrich",
+                    "The Circle",
+                    null
+                ]
+            ]
+        }
+    }
+}

@@ -1,0 +1,161 @@
+{
+    "nodes": {
+        "ENTITY/EXAMPLEL0_PL0_PL1_PL2": {
+            "external_path": [
+                "example.L0",
+                "pl0",
+                "pl1",
+                "pl2"
+            ],
+            "level": 3,
+            "table_name": "ENTITY/EXAMPLEL0_PL0_PL1_PL2",
+            "pk": "_ID3",
+            "properties": {
+                "_ID2": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "_ID3": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "PL3": {
+                    "length": 80,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "pl3"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLEL0_PL0_PL1": {
+            "external_path": [
+                "example.L0",
+                "pl0",
+                "pl1"
+            ],
+            "level": 2,
+            "table_name": "ENTITY/EXAMPLEL0_PL0_PL1",
+            "pk": "_ID2",
+            "properties": {
+                "_ID1": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "_ID2": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "PL2": {
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEL0_PL0_PL1_PL2",
+                        "type": "containment"
+                    },
+                    "external_path": [
+                        "pl2"
+                    ]
+                }
+            },
+            "contains": [
+                "ENTITY/EXAMPLEL0_PL0_PL1_PL2"
+            ]
+        },
+        "ENTITY/EXAMPLEL0_PL0": {
+            "external_path": [
+                "example.L0",
+                "pl0"
+            ],
+            "level": 1,
+            "table_name": "ENTITY/EXAMPLEL0_PL0",
+            "pk": "_ID1",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "_ID1": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "PL1": {
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEL0_PL0_PL1",
+                        "type": "containment"
+                    },
+                    "external_path": [
+                        "pl1"
+                    ]
+                }
+            },
+            "contains": [
+                "ENTITY/EXAMPLEL0_PL0_PL1"
+            ]
+        },
+        "ENTITY/EXAMPLEL0": {
+            "external_path": [
+                "example.L0"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLEL0",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "PL0": {
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEL0_PL0",
+                        "type": "containment"
+                    },
+                    "external_path": [
+                        "pl0"
+                    ]
+                }
+            },
+            "contains": [
+                "ENTITY/EXAMPLEL0_PL0"
+            ]
+        }
+    },
+    "index": {
+        "example.L0": {
+            "int": "ENTITY/EXAMPLEL0",
+            "contains": {
+                "pl0": {
+                    "int": "ENTITY/EXAMPLEL0_PL0",
+                    "contains": {
+                        "pl1": {
+                            "int": "ENTITY/EXAMPLEL0_PL0_PL1",
+                            "contains": {
+                                "pl2": {
+                                    "int": "ENTITY/EXAMPLEL0_PL0_PL1_PL2",
+                                    "properties": {
+                                        "pl3": {
+                                            "int": "PL3"
+                                        }
+                                    }
+                                }
+                            },
+                            "properties": {
+                                "pl2": {
+                                    "int": "PL2"
+                                }
+                            }
+                        }
+                    },
+                    "properties": {
+                        "pl1": {
+                            "int": "PL1"
+                        }
+                    }
+                }
+            },
+            "properties": {
+                "pl0": {
+                    "int": "PL0"
+                }
+            }
+        }
+    }
+}

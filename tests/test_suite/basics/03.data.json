@@ -1,0 +1,26 @@
+{
+    "example.Person": [
+        {
+            "firstName": "Max",
+            "lastName": "Mustermann",
+            "address": {
+                "country": "Germany",
+                "zip": "10178",
+                "city": "Berlin",
+                "street": "Rosenthaler Str",
+                "streetNumber": "30"
+            }
+        },
+        {
+            "address": {
+                "streetNumber": "7B",
+                "zip": "1020",
+                "city": "Wien",
+                "country": "Austria",
+                "street": "Lassallestraße"
+            },
+            "lastName": "Musterfrau",
+            "firstName": "Maximilia"
+        }
+    ]
+}

@@ -1,0 +1,28 @@
+{
+  "namespace": "example",
+  "definitions": {
+    "example.Person": {
+      "kind": "entity",
+      "@EndUserText.Label": "Person",
+      "elements": {
+        "firstName": {
+          "@EndUserText.Label": "First Name",
+          "@Search.fuzzinessThreshold": 0.85,
+          "type": "cds.String",
+          "length": 256
+        },
+        "lastName": {
+          "@EndUserText.Label": "Last Name",
+          "@Search.fuzzinessThreshold": 0.85,
+          "type": "cds.String",
+          "length": 256
+        }
+      }
+    }
+  },
+  "meta": {
+    "creator": "CDS Compiler v2.15.2",
+    "flavor": "inferred"
+  },
+  "$version": "2.0"
+}

@@ -1,0 +1,174 @@
+{
+    "nodes": {
+        "ENTITY/EXAMPLEPERSON_ADDRESS": {
+            "external_path": [
+                "example.Person",
+                "address"
+            ],
+            "level": 1,
+            "table_name": "ENTITY/EXAMPLEPERSON_ADDRESS",
+            "pk": "_ID1",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "_ID1": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "COUNTRY": {
+                    "length": 80,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "country"
+                    ]
+                },
+                "ZIP": {
+                    "length": 10,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "zip"
+                    ]
+                },
+                "CITY": {
+                    "length": 80,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "city"
+                    ]
+                },
+                "STREET": {
+                    "length": 80,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "street"
+                    ]
+                },
+                "STREETNUMBER": {
+                    "length": 80,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "streetNumber"
+                    ]
+                },
+                "PHONE_COUNTRY": {
+                    "length": 80,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "phone",
+                        "country"
+                    ]
+                },
+                "PHONE_PROVIDER": {
+                    "length": 80,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "phone",
+                        "provider"
+                    ]
+                },
+                "PHONE_NUMBER": {
+                    "length": 80,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "phone",
+                        "number"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLEPERSON": {
+            "external_path": [
+                "example.Person"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLEPERSON",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "FIRSTNAME": {
+                    "length": 256,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "firstName"
+                    ]
+                },
+                "LASTNAME": {
+                    "length": 256,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "lastName"
+                    ]
+                },
+                "ADDRESS": {
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEPERSON_ADDRESS",
+                        "type": "containment"
+                    },
+                    "external_path": [
+                        "address"
+                    ]
+                }
+            },
+            "contains": [
+                "ENTITY/EXAMPLEPERSON_ADDRESS"
+            ]
+        }
+    },
+    "index": {
+        "example.Person": {
+            "int": "ENTITY/EXAMPLEPERSON",
+            "contains": {
+                "address": {
+                    "int": "ENTITY/EXAMPLEPERSON_ADDRESS",
+                    "properties": {
+                        "country": {
+                            "int": "COUNTRY"
+                        },
+                        "zip": {
+                            "int": "ZIP"
+                        },
+                        "city": {
+                            "int": "CITY"
+                        },
+                        "street": {
+                            "int": "STREET"
+                        },
+                        "streetNumber": {
+                            "int": "STREETNUMBER"
+                        },
+                        "phone": {
+                            "int": "PHONE",
+                            "contains": {
+                                "country": {
+                                    "int": "PHONE_COUNTRY"
+                                },
+                                "provider": {
+                                    "int": "PHONE_PROVIDER"
+                                },
+                                "number": {
+                                    "int": "PHONE_NUMBER"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "properties": {
+                "firstName": {
+                    "int": "FIRSTNAME"
+                },
+                "lastName": {
+                    "int": "LASTNAME"
+                },
+                "address": {
+                    "int": "ADDRESS"
+                }
+            }
+        }
+    }
+}

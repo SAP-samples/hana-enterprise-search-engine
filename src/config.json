@@ -1,0 +1,21 @@
+{
+    // copy this file to .config.json and change the values
+    "port": 8000,
+    "hana": {
+        "connection": {
+            "host": "hostname",
+            "port": "30x15"
+        },
+        "users": {
+            "ddl": {
+                "user": "USER WITH DDL AUTHORIZAIONS",
+                "password": "password"
+
+            },
+            "dml": {
+                "user": "USER WITH DML AUTHORIZAIONS",
+                "password": "password"
+            }
+        }
+    }
+}

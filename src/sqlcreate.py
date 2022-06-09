@@ -21,9 +21,35 @@ ESH_CONFIG_TEMPLATE = {
                     '@UI.hidden': True
                 }]}}}
 
-'''
-ToDo: Table creation
-'''
+class Constants(object):
+    table_name = 'table_name'
+    properties = 'properties'
+    type = 'type'
+    length = 'length'
+    precision = 'precision'
+    scale = 'scale'
+ 
+def get_columns(node):
+    #Sprint("Table name: {}".format(table[Constants.name]))
+    columns = []
+    for prop_name, prop in node[Constants.properties].items():
+        if 'rel' in prop and \
+            (prop['rel']['type'] == 'containment' or 'hidden' in prop['rel'] and prop['rel']['hidden']):
+            continue
+        #print("Default: table_name={}, prop_name={}".format(node[Constants.name],prop_name))
+        #print(prop_name)
+        #print(prop)
+        if Constants.length in prop:
+            column_type = f'{prop[Constants.type]}({prop[Constants.length]})'
+        elif Constants.precision in prop and Constants.scale in prop:
+            column_type = f'{prop[Constants.type]}({prop[Constants.precision]},{prop[Constants.scale]})'
+        else:
+            # print("Default: table_name={}, prop_name={}, settings={}".format(node[Constants.name],prop_name,prop))
+            column_type = prop[Constants.type]
+        cl = f'"{prop_name}" {column_type}'
+        # TODO Implement length, scale,...
+        columns.append(cl)
+    return columns
 
 def sequence(i = 0, prefix = '', fill = 3):
     while True:

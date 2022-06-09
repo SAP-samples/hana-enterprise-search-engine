@@ -170,3 +170,51 @@ async def execute_search(tenant_id, query=Body(...)):
                     del c['Name']
             result.append(res)
     return result
+
+@app.get('/',response_class=RedirectResponse, status_code=302)
+async def get_root():
+    return RedirectResponse('/v1/searchui/' + UI_TEST_TENANT)
+ 
+@app.get('/v1/searchui/{tenant_id:path}',response_class=RedirectResponse, status_code=302)
+async def get_search_by_tenant(tenant_id):
+    redirect_url = (
+        '/sap/esh/search/ui/container/SearchUI.html?sinaConfiguration='
+        f'{{"provider":"hana_odata","url":"/sap/es/odata/{tenant_id}"}}#Action-search&/top=10'
+    )
+    return RedirectResponse(redirect_url)
+ 
+@app.get('/sap/es/odata/{tenant_id:path}/{esh_version:path}/$metadata')
+def get_search_metadata(tenant_id,esh_version):
+    print(tenant_id, esh_version)
+    return Response(content=perform_search(esh_version, tenant_id, '/$metadata', True), media_type='application/xml')
+ 
+@app.get('/sap/es/odata/{tenant_id:path}/{esh_version:path}/$metadata/{path:path}')
+def get_search_metadata_entity_set(tenant_id, esh_version, path):
+    return Response(\
+        content=perform_search(esh_version, tenant_id, '/$metadata/{}' + path, True), media_type='application/xml')
+ 
+@app.get('/sap/es/odata/{tenant_id:path}/{esh_version:path}/{path:path}')
+def get_search(tenant_id, esh_version, path, req: Request):
+    request_args = dict(req.query_params)
+    if '$top' not in request_args:
+        request_args['$top'] = 10
+    esh_query_string = f'/{path}?' + '&'.join(f'{key}={value}' for key, value in request_args.items())
+    return perform_search(esh_version, tenant_id, esh_query_string)
+ 
+@app.post('/sap/es/odata/{tenant_id:path}/{esh_version:path}/$all')
+#def post_search(root=Body(...), db: Session = Depends(get_db)):
+def post_search(tenant_id, esh_version, root=Body(...)):
+    es_search_options = IESSearchOptions(root)
+    print(json.dumps(es_search_options.to_dict(), indent=4))
+    print(es_search_options.to_statement())
+    return perform_search(esh_version, tenant_id, es_search_options.to_statement())
+ 
+@app.get('/{path:path}')
+async def tile_request(path: str, response: Response):
+    print(path)
+    print(f'https://sapui5.hana.ondemand.com/{path}')
+    async with httpx.AsyncClient() as client:
+        proxy = await client.get(f'https://sapui5.hana.ondemand.com/{path}')
+    response.body = proxy.content
+    response.status_code = proxy.status_code
+    return response

@@ -28,7 +28,7 @@ class Constants(object):
     length = 'length'
     precision = 'precision'
     scale = 'scale'
- 
+
 def get_columns(node):
     #Sprint("Table name: {}".format(table[Constants.name]))
     columns = []

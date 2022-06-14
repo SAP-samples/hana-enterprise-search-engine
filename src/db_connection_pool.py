@@ -1,22 +1,18 @@
 """DB Connection Pool for SAP HANA via hdbcli
 Usage:
-with open('.config.json', encoding = 'utf-8') as fr:
-    config = json.load(fr)
-db_con_pool_ddl = ConnectionPool(Credentials(config, 'ddl'))
+credentials = Credentials(host, port, user, password)
+db_con_pool_ddl = ConnectionPool(credentials)
 with DBConnection(db_con_pool_ddl) as db:
     db.cur.execute('select * from dummy')
 """
 from hdbcli import dbapi
 
 class Credentials():
-    """Contains credentials of a single user.
-    In: config, selected user"""
-    def __init__(self, config, user) -> None:
-        self.host = config['hana']['connection']['host']
-        self.port = config['hana']['connection']['port']
-        self.user = config['hana']['users'][user]['user']
-        self.password = config['hana']['users'][user]['password']
-
+    def __init__(self, host:str, port:int, user:str, password:str):
+        self.host = host
+        self.port = port
+        self.user = user
+        self.password = password
 
 class SharedConnection():
     """Represents the actual connection to the DB"""

@@ -11,18 +11,23 @@ import mapping
 import sqlcreate
 from esh_objects import IESSearchOptions
 import httpx
+import uvicorn
+from hdbcli.dbapi import Error as HDBException
+import sys
+import logging
+from constants import DBUserType, UserType, TENANT_PREFIX
+from config import get_user_name
 
 # run with uvicorn src.server:app --reload
 
-TENANT_PREFIX = 'HANA_SERVICES_TENANT_'
-ENTITY_PREFIX = 'ENTITY_'
-DML_USER_NAME = 'TESTHANASERVICESDML'
-UI_TEST_TENANT = 'abc'
+
+app = FastAPI()
+
 
 def handle_error(msg: str = '', status_code: int = -1):
     if status_code == -1:
         correlation_id = str(uuid.uuid4())
-        print(f'{correlation_id}: {msg}')
+        logging.info(f'{correlation_id}: {msg}')
         raise HTTPException(500, f'Error {correlation_id}')
     else:
         raise HTTPException(status_code, msg)
@@ -33,34 +38,31 @@ def validate_tenant_id(tenant_id: str):
     if len(tenant_id) > 100:
         handle_error('Tenant-ID is 100 characters maximum', 400)
 
-app = FastAPI()
-with open('.config.json', encoding = 'utf-8') as fr:
-    config = json.load(fr)
-db_con_pool_ddl = ConnectionPool(Credentials(config, 'ddl'))
-db_con_pool_dml = ConnectionPool(Credentials(config, 'dml'))
-
 @app.post('/v1/tenant/{tenant_id}')
 async def post_tenant(tenant_id):
     """Create new tenant """
     validate_tenant_id(tenant_id)
-    with DBConnection(db_con_pool_ddl) as db:
+    with DBConnection(db_con_pool[DBUserType.ADMIN]) as db:
         try:
-            db.cur.execute(f'create schema "{TENANT_PREFIX}{tenant_id}"')
-        except Exception as e:
+            db.cur.execute(f'create schema "{db_tenant_prefix}{tenant_id}"')
+        except HDBException as e:
             if e.errorcode == 386:
                 handle_error(f"Tenant creation failed. Tennant id '{tenant_id}' already exists", 422)
             else:
                 handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
         try:
             db.cur.execute(\
-                f'create table "{TENANT_PREFIX}{tenant_id}"."_MODEL" (CREATED_AT TIMESTAMP, CSON NCLOB, NODES NCLOB)')
-        except Exception as e:
+                f'create table "{db_tenant_prefix}{tenant_id}"."_MODEL" (CREATED_AT TIMESTAMP, CSON NCLOB, NODES NCLOB)')
+        except HDBException as e:
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
         try:
-            db.cur.execute(f'GRANT SELECT ON SCHEMA "{TENANT_PREFIX}{tenant_id}" TO {DML_USER_NAME}')
-            db.cur.execute(f'GRANT INSERT ON SCHEMA "{TENANT_PREFIX}{tenant_id}" TO {DML_USER_NAME}')
-            db.cur.execute(f'GRANT DELETE ON SCHEMA "{TENANT_PREFIX}{tenant_id}" TO {DML_USER_NAME}')
-        except Exception as e:
+            read_user_name = get_user_name(db_schema_prefix, DBUserType.DATA_READ)
+            write_user_name = get_user_name(db_schema_prefix, DBUserType.DATA_WRITE)
+            schema_name = f'{db_tenant_prefix}{tenant_id}'
+            db.cur.execute(f'GRANT SELECT ON SCHEMA "{schema_name}" TO {read_user_name}')
+            db.cur.execute(f'GRANT INSERT ON SCHEMA "{schema_name}" TO {write_user_name}')
+            db.cur.execute(f'GRANT DELETE ON SCHEMA "{schema_name}" TO {write_user_name}')
+        except HDBException as e:
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
 
     return {'detail': f"Tenant '{tenant_id}' successfully created"}
@@ -71,8 +73,8 @@ async def delete_tenant(tenant_id: str):
     validate_tenant_id(tenant_id)
     with DBConnection(db_con_pool_ddl) as db:
         try:
-            db.cur.execute(f'drop schema "{TENANT_PREFIX}{tenant_id}" cascade')
-        except Exception as e:
+            db.cur.execute(f'drop schema "{tenant_prefix}{tenant_id}" cascade')
+        except HDBException as e:
             if e.errorcode == 362:
                 handle_error(f"Tenant deletion failed. Tennant id '{tenant_id}' does not exist", 404)
             else:
@@ -85,11 +87,12 @@ async def get_tenants():
     with DBConnection(db_con_pool_ddl) as db:
         try:
             sql = f'select schema_name, create_time from sys.schemas \
-                where schema_name like \'{TENANT_PREFIX}%\' order by CREATE_TIME'
+                where schema_name like \'{tenant_prefix}%\' order by CREATE_TIME'
             db.cur.execute(sql)
-            return [{'name': w[0][len(TENANT_PREFIX):], 'createdAt':  w[1]}  for w in db.cur.fetchall()]
-        except Exception as e:
+            return [{'name': w[0][len(tenant_prefix):], 'createdAt':  w[1]}  for w in db.cur.fetchall()]
+        except HDBException as e:
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
+
 
 
 @app.post('/v1/deploy/{tenant_id}')
@@ -97,7 +100,7 @@ async def post_model(tenant_id: str, cson=Body(...)):
     """ Deploy model """
     validate_tenant_id(tenant_id)
     with DBConnection(db_con_pool_ddl) as db:
-        schema_name = f'{TENANT_PREFIX}{tenant_id}'
+        schema_name = f'{tenant_prefix}{tenant_id}'
         db.cur.execute(f'select count(*) from "{schema_name}"."_MODEL"')
         num_deployments = db.cur.fetchone()[0]
         if num_deployments == 0:
@@ -113,7 +116,7 @@ async def post_model(tenant_id: str, cson=Body(...)):
                 db.cur.execute(f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}',?)")
                 sql = 'insert into _MODEL (CREATED_AT, CSON, NODES) VALUES (?, ?, ?)'
                 db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(nodes)))
-            except Exception as e:
+            except HDBException as e:
                 handle_error(f'dbapi Error: {e.errorcode}, {e.errortext} for:\n\t{sql}')
             return {'detail': 'Model successfully deployed'}
         else:
@@ -123,7 +126,7 @@ async def post_model(tenant_id: str, cson=Body(...)):
 async def post_data(tenant_id, objects=Body(...)):
     """POST Data"""
     validate_tenant_id(tenant_id)
-    schema_name = f'{TENANT_PREFIX}{tenant_id}'
+    schema_name = f'{tenant_prefix}{tenant_id}'
     with DBConnection(db_con_pool_dml) as db:
         sql = f'select top 1 NODES from "{schema_name}"."_MODEL" order by CREATED_AT desc'
         db.cur.execute(sql)
@@ -132,15 +135,15 @@ async def post_data(tenant_id, objects=Body(...)):
         for table_name, v in dml['inserts'].items():
             column_names = ','.join([f'"{k}"' for k in v['columns'].keys()])
             column_placeholders = ','.join(['?']*len(v['columns']))
-            sql = f'insert into "{TENANT_PREFIX}{tenant_id}"."{table_name}" ({column_names})\
+            sql = f'insert into "{tenant_prefix}{tenant_id}"."{table_name}" ({column_names})\
                  values ({column_placeholders})'
             db.cur.executemany(sql, v['rows'])
 
 
 def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
-    schema_name = f'{TENANT_PREFIX}{tenant_id}'
+    schema_name = f'{tenant_prefix}{tenant_id}'
     search_query = f'''CALL ESH_SEARCH('["/{esh_version}/{schema_name}{esh_query.replace("'","''")}"]',?)'''
-    print(search_query)
+    #logging.info(search_query)
     with DBConnection(db_con_pool_dml) as db:
         _ = db.cur.execute(search_query)
         for row in db.cur.fetchall():
@@ -156,7 +159,7 @@ async def execute_search(tenant_id, query=Body(...)):
     validate_tenant_id(tenant_id)
     result = []
     with DBConnection(db_con_pool_dml) as db:
-        schema_name = f'{TENANT_PREFIX}{tenant_id}'
+        schema_name = f'{tenant_prefix}{tenant_id}'
         es_statements  = [f'/v20401/{schema_name}' + \
             IESSearchOptions(w).to_statement().replace("'","''") for w in query]
         search_query = f'''CALL ESH_SEARCH('{json.dumps(es_statements)}',?)'''
@@ -185,7 +188,7 @@ async def get_search_by_tenant(tenant_id):
 
 @app.get('/sap/es/odata/{tenant_id:path}/{esh_version:path}/$metadata')
 def get_search_metadata(tenant_id,esh_version):
-    print(tenant_id, esh_version)
+    #print(tenant_id, esh_version)
     return Response(content=perform_search(esh_version, tenant_id, '/$metadata', True), media_type='application/xml')
 
 @app.get('/sap/es/odata/{tenant_id:path}/{esh_version:path}/$metadata/{path:path}')
@@ -211,10 +214,31 @@ def post_search(tenant_id, esh_version, root=Body(...)):
 
 @app.get('/{path:path}')
 async def tile_request(path: str, response: Response):
-    print(path)
-    print(f'https://sapui5.hana.ondemand.com/{path}')
+    logging.info(path)
+    logging.info('https://sapui5.hana.ondemand.com/%s', path)
     async with httpx.AsyncClient() as client:
         proxy = await client.get(f'https://sapui5.hana.ondemand.com/{path}')
     response.body = proxy.content
     response.status_code = proxy.status_code
     return response
+
+if __name__ == "__main__":
+    with open('src/.config.json', encoding = 'utf-8') as fr:
+        config = json.load(fr)
+        db_con_pool = {}
+        db_host = config['db']['connection']['host']
+        db_port = config['db']['connection']['port']
+        db_schema_prefix = config['deployment']['schemaPrefix'] 
+        db_tenant_prefix = db_schema_prefix + TENANT_PREFIX
+        for user_type_value, user_item in config['db']['user'].items():
+            user_type = UserType(user_type_value)
+            user_name = user_item['name']
+            user_password = user_item['password']
+            credentials = Credentials(db_host, db_port, user_name, user_password)
+            db_con_pool[user_type] = ConnectionPool(credentials)
+            with DBConnection(db_con_pool) as db:
+                db.cur.execute('select * from dummy')
+
+    #ui_default_tenant = config['UIDefaultTenant']
+    cs = config['server']
+    uvicorn.run('server:app', host = cs['host'], port = cs['port'], log_level = cs['logLevel'], reload = cs['reload'])

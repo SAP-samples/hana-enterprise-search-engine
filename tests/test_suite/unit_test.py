@@ -3,37 +3,39 @@ Generates tables using mapping.py
 '''
 
 import sys
+import os
+import importlib.util
+import json
+import argparse
+
 current_path = sys.path[0]
 src_path = current_path[:-len('tests\\test_cases')] + 'src'
 sys.path.append(src_path)
 
 #PATH = 'tests\\mapping'
 
-import os
-import importlib.util
-import json
-import argparse
 
-spec1 = importlib.util.spec_from_file_location("sqlcreate", "src/sqlcreate.py")
+spec1 = importlib.util.spec_from_file_location('sqlcreate', 'src/sqlcreate.py')
 sqlcreate = importlib.util.module_from_spec(spec1)
 spec1.loader.exec_module(sqlcreate)
 
-spec2 = importlib.util.spec_from_file_location("mapping", "src/mapping.py")
+spec2 = importlib.util.spec_from_file_location('mapping', 'src/mapping.py')
 mapping = importlib.util.module_from_spec(spec2)
 spec2.loader.exec_module(mapping)
 
 class TestPK:
-    nextID = {}
+    ''' Primary key generator for test to get reproducible key values'''
+    next_id = {}
     @classmethod
     def get_pk(cls, table_name, subtable_level):
-        if not table_name in cls.nextID:
-            cls.nextID[table_name] = 0
-        res = f'ID:{table_name}:{str(cls.nextID[table_name])}'
-        cls.nextID[table_name] += 1
+        if not table_name in cls.next_id:
+            cls.next_id[table_name] = 0
+        res = f'ID:{table_name}:{str(cls.next_id[table_name])}'
+        cls.next_id[table_name] += 1
         return res
     @classmethod
     def reset(cls):
-        cls.nextID = {}
+        cls.next_id = {}
     @staticmethod
     def get_definition(subtable_level):
         return ('_ID', {'type':'VARCHAR', 'length': 36})
@@ -49,7 +51,7 @@ folders = next(os.walk(current_path))[1]
 
 # Check passed arguments
 if args.test and not args.folder:
-    print(f'Error. Test number provided but no --folder')
+    print('Error. Test number provided but no --folder')
     exit(-1)
 if args.folder:
     if args.folder in folders:
@@ -117,9 +119,9 @@ for folder in folders:
                 pk = TestPK
                 pk.reset()
                 with open(full_data_file_name, encoding = 'utf-8') as f:
-                        db = mapping.objects_to_dml(nodes, json.load(f), pk)
-                        with open(os.path.join(folder_path, db_file_name), 'w', encoding = 'utf-8') as fw:
-                            json.dump(db, fw, indent=4)
-                            print(f'{folder}.{db_file_name} - created')
+                    db = mapping.objects_to_dml(nodes, json.load(f), pk)
+                    with open(os.path.join(folder_path, db_file_name), 'w', encoding = 'utf-8') as fw:
+                        json.dump(db, fw, indent=4)
+                        print(f'{folder}.{db_file_name} - created')
             else:
                 print(f'ERROR: {folder}.{data_file_name} - MISSING')

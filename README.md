@@ -23,8 +23,54 @@ Please edit this file as it is the primary description file for your project. Yo
 <!-- Please include SEO-friendly description -->
 
 ## Requirements
+- Access to an up-to date SAP HANA (on-prem or cloud)
+- Install latest version of [Python 3.10](https://www.python.org/downloads/ "downloads")
+- [SAP CAP](https://cap.cloud.sap/docs/get-started/), including node.js as described in the "local setup" section
+- [Visual Studio Code](https://code.visualstudio.com/download)
+- [SAP CDS language support for Visual Studio Code](https://cap.cloud.sap/docs/tools/#add-cds-editor)
+
+Enable Python linting in Visual Studio Code as described [here](https://code.visualstudio.com/docs/python/linting)
+
+In the project folder execute
+python3 -m venv .venv
+
+Remark: On windows use "python" instead of "python3"
+
+Activate the virtual environment with
+.venv\scripts\activate
+
+Remark: The terminal promt shows a prefix "(.venv)" if the virtual environment is activ.
 
 ## Download and Installation
+
+### Download
+### Install required packages
+Make sure that the virtual environment is active before installing the required packages with
+python3 -m pip install -r requirements/core.txt
+
+For development and test installations run additionally
+python3 -m pip install -r requirements/development.txt
+
+#### Configuration
+Installation will create some HANA DB users and the src/.config.json file. In this file you find the users and passwords created for the installation in case of 
+Go to the project folder and run the config script
+run pyhton src/config.py with the following parameters
+python src/config.py --action install --db-host <<your_hana_host>> --db-port <<your_hana_port>> --db-setup-user <<your HANA admin user>> --db-setup-password <<your HANA admin password>> --db-schema-prefix <<your HANA >>
+
+Uninstall:
+python src/config.py --action delete --db-setup-user <<your HANA admin user>> --db-setup-password <<your HANA admin password>>
+
+#### Start server
+Active virtual environment in the project folder with .venv\scripts\activate 
+Change to the src folder with cd src
+For test purposes start the server with uvicorn server:app --reload
+For productive use start the server with uvicorn server:app
+Server started sucessfully if the message "Application startup complete" is displayed
+
+### Run end-to-end test
+Active virtual environment in the project folder with .venv\scripts\activate 
+python3 tests\test_suite\e2e_service_test.py
+
 
 ## Known Issues
 <!-- You may simply state "No known issues. -->

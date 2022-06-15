@@ -116,10 +116,10 @@ for folder in folders:
                 print(f'{folder}.{ddl_file_name} - created')
             full_data_file_name = os.path.join(folder_path, data_file_name)
             if os.path.exists(full_data_file_name):
-                pk = TestPK
-                pk.reset()
+                PK = TestPK
+                PK.reset()
                 with open(full_data_file_name, encoding = 'utf-8') as f:
-                    db = mapping.objects_to_dml(nodes, json.load(f), pk)
+                    db = mapping.objects_to_dml(nodes, json.load(f), PK)
                     with open(os.path.join(folder_path, db_file_name), 'w', encoding = 'utf-8') as fw:
                         json.dump(db, fw, indent=4)
                         print(f'{folder}.{db_file_name} - created')

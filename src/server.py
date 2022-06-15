@@ -14,8 +14,9 @@ import httpx
 import uvicorn
 from hdbcli.dbapi import Error as HDBException
 import logging
-from constants import DBUserType, UserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH
+from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH
 from config import get_user_name
+from typing import TypedDict
 
 # run with uvicorn src.server:app --reload
 
@@ -231,6 +232,7 @@ async def tile_request(path: str, response: Response):
     response.status_code = proxy.status_code
     return response
 
+
 if __name__ == '__main__':
     with open('src/.config.json', encoding = 'utf-8') as fr:
         config = json.load(fr)
@@ -240,12 +242,12 @@ if __name__ == '__main__':
         db_schema_prefix = config['deployment']['schemaPrefix']
         db_tenant_prefix = db_schema_prefix + TENANT_PREFIX
         for user_type_value, user_item in config['db']['user'].items():
-            user_type = UserType(user_type_value)
+            user_type = DBUserType(user_type_value)
             user_name = user_item['name']
             user_password = user_item['password']
             credentials = Credentials(db_host, db_port, user_name, user_password)
             db_con_pool[user_type] = ConnectionPool(credentials)
-            with DBConnection(db_con_pool) as db_main:
+            with DBConnection(db_con_pool[user_type]) as db_main:
                 db_main.cur.execute('select * from dummy')
 
     #ui_default_tenant = config['UIDefaultTenant']

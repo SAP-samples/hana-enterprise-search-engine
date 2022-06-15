@@ -55,8 +55,10 @@ if __name__ == '__main__':
         match setup_action:
             case SetupAction.INSTALL:
                 if os.path.exists(config_file_full_name):
-                    logging.error('existing installation detected. Config file %s already exists.', config_file_full_name)
-                    msg = 'instead use --action delete or --action cleanup. Warning: this will delete all data of all tenants'
+                    logging.error('existing installation detected. Config file %s already exists.',\
+                        config_file_full_name)
+                    msg = ('instead use --action delete or --action cleanup. '
+                    'Warning: this will delete all data of all tenants')
                     logging.error(msg)
                     sys.exit(-1)
                 config = {'version': CURRENT_VERSION}
@@ -102,12 +104,17 @@ if __name__ == '__main__':
                             config['db']['user'][user_type.value] = {'name': user_name, 'password': user_password}
                             match user_type:
                                 case DBUserType.ADMIN:
-                                    db.cur.execute(f'GRANT CREATE SCHEMA TO {user_name}')
+                                    sql = f'GRANT CREATE SCHEMA TO {user_name}'
+                                    db.cur.execute(sql)
                                 case DBUserType.DATA_READ:
-                                    db.cur.execute(f'GRANT EXECUTE ON SYS.ESH_SEARCH TO {user_name} WITH GRANT OPTION')
-                                    db.cur.execute(f'GRANT EXECUTE ON SYS.ESH_CONFIG TO {user_name} WITH GRANT OPTION')
-                                    db.cur.execute(f'GRANT SELECT ON _SYS_RT.ESH_MODEL TO {user_name} WITH GRANT OPTION')
-                                    db.cur.execute(f'GRANT SELECT ON _SYS_RT.ESH_MODEL_PROPERTY TO {user_name} WITH GRANT OPTION')
+                                    sqls = [\
+                                        f'GRANT EXECUTE ON SYS.ESH_SEARCH TO {user_name} WITH GRANT OPTION',\
+                                        f'GRANT EXECUTE ON SYS.ESH_CONFIG TO {user_name} WITH GRANT OPTION',\
+                                        f'GRANT SELECT ON _SYS_RT.ESH_MODEL TO {user_name} WITH GRANT OPTION',\
+                                        f'GRANT SELECT ON _SYS_RT.ESH_MODEL_PROPERTY TO {user_name} WITH GRANT OPTION'\
+                                        ]
+                                    for sql in sqls:
+                                        db.cur.execute(sql)
                         with open(config_file_full_name, 'w', encoding = 'utf-8') as fw:
                             json.dump(config, fw, indent = 4)
             case SetupAction.DELETE:

@@ -44,6 +44,7 @@ Remark: The terminal promt shows a prefix "(.venv)" if the virtual environment i
 ## Download and Installation
 
 ### Download
+Clone or download this repository
 ### Install required packages
 Make sure that the virtual environment is active before installing the required packages with
 python3 -m pip install -r requirements/core.txt

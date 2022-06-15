@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, Body, HTTPException, Response
 from starlette.responses import RedirectResponse
 import json
 import uuid
-from db_connection_pool import DBConnection, ConnectionPool, Credentials
+from db_connection_pool import DBConnection, ConnectionPool, ConnectionPools, Credentials
 import mapping
 import sqlcreate
 from esh_objects import IESSearchOptions
@@ -15,14 +15,13 @@ import uvicorn
 from hdbcli.dbapi import Error as HDBException
 import logging
 from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH
-from config import get_user_name
+from config import get_user_name, Config
 from typing import TypedDict
 
 # run with uvicorn src.server:app --reload
-
-
 app = FastAPI()
 
+karl = ''
 
 def handle_error(msg: str = '', status_code: int = -1):
     if status_code == -1:
@@ -40,16 +39,17 @@ def validate_tenant_id(tenant_id: str):
 
 def get_tenant_schema_name(tenant_id: str):
     validate_tenant_id(tenant_id)
-    return '{db_tenant_prefix}{tenant_id}'
+    return f'{Config.db_tenant_prefix}{tenant_id}'
 
 
 @app.post('/v1/tenant/{tenant_id}')
 async def post_tenant(tenant_id):
     """Create new tenant """
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(db_con_pool[DBUserType.ADMIN]) as db:
+    with DBConnection(ConnectionPools.pools[DBUserType.ADMIN]) as db:
         try:
-            db.cur.execute(f'create schema "{tenant_schema_name}"')
+            sql = f'create schema "{tenant_schema_name}"'
+            db.cur.execute(sql)
         except HDBException as e:
             if e.errorcode == 386:
                 handle_error(f"Tenant creation failed. Tennant id '{tenant_id}' already exists", 422)
@@ -61,13 +61,17 @@ async def post_tenant(tenant_id):
         except HDBException as e:
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
         try:
-            read_user_name = get_user_name(db_schema_prefix, DBUserType.DATA_READ)
-            write_user_name = get_user_name(db_schema_prefix, DBUserType.DATA_WRITE)
-            schema_modify_user_name = get_user_name(db_schema_prefix, DBUserType.SCHEMA_MODIFY)
+            read_user_name = get_user_name(Config.db_schema_prefix, DBUserType.DATA_READ)
+            write_user_name = get_user_name(Config.db_schema_prefix, DBUserType.DATA_WRITE)
+            schema_modify_user_name = get_user_name(Config.db_schema_prefix, DBUserType.SCHEMA_MODIFY)
             db.cur.execute(f'GRANT SELECT ON SCHEMA "{tenant_schema_name}" TO {read_user_name}')
+            db.cur.execute(f'GRANT SELECT ON "{tenant_schema_name}"."_MODEL" TO {read_user_name}')
             db.cur.execute(f'GRANT INSERT ON SCHEMA "{tenant_schema_name}" TO {write_user_name}')
             db.cur.execute(f'GRANT DELETE ON SCHEMA "{tenant_schema_name}" TO {write_user_name}')
-            db.cur.execute(f'GRANT CREATE ANY ON SCHEMA "{tenant_schema_name}" TO {schema_modify_user_name}')
+            db.cur.execute(f'GRANT SELECT ON "{tenant_schema_name}"."_MODEL" TO {write_user_name}')
+            db.cur.execute(f'GRANT SELECT ON "{tenant_schema_name}"."_MODEL" TO {schema_modify_user_name}')
+            db.cur.execute(f'GRANT INSERT ON "{tenant_schema_name}"."_MODEL" TO {schema_modify_user_name}')
+            db.cur.execute(f'GRANT DELETE ON "{tenant_schema_name}"."_MODEL" TO {schema_modify_user_name}')
             db.cur.execute(f'GRANT CREATE ANY ON SCHEMA "{tenant_schema_name}" TO {schema_modify_user_name}')
             db.cur.execute(f'GRANT DROP ON SCHEMA "{tenant_schema_name}" TO {schema_modify_user_name}')
             db.cur.execute(f'GRANT ALTER ON SCHEMA "{tenant_schema_name}" TO {schema_modify_user_name}')
@@ -81,7 +85,7 @@ async def post_tenant(tenant_id):
 async def delete_tenant(tenant_id: str):
     """Delete tenant"""
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(db_con_pool[DBUserType.ADMIN]) as db:
+    with DBConnection(ConnectionPools.pools[DBUserType.ADMIN]) as db:
         try:
             db.cur.execute(f'drop schema "{tenant_schema_name}" cascade')
         except HDBException as e:
@@ -94,12 +98,12 @@ async def delete_tenant(tenant_id: str):
 @app.get('/v1/tenant')
 async def get_tenants():
     """Get all tenants"""
-    with DBConnection(db_con_pool[DBUserType.ADMIN]) as db:
+    with DBConnection(ConnectionPools.pools[DBUserType.ADMIN]) as db:
         try:
             sql = f'select schema_name, create_time from sys.schemas \
-                where schema_name like \'{db_tenant_prefix}%\' order by CREATE_TIME'
+                where schema_name like \'{Config.db_tenant_prefix}%\' order by CREATE_TIME'
             db.cur.execute(sql)
-            return [{'name': w[0][len(db_tenant_prefix):], 'createdAt':  w[1]}  for w in db.cur.fetchall()]
+            return [{'name': w[0][len(Config.db_tenant_prefix):], 'createdAt':  w[1]}  for w in db.cur.fetchall()]
         except HDBException as e:
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
 
@@ -109,7 +113,7 @@ async def get_tenants():
 async def post_model(tenant_id: str, cson=Body(...)):
     """ Deploy model """
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(db_con_pool[DBUserType.SCHEMA_MODIFY]) as db:
+    with DBConnection(ConnectionPools.pools[DBUserType.SCHEMA_MODIFY]) as db:
         db.cur.execute(f'select count(*) from "{tenant_schema_name}"."_MODEL"')
         num_deployments = db.cur.fetchone()[0]
         if num_deployments == 0:
@@ -135,7 +139,7 @@ async def post_model(tenant_id: str, cson=Body(...)):
 async def post_data(tenant_id, objects=Body(...)):
     """POST Data"""
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(db_con_pool[DBUserType.DATA_WRITE]) as db:
+    with DBConnection(ConnectionPools.pools[DBUserType.DATA_WRITE]) as db:
         sql = f'select top 1 NODES from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
         db.cur.execute(sql)
         nodes = json.loads(db.cur.fetchone()[0])
@@ -152,7 +156,7 @@ def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
     tenant_schema_name = get_tenant_schema_name(tenant_id)
     search_query = f'''CALL ESH_SEARCH('["/{esh_version}/{tenant_schema_name}{esh_query.replace("'","''")}"]',?)'''
     #logging.info(search_query)
-    with DBConnection(db_con_pool[DBUserType.DATA_READ]) as db:
+    with DBConnection(ConnectionPools.pools[DBUserType.DATA_READ]) as db:
         _ = db.cur.execute(search_query)
         for row in db.cur.fetchall():
             if is_metadata:
@@ -166,7 +170,7 @@ def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
 async def execute_search(tenant_id, query=Body(...)):
     validate_tenant_id(tenant_id)
     result = []
-    with DBConnection(db_con_pool[DBUserType.DATA_READ]) as db:
+    with DBConnection(ConnectionPools.pools[DBUserType.DATA_READ]) as db:
         tenant_schema_name = get_tenant_schema_name(tenant_id)
         es_statements  = [f'/v20401/{tenant_schema_name}' + \
             IESSearchOptions(w).to_statement().replace("'","''") for w in query]
@@ -232,24 +236,24 @@ async def tile_request(path: str, response: Response):
     response.status_code = proxy.status_code
     return response
 
-
 if __name__ == '__main__':
+    karl = 'test'
     with open('src/.config.json', encoding = 'utf-8') as fr:
         config = json.load(fr)
-        db_con_pool = {}
         db_host = config['db']['connection']['host']
         db_port = config['db']['connection']['port']
-        db_schema_prefix = config['deployment']['schemaPrefix']
-        db_tenant_prefix = db_schema_prefix + TENANT_PREFIX
+        Config.db_schema_prefix = config['deployment']['schemaPrefix']
+        Config.db_tenant_prefix = Config.db_schema_prefix + TENANT_PREFIX
         for user_type_value, user_item in config['db']['user'].items():
             user_type = DBUserType(user_type_value)
             user_name = user_item['name']
             user_password = user_item['password']
             credentials = Credentials(db_host, db_port, user_name, user_password)
-            db_con_pool[user_type] = ConnectionPool(credentials)
-            with DBConnection(db_con_pool[user_type]) as db_main:
+            ConnectionPools.pools[user_type] = ConnectionPool(credentials)
+            with DBConnection(ConnectionPools.pools[user_type]) as db_main:
                 db_main.cur.execute('select * from dummy')
 
     #ui_default_tenant = config['UIDefaultTenant']
     cs = config['server']
     uvicorn.run('server:app', host = cs['host'], port = cs['port'], log_level = cs['logLevel'], reload = cs['reload'])
+

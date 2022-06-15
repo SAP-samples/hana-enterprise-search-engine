@@ -7,6 +7,10 @@ with DBConnection(db_con_pool_ddl) as db:
 """
 from hdbcli import dbapi
 
+class ConnectionPools():
+    pools = {}
+
+
 class Credentials():
     def __init__(self, host:str, port:int, user:str, password:str):
         self.host = host

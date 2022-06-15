@@ -113,6 +113,7 @@ for folder in folders:
             res.append(r.status_code)
             r = requests.post(f'{BASE_URL}/v1/deploy/{tenant_name}', json=cson)
             res.append(r.status_code)
+
             r = requests.post(f'{BASE_URL}/v1/data/{tenant_name}', json=data)
             res.append(r.status_code)
             if search_request:

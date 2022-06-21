@@ -1,15 +1,9 @@
 '''
 E2E test cases using the REST API
 '''
-
-TEST_TENANT = 'test'
-BASE_URL = 'http://127.0.0.1:8000'
-
 import os
-import importlib.util
 import json
 import argparse
-from urllib import request
 import requests
 import time
 import sys
@@ -18,7 +12,7 @@ parser = argparse.ArgumentParser(description='Runs test cases for mapper')
 parser.add_argument('-f', '--folder', nargs='?', help='folder name')
 parser.add_argument('-t', '--test', nargs='?', help='test number')
 parser.add_argument('--nocdscompile', help='no cds compiliation', action='store_true')
-parser.add_argument('--tenant', nargs='?', help='test tenant')
+#parser.add_argument('--tenant', nargs='?', help='test tenant')
 parser.add_argument('--nocleanup', help='no cleanup after test execution', action='store_true')
 args = parser.parse_args()
 
@@ -30,20 +24,21 @@ def round_dict(d, k):
     if k in d:
         d[k] = round(d[k], 1)
 
-def round_esh_response(res):
-    round_dict(res, '@com.sap.vocabularies.Search.v1.ResponseTime')
-    round_dict(res, '@com.sap.vocabularies.Search.v1.SearchTime')
-    if '@com.sap.vocabularies.Search.v1.SearchStatistics' in res and 'ConnectorStatistics' in res['@com.sap.vocabularies.Search.v1.SearchStatistics']:
-        for c in res['@com.sap.vocabularies.Search.v1.SearchStatistics']['ConnectorStatistics']:
+def round_esh_response(esh_res):
+    round_dict(esh_res, '@com.sap.vocabularies.Search.v1.ResponseTime')
+    round_dict(esh_res, '@com.sap.vocabularies.Search.v1.SearchTime')
+    if '@com.sap.vocabularies.Search.v1.SearchStatistics' in esh_res\
+        and 'ConnectorStatistics' in esh_res['@com.sap.vocabularies.Search.v1.SearchStatistics']:
+        for c in esh_res['@com.sap.vocabularies.Search.v1.SearchStatistics']['ConnectorStatistics']:
             round_dict(c, '@com.sap.vocabularies.Search.v1.SearchTime')
             round_dict(c, '@com.sap.vocabularies.Search.v1.CPUTime')
-    return res
+    return esh_res
 
 folders = next(os.walk(current_path))[1]
 
 # Check passed arguments
 if args.test and not args.folder:
-    print(f'Error. Test number provided but no --folder')
+    print('Error. Test number provided but no --folder')
     exit(-1)
 if args.folder:
     if args.folder in folders:
@@ -62,11 +57,11 @@ if args.folder:
                 print(f'CSON file does not exist for test number {args.test} does not exist in folder {args.folder}')
                 exit(-1)
 
-if args.tenant:
-    tenant_name = args.tenant
-else:
-    tenant_name = TEST_TENANT
+with open('src/.config.json', encoding = 'utf-8') as fr:
+    config = json.load(fr)
 
+tenant_name = config['deployment']['testTenant']
+base_url = f"http://{config['server']['host']}:{config['server']['port']}"
 
 for folder in folders:
     folder_path = os.path.join(current_path, folder)
@@ -107,25 +102,25 @@ for folder in folders:
             with open(os.path.join(folder_path, data_file_name), encoding = 'utf-8') as f:
                 data = json.load(f)
             res = []
-            r = requests.delete(f'{BASE_URL}/v1/tenant/{tenant_name}')
+            r = requests.delete(f'{base_url}/v1/tenant/{tenant_name}')
             ts = time.time()
-            r = requests.post(f'{BASE_URL}/v1/tenant/{tenant_name}')
+            r = requests.post(f'{base_url}/v1/tenant/{tenant_name}')
             res.append(r.status_code)
-            r = requests.post(f'{BASE_URL}/v1/deploy/{tenant_name}', json=cson)
+            r = requests.post(f'{base_url}/v1/deploy/{tenant_name}', json=cson)
             res.append(r.status_code)
 
-            r = requests.post(f'{BASE_URL}/v1/data/{tenant_name}', json=data)
+            r = requests.post(f'{base_url}/v1/data/{tenant_name}', json=data)
             res.append(r.status_code)
             if search_request:
                 tstart = time.time()
-                r = requests.post(f'{BASE_URL}/v1/search/{tenant_name}', json=search_request)
+                r = requests.post(f'{base_url}/v1/search/{tenant_name}', json=search_request)
                 print(time.time() - tstart)
                 res.append(r.status_code)
                 with open(os.path.join(folder_path, search_response_file_name), 'w', encoding = 'utf-8') as fw:
                     search_response = [round_esh_response(w) for w in r.json()]
                     json.dump(search_response, fw, indent=4)
             if not args.nocleanup:
-                r = requests.delete(f'{BASE_URL}/v1/tenant/{tenant_name}')
+                r = requests.delete(f'{base_url}/v1/tenant/{tenant_name}')
                 res.append(r.status_code)
             trun = round((time.time() - ts), 1)
             if set(res) == set([200]):

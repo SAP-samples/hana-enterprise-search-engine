@@ -16,7 +16,6 @@ from hdbcli.dbapi import Error as HDBException
 import logging
 from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH
 from config import get_user_name, Config
-from typing import TypedDict
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()

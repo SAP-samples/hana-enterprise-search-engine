@@ -20,8 +20,7 @@ class Config:
     db_schema_prefix = ''
     db_tenant_prefix = ''
 
-
-def generate_password(l:int = 32):
+def generate_secure_alphanum_string(l:int = 32):
     alphabet = string.ascii_letters + string.digits
     return ''.join(secrets.choice(alphabet) for i in range(l))
 
@@ -72,7 +71,9 @@ if __name__ == '__main__':
                 config['server']['port'] = args.srv_port
                 config['server']['logLevel'] = args.srv_log_level
                 config['server']['reload'] = args.srv_reload
-                config['deployment'] = {'schemaPrefix': args.db_schema_prefix}
+                config['deployment'] = {}
+                config['deployment']['schemaPrefix'] = args.db_schema_prefix
+                config['deployment']['testTenant'] = generate_secure_alphanum_string()
                 config['db'] = {'connection':{'host': args.db_host, 'port': args.db_port}, 'user':{}}
                 exceeded_by = len(args.db_schema_prefix) - SCHEMA_PREFIX_MAX_LENGTH
                 if exceeded_by > 0:
@@ -102,7 +103,7 @@ if __name__ == '__main__':
                             sys.exit(-1)
                         for user_type in DBUserType:
                             user_name = get_user_name(args.db_schema_prefix, user_type)
-                            user_password = generate_password()
+                            user_password = generate_secure_alphanum_string()
                             sql = f'CREATE USER {user_name} PASSWORD {user_password} NO FORCE_FIRST_PASSWORD_CHANGE'
                             db.cur.execute(sql)
                             logging.info('DB User %s created', user_name)

@@ -16,11 +16,10 @@ from hdbcli.dbapi import Error as HDBException
 import logging
 from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH
 from config import get_user_name, Config
+import sys
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
-
-karl = ''
 
 def handle_error(msg: str = '', status_code: int = -1):
     if status_code == -1:
@@ -235,10 +234,22 @@ async def tile_request(path: str, response: Response):
     response.status_code = proxy.status_code
     return response
 
+def reinstall_needed(l_versions, l_config):
+    reinstall = [k for k, v in l_versions.items()\
+        if k > l_config['version'] and 'reinstall' in v and v['reinstall']]
+    return len(reinstall) > 0
+
 if __name__ == '__main__':
-    karl = 'test'
+    with open('src/versions.json', encoding = 'utf-8') as fr:
+        versions = json.load(fr)
     with open('src/.config.json', encoding = 'utf-8') as fr:
         config = json.load(fr)
+        if reinstall_needed(versions, config):
+            logging.error('Reset needed due to sofftware changes')
+            logging.error('Delete all tenants by running python src/config.py --action delete')
+            logging.error('Install new version by running python src/config.py --action install')
+            logging.error('Warning: System needs to be setup from scratch again!')
+            sys.exit(-1)
         db_host = config['db']['connection']['host']
         db_port = config['db']['connection']['port']
         Config.db_schema_prefix = config['deployment']['schemaPrefix']

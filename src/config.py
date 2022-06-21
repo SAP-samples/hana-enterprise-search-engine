@@ -152,3 +152,5 @@ if __name__ == '__main__':
     except HDBException as e:
         if e.errorcode == 10:
             logging.error('Authentication failed. Check provided db-setup-user / db-setup-passord')
+        else:
+            logging.error(e.errortext)

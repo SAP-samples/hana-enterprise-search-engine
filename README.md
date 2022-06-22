@@ -8,7 +8,8 @@ This example shows how to use [SAP HANA Search](https://help.sap.com/docs/SAP_HA
 - define separated data stores using a schema-based tenant concept
 - define an object-oriented data model using a subset of [SAP CAP CSN](https://cap.cloud.sap/docs/cds/csn  "documentation")
 - load data in JSON-Format
-- search via the OData-based search-API
+- search
+
 via REST-APIs.
 
 ## Requirements

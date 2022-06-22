@@ -16,10 +16,6 @@ class SetupAction(Enum):
     DELETE = 'delete'
     CLEANUP = 'cleanup'
 
-class Config:
-    db_schema_prefix = ''
-    db_tenant_prefix = ''
-
 def generate_secure_alphanum_string(l:int = 32):
     alphabet = string.ascii_letters + string.digits
     return ''.join(secrets.choice(alphabet) for i in range(l))

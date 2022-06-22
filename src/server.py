@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, Body, HTTPException, Response
 from starlette.responses import RedirectResponse
 import json
 import uuid
-from db_connection_pool import DBConnection, ConnectionPool, ConnectionPools, Credentials
+from db_connection_pool import DBConnection, ConnectionPool, Credentials
 import mapping
 import sqlcreate
 from esh_objects import IESSearchOptions
@@ -15,8 +15,10 @@ import uvicorn
 from hdbcli.dbapi import Error as HDBException
 import logging
 from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH
-from config import get_user_name, Config
+from config import get_user_name
 import sys
+#import logging
+import server_globals as globals
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
@@ -24,7 +26,7 @@ app = FastAPI()
 def handle_error(msg: str = '', status_code: int = -1):
     if status_code == -1:
         correlation_id = str(uuid.uuid4())
-        logging.info('%s: %s', correlation_id, msg)
+        logging.error('%s: %s', correlation_id, msg)
         raise HTTPException(500, f'Error {correlation_id}')
     else:
         raise HTTPException(status_code, msg)
@@ -37,14 +39,14 @@ def validate_tenant_id(tenant_id: str):
 
 def get_tenant_schema_name(tenant_id: str):
     validate_tenant_id(tenant_id)
-    return f'{Config.db_tenant_prefix}{tenant_id}'
+    return f'{globals.db_tenant_prefix}{tenant_id}'
 
 
 @app.post('/v1/tenant/{tenant_id}')
 async def post_tenant(tenant_id):
     """Create new tenant """
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(ConnectionPools.pools[DBUserType.ADMIN]) as db:
+    with DBConnection(globals.connection_pools[DBUserType.ADMIN]) as db:
         try:
             sql = f'create schema "{tenant_schema_name}"'
             db.cur.execute(sql)
@@ -59,9 +61,9 @@ async def post_tenant(tenant_id):
         except HDBException as e:
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
         try:
-            read_user_name = get_user_name(Config.db_schema_prefix, DBUserType.DATA_READ)
-            write_user_name = get_user_name(Config.db_schema_prefix, DBUserType.DATA_WRITE)
-            schema_modify_user_name = get_user_name(Config.db_schema_prefix, DBUserType.SCHEMA_MODIFY)
+            read_user_name = get_user_name(globals.db_schema_prefix, DBUserType.DATA_READ)
+            write_user_name = get_user_name(globals.db_schema_prefix, DBUserType.DATA_WRITE)
+            schema_modify_user_name = get_user_name(globals.db_schema_prefix, DBUserType.SCHEMA_MODIFY)
             db.cur.execute(f'GRANT SELECT ON SCHEMA "{tenant_schema_name}" TO {read_user_name}')
             db.cur.execute(f'GRANT SELECT ON "{tenant_schema_name}"."_MODEL" TO {read_user_name}')
             db.cur.execute(f'GRANT INSERT ON SCHEMA "{tenant_schema_name}" TO {write_user_name}')
@@ -83,7 +85,7 @@ async def post_tenant(tenant_id):
 async def delete_tenant(tenant_id: str):
     """Delete tenant"""
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(ConnectionPools.pools[DBUserType.ADMIN]) as db:
+    with DBConnection(globals.connection_pools[DBUserType.ADMIN]) as db:
         try:
             db.cur.execute(f'drop schema "{tenant_schema_name}" cascade')
         except HDBException as e:
@@ -96,12 +98,12 @@ async def delete_tenant(tenant_id: str):
 @app.get('/v1/tenant')
 async def get_tenants():
     """Get all tenants"""
-    with DBConnection(ConnectionPools.pools[DBUserType.ADMIN]) as db:
+    with DBConnection(globals.connection_pools[DBUserType.ADMIN]) as db:
         try:
             sql = f'select schema_name, create_time from sys.schemas \
-                where schema_name like \'{Config.db_tenant_prefix}%\' order by CREATE_TIME'
+                where schema_name like \'{globals.db_tenant_prefix}%\' order by CREATE_TIME'
             db.cur.execute(sql)
-            return [{'name': w[0][len(Config.db_tenant_prefix):], 'createdAt':  w[1]}  for w in db.cur.fetchall()]
+            return [{'name': w[0][len(globals.db_tenant_prefix):], 'createdAt':  w[1]}  for w in db.cur.fetchall()]
         except HDBException as e:
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
 
@@ -111,7 +113,7 @@ async def get_tenants():
 async def post_model(tenant_id: str, cson=Body(...)):
     """ Deploy model """
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(ConnectionPools.pools[DBUserType.SCHEMA_MODIFY]) as db:
+    with DBConnection(globals.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
         db.cur.execute(f'select count(*) from "{tenant_schema_name}"."_MODEL"')
         num_deployments = db.cur.fetchone()[0]
         if num_deployments == 0:
@@ -137,10 +139,14 @@ async def post_model(tenant_id: str, cson=Body(...)):
 async def post_data(tenant_id, objects=Body(...)):
     """POST Data"""
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(ConnectionPools.pools[DBUserType.DATA_WRITE]) as db:
+    with DBConnection(globals.connection_pools[DBUserType.DATA_WRITE]) as db:
         sql = f'select top 1 NODES from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
         db.cur.execute(sql)
-        nodes = json.loads(db.cur.fetchone()[0])
+        res = db.cur.fetchone()
+        if not (res and len(res) == 1):
+            logging.error(f'Tenant %s has no entries in the _MODEL table', tenant_id)
+            handle_error('Configuration inconsistent', 500)
+        nodes = json.loads(res[0])
         dml = mapping.objects_to_dml(nodes, objects)
         for table_name, v in dml['inserts'].items():
             column_names = ','.join([f'"{k}"' for k in v['columns'].keys()])
@@ -154,7 +160,7 @@ def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
     tenant_schema_name = get_tenant_schema_name(tenant_id)
     search_query = f'''CALL ESH_SEARCH('["/{esh_version}/{tenant_schema_name}{esh_query.replace("'","''")}"]',?)'''
     #logging.info(search_query)
-    with DBConnection(ConnectionPools.pools[DBUserType.DATA_READ]) as db:
+    with DBConnection(globals.connection_pools[DBUserType.DATA_READ]) as db:
         _ = db.cur.execute(search_query)
         for row in db.cur.fetchall():
             if is_metadata:
@@ -168,9 +174,9 @@ def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
 async def execute_search(tenant_id, query=Body(...)):
     validate_tenant_id(tenant_id)
     result = []
-    with DBConnection(ConnectionPools.pools[DBUserType.DATA_READ]) as db:
+    with DBConnection(globals.connection_pools[DBUserType.DATA_READ]) as db:
         tenant_schema_name = get_tenant_schema_name(tenant_id)
-        es_statements  = [f'/v20401/{tenant_schema_name}' + \
+        es_statements  = [f'/v{globals.esh_apiversion}/{tenant_schema_name}' + \
             IESSearchOptions(w).to_statement().replace("'","''") for w in query]
         search_query = f'''CALL ESH_SEARCH('{json.dumps(es_statements)}',?)'''
         _ = db.cur.execute(search_query)
@@ -244,24 +250,31 @@ if __name__ == '__main__':
         versions = json.load(fr)
     with open('src/.config.json', encoding = 'utf-8') as fr:
         config = json.load(fr)
-        if reinstall_needed(versions, config):
-            logging.error('Reset needed due to sofftware changes')
-            logging.error('Delete all tenants by running python src/config.py --action delete')
-            logging.error('Install new version by running python src/config.py --action install')
-            logging.error('Warning: System needs to be setup from scratch again!')
-            sys.exit(-1)
-        db_host = config['db']['connection']['host']
-        db_port = config['db']['connection']['port']
-        Config.db_schema_prefix = config['deployment']['schemaPrefix']
-        Config.db_tenant_prefix = Config.db_schema_prefix + TENANT_PREFIX
-        for user_type_value, user_item in config['db']['user'].items():
-            user_type = DBUserType(user_type_value)
-            user_name = user_item['name']
-            user_password = user_item['password']
-            credentials = Credentials(db_host, db_port, user_name, user_password)
-            ConnectionPools.pools[user_type] = ConnectionPool(credentials)
-            with DBConnection(ConnectionPools.pools[user_type]) as db_main:
-                db_main.cur.execute('select * from dummy')
+    if reinstall_needed(versions, config):
+        logging.error('Reset needed due to sofftware changes')
+        logging.error('Delete all tenants by running python src/config.py --action delete')
+        logging.error('Install new version by running python src/config.py --action install')
+        logging.error('Warning: System needs to be setup from scratch again!')
+        sys.exit(-1)
+    db_host = config['db']['connection']['host']
+    db_port = config['db']['connection']['port']
+    globals.db_schema_prefix = config['deployment']['schemaPrefix']
+    globals.db_tenant_prefix = globals.db_schema_prefix + TENANT_PREFIX
+    for user_type_value, user_item in config['db']['user'].items():
+        user_type = DBUserType(user_type_value)
+        user_name = user_item['name']
+        user_password = user_item['password']
+        credentials = Credentials(db_host, db_port, user_name, user_password)
+        globals.connection_pools[user_type] = ConnectionPool(credentials)
+        with DBConnection(globals.connection_pools[user_type]) as db_main:
+            db_main.cur.execute('select * from dummy')
+
+    with DBConnection(globals.connection_pools[DBUserType.DATA_READ]) as db:
+        r = [ { "URI": [ "/$apiversion" ] } ]
+        search_query = f'''CALL ESH_SEARCH('{json.dumps(r)}',?)'''
+        _ = db.cur.execute(search_query)
+        globals.esh_apiversion = json.loads(db.cur.fetchone()[0])['apiversion']
+        #logging.info('ESH_SEARCH calls will use API-version %s', globals.esh_apiversion)
 
     #ui_default_tenant = config['UIDefaultTenant']
     cs = config['server']

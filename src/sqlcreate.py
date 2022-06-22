@@ -108,7 +108,8 @@ class ColumnView:
                 +",'default','attribute'),\n"
         v += f"view=('default',\"{self.anchor_table_name}\"),\n"
         v += "defaultView='default',\n"
-        v += 'OPTIMIZEMETAMODEL=0)'
+        v += 'OPTIMIZEMETAMODEL=0,\n'
+        v += "'LEGACY_MODE' = 'TRUE')"
         return v
 
 def nodes_to_ddl(nodes, schema_name):

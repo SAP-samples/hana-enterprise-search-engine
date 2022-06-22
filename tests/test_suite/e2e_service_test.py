@@ -7,6 +7,7 @@ import argparse
 import requests
 import time
 import sys
+import logging
 
 parser = argparse.ArgumentParser(description='Runs test cases for mapper')
 parser.add_argument('-f', '--folder', nargs='?', help='folder name')
@@ -86,45 +87,48 @@ for folder in folders:
     else:
         cson_file_names = [w for w in os.listdir(folder_path) if w.endswith('.cson.json')]
 
-    for cson_file_name in cson_file_names:
-        test_name = cson_file_name[:-10]
-        data_file_name = test_name + '.data.json'
-        search_request_file_name = test_name + '.searchRequest.json'
-        search_response_file_name = test_name + '.searchResponse.json'
-        if os.path.exists(os.path.join(folder_path, search_request_file_name)):
-            with open(os.path.join(folder_path, search_request_file_name), encoding = 'utf-8') as f:
-                search_request = json.load(f)
-        else:
-            search_request = None
-        if os.path.exists(os.path.join(folder_path, data_file_name)):
-            with open(os.path.join(folder_path, cson_file_name), encoding = 'utf-8') as f:
-                cson = json.load(f)
-            with open(os.path.join(folder_path, data_file_name), encoding = 'utf-8') as f:
-                data = json.load(f)
-            res = []
-            r = requests.delete(f'{base_url}/v1/tenant/{tenant_name}')
-            ts = time.time()
-            r = requests.post(f'{base_url}/v1/tenant/{tenant_name}')
-            res.append(r.status_code)
-            r = requests.post(f'{base_url}/v1/deploy/{tenant_name}', json=cson)
-            res.append(r.status_code)
-
-            r = requests.post(f'{base_url}/v1/data/{tenant_name}', json=data)
-            res.append(r.status_code)
-            if search_request:
-                tstart = time.time()
-                r = requests.post(f'{base_url}/v1/search/{tenant_name}', json=search_request)
-                print(time.time() - tstart)
-                res.append(r.status_code)
-                with open(os.path.join(folder_path, search_response_file_name), 'w', encoding = 'utf-8') as fw:
-                    search_response = [round_esh_response(w) for w in r.json()]
-                    json.dump(search_response, fw, indent=4)
-            if not args.nocleanup:
-                r = requests.delete(f'{base_url}/v1/tenant/{tenant_name}')
-                res.append(r.status_code)
-            trun = round((time.time() - ts), 1)
-            if set(res) == set([200]):
-                print(f'Test {folder}.{test_name} sucessfully executed in {trun} s')
+    try:
+        for cson_file_name in cson_file_names:
+            test_name = cson_file_name[:-10]
+            data_file_name = test_name + '.data.json'
+            search_request_file_name = test_name + '.searchRequest.json'
+            search_response_file_name = test_name + '.searchResponse.json'
+            if os.path.exists(os.path.join(folder_path, search_request_file_name)):
+                with open(os.path.join(folder_path, search_request_file_name), encoding = 'utf-8') as f:
+                    search_request = json.load(f)
             else:
-                res_str = ', '.join([str(w) for w in res])
-                print(f'Test {folder}.{test_name} failed with HTTP codes {res_str} in {trun} s')
+                search_request = None
+            if os.path.exists(os.path.join(folder_path, data_file_name)):
+                with open(os.path.join(folder_path, cson_file_name), encoding = 'utf-8') as f:
+                    cson = json.load(f)
+                with open(os.path.join(folder_path, data_file_name), encoding = 'utf-8') as f:
+                    data = json.load(f)
+                res = []
+                r = requests.delete(f'{base_url}/v1/tenant/{tenant_name}')
+                ts = time.time()
+                r = requests.post(f'{base_url}/v1/tenant/{tenant_name}')
+                res.append(r.status_code)
+                r = requests.post(f'{base_url}/v1/deploy/{tenant_name}', json=cson)
+                res.append(r.status_code)
+
+                r = requests.post(f'{base_url}/v1/data/{tenant_name}', json=data)
+                res.append(r.status_code)
+                if search_request:
+                    tstart = time.time()
+                    r = requests.post(f'{base_url}/v1/search/{tenant_name}', json=search_request)
+                    print(time.time() - tstart)
+                    res.append(r.status_code)
+                    with open(os.path.join(folder_path, search_response_file_name), 'w', encoding = 'utf-8') as fw:
+                        search_response = [round_esh_response(w) for w in r.json()]
+                        json.dump(search_response, fw, indent=4)
+                if not args.nocleanup:
+                    r = requests.delete(f'{base_url}/v1/tenant/{tenant_name}')
+                    res.append(r.status_code)
+                trun = round((time.time() - ts), 1)
+                if set(res) == set([200]):
+                    print(f'Test {folder}.{test_name} sucessfully executed in {trun} s')
+                else:
+                    res_str = ', '.join([str(w) for w in res])
+                    print(f'Test {folder}.{test_name} failed with HTTP codes {res_str} in {trun} s')
+    except requests.exceptions.ConnectionError as e:
+        logging.error('Connection error. Server might not be running')

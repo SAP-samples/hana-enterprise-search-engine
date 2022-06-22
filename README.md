@@ -1,7 +1,5 @@
 # SAP HANA Enterprise Search Engine
-<!--- Register repository https://api.reuse.software/register, then add REUSE badge:
-[![REUSE status](https://api.reuse.software/badge/github.com/SAP-samples/REPO-NAME)](https://api.reuse.software/info/github.com/SAP-samples/REPO-NAME)
--->
+[![REUSE status](https://api.reuse.software/badge/github.com/SAP-samples/hana-enterprise-search-engine)](https://api.reuse.software/info/github.com/SAP-samples/hana-enterprise-search-engine)
 
 ## Description
 This example shows how to use [SAP HANA Search](https://help.sap.com/docs/SAP_HANA_PLATFORM/691cb949c1034198800afde3e5be6570 "HANA search developer guide") to build a high-performance search-centric application on [SAP HANA DB](https://www.sap.com/products/hana.html) (cloud or on-premise). It is written in Python and demonstrates how to:

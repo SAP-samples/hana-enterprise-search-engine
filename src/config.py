@@ -101,6 +101,16 @@ if __name__ == '__main__':
                             'Cleanup DB or choose other schema-prefix. Installation aborted')
                             logging.error(msg)
                             sys.exit(-1)
+                        sql = "select value from M_HOST_INFORMATION where key = 'build_version'"
+                        db.cur.execute(sql)
+                        release = db.cur.fetchone()[0].split('.')[0]
+                        match release:
+                            case '2':
+                                schema = '_SYS_RT'
+                            case '4':
+                                schema = 'SYS'
+                            case _:
+                                raise NotImplementedError
                         for user_type in DBUserType:
                             user_name = get_user_name(args.db_schema_prefix, user_type)
                             user_password = generate_secure_alphanum_string()
@@ -114,14 +124,14 @@ if __name__ == '__main__':
                                 case DBUserType.SCHEMA_MODIFY:
                                     sqls = [\
                                         f'GRANT EXECUTE ON SYS.ESH_CONFIG TO {user_name} WITH GRANT OPTION',\
-                                        f'GRANT SELECT ON _SYS_RT.ESH_MODEL TO {user_name} WITH GRANT OPTION',\
-                                        f'GRANT SELECT ON _SYS_RT.ESH_MODEL_PROPERTY TO {user_name} WITH GRANT OPTION'\
+                                        f'GRANT SELECT ON {schema}.ESH_MODEL TO {user_name} WITH GRANT OPTION',\
+                                        f'GRANT SELECT ON {schema}.ESH_MODEL_PROPERTY TO {user_name} WITH GRANT OPTION'\
                                         ]
                                 case DBUserType.DATA_READ:
                                     sqls = [\
                                         f'GRANT EXECUTE ON SYS.ESH_SEARCH TO {user_name} WITH GRANT OPTION',\
-                                        f'GRANT SELECT ON _SYS_RT.ESH_MODEL TO {user_name} WITH GRANT OPTION',\
-                                        f'GRANT SELECT ON _SYS_RT.ESH_MODEL_PROPERTY TO {user_name} WITH GRANT OPTION'\
+                                        f'GRANT SELECT ON {schema}.ESH_MODEL TO {user_name} WITH GRANT OPTION',\
+                                        f'GRANT SELECT ON {schema}.ESH_MODEL_PROPERTY TO {user_name} WITH GRANT OPTION'\
                                         ]
                             for sql in sqls:
                                 db.cur.execute(sql)

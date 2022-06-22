@@ -1,4 +1,4 @@
-# SAP HANA Search Example
+# SAP HANA Enterprise Search Engine
 <!--- Register repository https://api.reuse.software/register, then add REUSE badge:
 [![REUSE status](https://api.reuse.software/badge/github.com/SAP-samples/REPO-NAME)](https://api.reuse.software/info/github.com/SAP-samples/REPO-NAME)
 -->
@@ -9,6 +9,7 @@ This example shows how to use [SAP HANA Search](https://help.sap.com/docs/SAP_HA
 - define an object-oriented data model using a subset of [SAP CAP CSN](https://cap.cloud.sap/docs/cds/csn  "documentation")
 - load data in JSON-Format
 - search via the OData-based search-API
+via REST-APIs.
 
 ## Requirements
 - Up-to date SAP HANA (on-prem or cloud)

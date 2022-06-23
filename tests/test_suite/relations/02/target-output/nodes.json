@@ -1,0 +1,1218 @@
+{
+    "nodes": {
+        "ENTITY/EXAMPLECODELIST": {
+            "external_path": [
+                "example.Codelist"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLECODELIST",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 120,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLECODELISTRELV": {
+            "external_path": [
+                "example.CodelistRelV"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLECODELISTRELV",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 120,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLECODELISTRELFP": {
+            "external_path": [
+                "example.CodelistRelFP"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLECODELISTRELFP",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 120,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLECODELISTRELPA": {
+            "external_path": [
+                "example.CodelistRelPA"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLECODELISTRELPA",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 120,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLECODELISTRELPN": {
+            "external_path": [
+                "example.CodelistRelPN"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLECODELISTRELPN",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 120,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLECODELISTRELWP": {
+            "external_path": [
+                "example.CodelistRelWP"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLECODELISTRELWP",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 120,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLECODELISTRELFW": {
+            "external_path": [
+                "example.CodelistRelFW"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLECODELISTRELFW",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 120,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLEV": {
+            "external_path": [
+                "example.V"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLEV",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 120,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                },
+                "RELF": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELVF",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "relF"
+                    ]
+                },
+                "RELW": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELVW",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "relW"
+                    ]
+                },
+                "RELA": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELVA",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "relA"
+                    ]
+                },
+                "RELP": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELVP",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "relP"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLEF": {
+            "external_path": [
+                "example.F"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLEF",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 120,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                },
+                "RELP": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELFP",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "relP"
+                    ]
+                },
+                "RELW": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELFW",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "relW"
+                    ]
+                },
+                "RELV": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELVF",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "relV"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLEW": {
+            "external_path": [
+                "example.W"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLEW",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 120,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                },
+                "RELP": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELWP",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "relP"
+                    ]
+                },
+                "RELV": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELVW",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "relV"
+                    ]
+                },
+                "RELF": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELFW",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "relF"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLEA": {
+            "external_path": [
+                "example.A"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLEA",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 120,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                },
+                "RELV": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELVA",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "relV"
+                    ]
+                },
+                "RELP": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELPA",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "relP"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLEP": {
+            "external_path": [
+                "example.P"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLEP",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 120,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                },
+                "RELA": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELPA",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "relA"
+                    ]
+                },
+                "RELN": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELPN",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "relN"
+                    ]
+                },
+                "RELV": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELVP",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "relV"
+                    ]
+                },
+                "RELF": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELFP",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "relF"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLEN": {
+            "external_path": [
+                "example.N"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLEN",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 120,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                },
+                "RELP": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLERELPN",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "relP"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLERELVF": {
+            "external_path": [
+                "example.RelVF"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLERELVF",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "V": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEV",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "v"
+                    ]
+                },
+                "F": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEF",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "f"
+                    ]
+                },
+                "TYPE": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLECODELISTRELV",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "type"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLERELVW": {
+            "external_path": [
+                "example.RelVW"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLERELVW",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "V": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEV",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "v"
+                    ]
+                },
+                "W": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEW",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "w"
+                    ]
+                },
+                "TYPE": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLECODELISTRELV",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "type"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLERELVP": {
+            "external_path": [
+                "example.RelVP"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLERELVP",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "V": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEV",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "v"
+                    ]
+                },
+                "P": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEP",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "p"
+                    ]
+                },
+                "TYPE": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLECODELISTRELV",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "type"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLERELVA": {
+            "external_path": [
+                "example.RelVA"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLERELVA",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "V": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEV",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "v"
+                    ]
+                },
+                "A": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEA",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "a"
+                    ]
+                },
+                "TYPE": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLECODELISTRELV",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "type"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLERELFP": {
+            "external_path": [
+                "example.RelFP"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLERELFP",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "F": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEF",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "f"
+                    ]
+                },
+                "P": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEP",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "p"
+                    ]
+                },
+                "TYPE": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLECODELISTRELFP",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "type"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLERELWP": {
+            "external_path": [
+                "example.RelWP"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLERELWP",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "W": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEW",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "w"
+                    ]
+                },
+                "P": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEP",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "p"
+                    ]
+                },
+                "TYPE": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLECODELISTRELWP",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "type"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLERELPA": {
+            "external_path": [
+                "example.RelPA"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLERELPA",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "P": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEP",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "p"
+                    ]
+                },
+                "A": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEA",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "a"
+                    ]
+                },
+                "TYPE": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLECODELISTRELPA",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "type"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLERELFW": {
+            "external_path": [
+                "example.RelFW"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLERELFW",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "F": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEF",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "f"
+                    ]
+                },
+                "W": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEW",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "w"
+                    ]
+                },
+                "TYPE": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLECODELISTRELFW",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "type"
+                    ]
+                }
+            }
+        },
+        "ENTITY/EXAMPLERELPN": {
+            "external_path": [
+                "example.RelPN"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/EXAMPLERELPN",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "P": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEP",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "p"
+                    ]
+                },
+                "N": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLEN",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "n"
+                    ]
+                },
+                "TYPE": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/EXAMPLECODELISTRELPN",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "type"
+                    ]
+                }
+            }
+        }
+    },
+    "index": {
+        "example.Codelist": {
+            "int": "ENTITY/EXAMPLECODELIST",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                }
+            }
+        },
+        "example.CodelistRelV": {
+            "int": "ENTITY/EXAMPLECODELISTRELV",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                }
+            }
+        },
+        "example.CodelistRelFP": {
+            "int": "ENTITY/EXAMPLECODELISTRELFP",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                }
+            }
+        },
+        "example.CodelistRelPA": {
+            "int": "ENTITY/EXAMPLECODELISTRELPA",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                }
+            }
+        },
+        "example.CodelistRelPN": {
+            "int": "ENTITY/EXAMPLECODELISTRELPN",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                }
+            }
+        },
+        "example.CodelistRelWP": {
+            "int": "ENTITY/EXAMPLECODELISTRELWP",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                }
+            }
+        },
+        "example.CodelistRelFW": {
+            "int": "ENTITY/EXAMPLECODELISTRELFW",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                }
+            }
+        },
+        "example.V": {
+            "int": "ENTITY/EXAMPLEV",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                },
+                "relF": {
+                    "int": "RELF"
+                },
+                "relW": {
+                    "int": "RELW"
+                },
+                "relA": {
+                    "int": "RELA"
+                },
+                "relP": {
+                    "int": "RELP"
+                }
+            }
+        },
+        "example.RelVF": {
+            "int": "ENTITY/EXAMPLERELVF",
+            "properties": {
+                "v": {
+                    "int": "V"
+                },
+                "f": {
+                    "int": "F"
+                },
+                "type": {
+                    "int": "TYPE"
+                }
+            }
+        },
+        "example.RelVW": {
+            "int": "ENTITY/EXAMPLERELVW",
+            "properties": {
+                "v": {
+                    "int": "V"
+                },
+                "w": {
+                    "int": "W"
+                },
+                "type": {
+                    "int": "TYPE"
+                }
+            }
+        },
+        "example.RelVA": {
+            "int": "ENTITY/EXAMPLERELVA",
+            "properties": {
+                "v": {
+                    "int": "V"
+                },
+                "a": {
+                    "int": "A"
+                },
+                "type": {
+                    "int": "TYPE"
+                }
+            }
+        },
+        "example.RelVP": {
+            "int": "ENTITY/EXAMPLERELVP",
+            "properties": {
+                "v": {
+                    "int": "V"
+                },
+                "p": {
+                    "int": "P"
+                },
+                "type": {
+                    "int": "TYPE"
+                }
+            }
+        },
+        "example.F": {
+            "int": "ENTITY/EXAMPLEF",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                },
+                "relP": {
+                    "int": "RELP"
+                },
+                "relW": {
+                    "int": "RELW"
+                },
+                "relV": {
+                    "int": "RELV"
+                }
+            }
+        },
+        "example.RelFP": {
+            "int": "ENTITY/EXAMPLERELFP",
+            "properties": {
+                "f": {
+                    "int": "F"
+                },
+                "p": {
+                    "int": "P"
+                },
+                "type": {
+                    "int": "TYPE"
+                }
+            }
+        },
+        "example.RelFW": {
+            "int": "ENTITY/EXAMPLERELFW",
+            "properties": {
+                "f": {
+                    "int": "F"
+                },
+                "w": {
+                    "int": "W"
+                },
+                "type": {
+                    "int": "TYPE"
+                }
+            }
+        },
+        "example.W": {
+            "int": "ENTITY/EXAMPLEW",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                },
+                "relP": {
+                    "int": "RELP"
+                },
+                "relV": {
+                    "int": "RELV"
+                },
+                "relF": {
+                    "int": "RELF"
+                }
+            }
+        },
+        "example.RelWP": {
+            "int": "ENTITY/EXAMPLERELWP",
+            "properties": {
+                "w": {
+                    "int": "W"
+                },
+                "p": {
+                    "int": "P"
+                },
+                "type": {
+                    "int": "TYPE"
+                }
+            }
+        },
+        "example.A": {
+            "int": "ENTITY/EXAMPLEA",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                },
+                "relV": {
+                    "int": "RELV"
+                },
+                "relP": {
+                    "int": "RELP"
+                }
+            }
+        },
+        "example.RelPA": {
+            "int": "ENTITY/EXAMPLERELPA",
+            "properties": {
+                "p": {
+                    "int": "P"
+                },
+                "a": {
+                    "int": "A"
+                },
+                "type": {
+                    "int": "TYPE"
+                }
+            }
+        },
+        "example.P": {
+            "int": "ENTITY/EXAMPLEP",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                },
+                "relA": {
+                    "int": "RELA"
+                },
+                "relN": {
+                    "int": "RELN"
+                },
+                "relV": {
+                    "int": "RELV"
+                },
+                "relF": {
+                    "int": "RELF"
+                }
+            }
+        },
+        "example.RelPN": {
+            "int": "ENTITY/EXAMPLERELPN",
+            "properties": {
+                "p": {
+                    "int": "P"
+                },
+                "n": {
+                    "int": "N"
+                },
+                "type": {
+                    "int": "TYPE"
+                }
+            }
+        },
+        "example.N": {
+            "int": "ENTITY/EXAMPLEN",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                },
+                "relP": {
+                    "int": "RELP"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,325 @@
+create table "ENTITY/COUNTRYCODE" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(256) );
+
+create table "ENTITY/ORGANIZATIONTYPE" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(256) );
+
+create table "ENTITY/PERSONORGANIZATIONRE" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(256) );
+
+create table "ENTITY/PERSON" ( "_ID" VARCHAR(36), "FIRSTNAME" NVARCHAR(256), "LASTNAME" NVARCHAR(256), "ADDRESS_COUNTRY" VARCHAR(36), "ADDRESS_POSTALCODE" NVARCHAR(100), "ADDRESS_CITY" NVARCHAR(100), "ADDRESS_STREET" NVARCHAR(100), "ADDRESS_HOUSENUMBER" NVARCHAR(100) );
+
+create table "ENTITY/ORGANIZATION" ( "_ID" VARCHAR(36), "NAME" NVARCHAR(256), "ADDRESS_COUNTRY" VARCHAR(36), "ADDRESS_POSTALCODE" NVARCHAR(100), "ADDRESS_CITY" NVARCHAR(100), "ADDRESS_STREET" NVARCHAR(100), "ADDRESS_HOUSENUMBER" NVARCHAR(100), "ORGANIZATIONTYPE" VARCHAR(36) );
+
+create table "ENTITY/RELPERSONORGANIZATIO" ( "_ID" VARCHAR(36), "PERSON" VARCHAR(36), "ORGANIZATION" VARCHAR(36), "PERSONORGANIZATIONRE" VARCHAR(36) );
+
+create or replace column view "VIEW/COUNTRYCODE" with parameters (indexType=6,
+joinIndex="ENTITY/COUNTRYCODE",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/COUNTRYCODE","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/COUNTRYCODE","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/COUNTRYCODE"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/ORGANIZATIONTYPE" with parameters (indexType=6,
+joinIndex="ENTITY/ORGANIZATIONTYPE",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/ORGANIZATIONTYPE","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/ORGANIZATIONTYPE","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/ORGANIZATIONTYPE"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/PERSONORGANIZATIONRE" with parameters (indexType=6,
+joinIndex="ENTITY/PERSONORGANIZATIONRE",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/PERSONORGANIZATIONRE","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/PERSONORGANIZATIONRE","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/PERSONORGANIZATIONRE"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/PERSON" with parameters (indexType=6,
+joinIndex="ENTITY/PERSON",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/PERSON","_ID",'','default','attribute'),
+viewAttribute=('FIRSTNAME',"ENTITY/PERSON","FIRSTNAME",'','default','attribute'),
+viewAttribute=('LASTNAME',"ENTITY/PERSON","LASTNAME",'','default','attribute'),
+viewAttribute=('ADDRESS_POSTALCODE',"ENTITY/PERSON","ADDRESS_POSTALCODE",'','default','attribute'),
+viewAttribute=('ADDRESS_CITY',"ENTITY/PERSON","ADDRESS_CITY",'','default','attribute'),
+viewAttribute=('ADDRESS_STREET',"ENTITY/PERSON","ADDRESS_STREET",'','default','attribute'),
+viewAttribute=('ADDRESS_HOUSENUMBER',"ENTITY/PERSON","ADDRESS_HOUSENUMBER",'','default','attribute'),
+view=('default',"ENTITY/PERSON"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/ORGANIZATION" with parameters (indexType=6,
+joinIndex="ENTITY/ORGANIZATION",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/ORGANIZATION","_ID",'','default','attribute'),
+viewAttribute=('NAME',"ENTITY/ORGANIZATION","NAME",'','default','attribute'),
+viewAttribute=('ADDRESS_POSTALCODE',"ENTITY/ORGANIZATION","ADDRESS_POSTALCODE",'','default','attribute'),
+viewAttribute=('ADDRESS_CITY',"ENTITY/ORGANIZATION","ADDRESS_CITY",'','default','attribute'),
+viewAttribute=('ADDRESS_STREET',"ENTITY/ORGANIZATION","ADDRESS_STREET",'','default','attribute'),
+viewAttribute=('ADDRESS_HOUSENUMBER',"ENTITY/ORGANIZATION","ADDRESS_HOUSENUMBER",'','default','attribute'),
+view=('default',"ENTITY/ORGANIZATION"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/RELPERSONORGANIZATIO" with parameters (indexType=6,
+joinIndex="ENTITY/RELPERSONORGANIZATIO",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/RELPERSONORGANIZATIO","_ID",'','default','attribute'),
+view=('default',"ENTITY/RELPERSONORGANIZATIO"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/COUNTRYCODE",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "COUNTRYCODE",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/ORGANIZATIONTYPE",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "ORGANIZATIONTYPE",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/PERSONORGANIZATIONRE",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "PERSONORGANIZATIONRE",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/PERSON",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "PERSON",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "FIRSTNAME",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                },
+                {
+                    "Name": "LASTNAME",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 20
+                        }
+                    ]
+                },
+                {
+                    "Name": "ADDRESS_POSTALCODE",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 30
+                        }
+                    ]
+                },
+                {
+                    "Name": "ADDRESS_CITY",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 40
+                        }
+                    ]
+                },
+                {
+                    "Name": "ADDRESS_STREET",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 50
+                        }
+                    ]
+                },
+                {
+                    "Name": "ADDRESS_HOUSENUMBER",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 60
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/ORGANIZATION",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "ORGANIZATION",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "NAME",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                },
+                {
+                    "Name": "ADDRESS_POSTALCODE",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 20
+                        }
+                    ]
+                },
+                {
+                    "Name": "ADDRESS_CITY",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 30
+                        }
+                    ]
+                },
+                {
+                    "Name": "ADDRESS_STREET",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 40
+                        }
+                    ]
+                },
+                {
+                    "Name": "ADDRESS_HOUSENUMBER",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 50
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/RELPERSONORGANIZATIO",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "RELPERSONORGANIZATIO",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,400 @@
+{
+    "nodes": {
+        "ENTITY/COUNTRYCODE": {
+            "external_path": [
+                "CountryCode"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/COUNTRYCODE",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 256,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                }
+            }
+        },
+        "ENTITY/ORGANIZATIONTYPE": {
+            "external_path": [
+                "OrganizationType"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/ORGANIZATIONTYPE",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 256,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                }
+            }
+        },
+        "ENTITY/PERSONORGANIZATIONRE": {
+            "external_path": [
+                "PersonOrganizationRelationshipType"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/PERSONORGANIZATIONRE",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "DESCRIPTION": {
+                    "length": 256,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "description"
+                    ]
+                }
+            }
+        },
+        "ENTITY/PERSON": {
+            "external_path": [
+                "Person"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/PERSON",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "FIRSTNAME": {
+                    "length": 256,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "firstName"
+                    ]
+                },
+                "LASTNAME": {
+                    "length": 256,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "lastName"
+                    ]
+                },
+                "ADDRESS_COUNTRY": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/COUNTRYCODE",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "address",
+                        "country"
+                    ]
+                },
+                "ADDRESS_POSTALCODE": {
+                    "length": 100,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "address",
+                        "postalCode"
+                    ]
+                },
+                "ADDRESS_CITY": {
+                    "length": 100,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "address",
+                        "city"
+                    ]
+                },
+                "ADDRESS_STREET": {
+                    "length": 100,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "address",
+                        "street"
+                    ]
+                },
+                "ADDRESS_HOUSENUMBER": {
+                    "length": 100,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "address",
+                        "houseNumber"
+                    ]
+                },
+                "ORGANIZATIONS": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/RELPERSONORGANIZATIO",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "organizations"
+                    ]
+                }
+            }
+        },
+        "ENTITY/ORGANIZATION": {
+            "external_path": [
+                "Organization"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/ORGANIZATION",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "NAME": {
+                    "length": 256,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "name"
+                    ]
+                },
+                "ADDRESS_COUNTRY": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/COUNTRYCODE",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "address",
+                        "country"
+                    ]
+                },
+                "ADDRESS_POSTALCODE": {
+                    "length": 100,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "address",
+                        "postalCode"
+                    ]
+                },
+                "ADDRESS_CITY": {
+                    "length": 100,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "address",
+                        "city"
+                    ]
+                },
+                "ADDRESS_STREET": {
+                    "length": 100,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "address",
+                        "street"
+                    ]
+                },
+                "ADDRESS_HOUSENUMBER": {
+                    "length": 100,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "address",
+                        "houseNumber"
+                    ]
+                },
+                "ORGANIZATIONTYPE": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/ORGANIZATIONTYPE",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "organizationType"
+                    ]
+                },
+                "PERSONS": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/RELPERSONORGANIZATIO",
+                        "type": "association",
+                        "cardinality": {
+                            "max": "*"
+                        },
+                        "hidden": true
+                    },
+                    "external_path": [
+                        "persons"
+                    ]
+                }
+            }
+        },
+        "ENTITY/RELPERSONORGANIZATIO": {
+            "external_path": [
+                "RelPersonOrganization"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/RELPERSONORGANIZATIO",
+            "pk": "_ID",
+            "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "PERSON": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/PERSON",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "person"
+                    ]
+                },
+                "ORGANIZATION": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/ORGANIZATION",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "organization"
+                    ]
+                },
+                "PERSONORGANIZATIONRE": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/PERSONORGANIZATIONRE",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "personOrganizationRelationshipType"
+                    ]
+                }
+            }
+        }
+    },
+    "index": {
+        "CountryCode": {
+            "int": "ENTITY/COUNTRYCODE",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                }
+            }
+        },
+        "OrganizationType": {
+            "int": "ENTITY/ORGANIZATIONTYPE",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                }
+            }
+        },
+        "PersonOrganizationRelationshipType": {
+            "int": "ENTITY/PERSONORGANIZATIONRE",
+            "properties": {
+                "description": {
+                    "int": "DESCRIPTION"
+                }
+            }
+        },
+        "Person": {
+            "int": "ENTITY/PERSON",
+            "properties": {
+                "firstName": {
+                    "int": "FIRSTNAME"
+                },
+                "lastName": {
+                    "int": "LASTNAME"
+                },
+                "address": {
+                    "int": "ADDRESS",
+                    "contains": {
+                        "country": {
+                            "int": "ADDRESS_COUNTRY"
+                        },
+                        "postalCode": {
+                            "int": "ADDRESS_POSTALCODE"
+                        },
+                        "city": {
+                            "int": "ADDRESS_CITY"
+                        },
+                        "street": {
+                            "int": "ADDRESS_STREET"
+                        },
+                        "houseNumber": {
+                            "int": "ADDRESS_HOUSENUMBER"
+                        }
+                    }
+                },
+                "organizations": {
+                    "int": "ORGANIZATIONS"
+                }
+            }
+        },
+        "RelPersonOrganization": {
+            "int": "ENTITY/RELPERSONORGANIZATIO",
+            "properties": {
+                "person": {
+                    "int": "PERSON"
+                },
+                "organization": {
+                    "int": "ORGANIZATION"
+                },
+                "personOrganizationRelationshipType": {
+                    "int": "PERSONORGANIZATIONRE"
+                }
+            }
+        },
+        "Organization": {
+            "int": "ENTITY/ORGANIZATION",
+            "properties": {
+                "name": {
+                    "int": "NAME"
+                },
+                "address": {
+                    "int": "ADDRESS",
+                    "contains": {
+                        "country": {
+                            "int": "ADDRESS_COUNTRY"
+                        },
+                        "postalCode": {
+                            "int": "ADDRESS_POSTALCODE"
+                        },
+                        "city": {
+                            "int": "ADDRESS_CITY"
+                        },
+                        "street": {
+                            "int": "ADDRESS_STREET"
+                        },
+                        "houseNumber": {
+                            "int": "ADDRESS_HOUSENUMBER"
+                        }
+                    }
+                },
+                "organizationType": {
+                    "int": "ORGANIZATIONTYPE"
+                },
+                "persons": {
+                    "int": "PERSONS"
+                }
+            }
+        }
+    }
+}

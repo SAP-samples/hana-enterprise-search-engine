@@ -1,0 +1,811 @@
+create table "ENTITY/EXAMPLECODELIST" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(120) );
+
+create table "ENTITY/EXAMPLECODELISTRELV" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(120) );
+
+create table "ENTITY/EXAMPLECODELISTRELFP" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(120) );
+
+create table "ENTITY/EXAMPLECODELISTRELPA" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(120) );
+
+create table "ENTITY/EXAMPLECODELISTRELPN" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(120) );
+
+create table "ENTITY/EXAMPLECODELISTRELWP" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(120) );
+
+create table "ENTITY/EXAMPLECODELISTRELFW" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(120) );
+
+create table "ENTITY/EXAMPLEV" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(120) );
+
+create table "ENTITY/EXAMPLEF" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(120), "RELV" VARCHAR(36) );
+
+create table "ENTITY/EXAMPLEW" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(120), "RELV" VARCHAR(36) );
+
+create table "ENTITY/EXAMPLEA" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(120), "RELV" VARCHAR(36) );
+
+create table "ENTITY/EXAMPLEP" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(120), "RELN" VARCHAR(36), "RELV" VARCHAR(36) );
+
+create table "ENTITY/EXAMPLEN" ( "_ID" VARCHAR(36), "DESCRIPTION" NVARCHAR(120) );
+
+create table "ENTITY/EXAMPLERELVF" ( "_ID" VARCHAR(36), "V" VARCHAR(36), "F" VARCHAR(36), "TYPE" VARCHAR(36) );
+
+create table "ENTITY/EXAMPLERELVW" ( "_ID" VARCHAR(36), "V" VARCHAR(36), "W" VARCHAR(36), "TYPE" VARCHAR(36) );
+
+create table "ENTITY/EXAMPLERELVP" ( "_ID" VARCHAR(36), "V" VARCHAR(36), "P" VARCHAR(36), "TYPE" VARCHAR(36) );
+
+create table "ENTITY/EXAMPLERELVA" ( "_ID" VARCHAR(36), "V" VARCHAR(36), "A" VARCHAR(36), "TYPE" VARCHAR(36) );
+
+create table "ENTITY/EXAMPLERELFP" ( "_ID" VARCHAR(36), "F" VARCHAR(36), "P" VARCHAR(36), "TYPE" VARCHAR(36) );
+
+create table "ENTITY/EXAMPLERELWP" ( "_ID" VARCHAR(36), "W" VARCHAR(36), "P" VARCHAR(36), "TYPE" VARCHAR(36) );
+
+create table "ENTITY/EXAMPLERELPA" ( "_ID" VARCHAR(36), "P" VARCHAR(36), "A" VARCHAR(36), "TYPE" VARCHAR(36) );
+
+create table "ENTITY/EXAMPLERELFW" ( "_ID" VARCHAR(36), "F" VARCHAR(36), "W" VARCHAR(36), "TYPE" VARCHAR(36) );
+
+create table "ENTITY/EXAMPLERELPN" ( "_ID" VARCHAR(36), "P" VARCHAR(36), "N" VARCHAR(36), "TYPE" VARCHAR(36) );
+
+create or replace column view "VIEW/EXAMPLECODELIST" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLECODELIST",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLECODELIST","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/EXAMPLECODELIST","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLECODELIST"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLECODELISTRELV" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLECODELISTRELV",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLECODELISTRELV","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/EXAMPLECODELISTRELV","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLECODELISTRELV"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLECODELISTRELFP" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLECODELISTRELFP",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLECODELISTRELFP","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/EXAMPLECODELISTRELFP","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLECODELISTRELFP"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLECODELISTRELPA" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLECODELISTRELPA",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLECODELISTRELPA","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/EXAMPLECODELISTRELPA","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLECODELISTRELPA"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLECODELISTRELPN" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLECODELISTRELPN",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLECODELISTRELPN","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/EXAMPLECODELISTRELPN","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLECODELISTRELPN"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLECODELISTRELWP" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLECODELISTRELWP",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLECODELISTRELWP","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/EXAMPLECODELISTRELWP","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLECODELISTRELWP"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLECODELISTRELFW" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLECODELISTRELFW",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLECODELISTRELFW","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/EXAMPLECODELISTRELFW","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLECODELISTRELFW"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLEV" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLEV",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLEV","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/EXAMPLEV","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLEV"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLEF" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLEF",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLEF","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/EXAMPLEF","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLEF"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLEW" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLEW",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLEW","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/EXAMPLEW","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLEW"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLEA" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLEA",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLEA","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/EXAMPLEA","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLEA"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLEP" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLEP",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLEP","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/EXAMPLEP","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLEP"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLEN" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLEN",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLEN","_ID",'','default','attribute'),
+viewAttribute=('DESCRIPTION',"ENTITY/EXAMPLEN","DESCRIPTION",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLEN"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLERELVF" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLERELVF",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLERELVF","_ID",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLERELVF"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLERELVW" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLERELVW",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLERELVW","_ID",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLERELVW"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLERELVP" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLERELVP",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLERELVP","_ID",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLERELVP"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLERELVA" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLERELVA",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLERELVA","_ID",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLERELVA"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLERELFP" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLERELFP",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLERELFP","_ID",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLERELFP"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLERELWP" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLERELWP",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLERELWP","_ID",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLERELWP"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLERELPA" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLERELPA",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLERELPA","_ID",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLERELPA"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLERELFW" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLERELFW",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLERELFW","_ID",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLERELFW"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+create or replace column view "VIEW/EXAMPLERELPN" with parameters (indexType=6,
+joinIndex="ENTITY/EXAMPLERELPN",joinIndexType=0,joinIndexEstimation=0,
+viewAttribute=('_ID',"ENTITY/EXAMPLERELPN","_ID",'','default','attribute'),
+view=('default',"ENTITY/EXAMPLERELPN"),
+defaultView='default',
+OPTIMIZEMETAMODEL=0);
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLECODELIST",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLECODELIST",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLECODELISTRELV",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLECODELISTRELV",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLECODELISTRELFP",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLECODELISTRELFP",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLECODELISTRELPA",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLECODELISTRELPA",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLECODELISTRELPN",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLECODELISTRELPN",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLECODELISTRELWP",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLECODELISTRELWP",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLECODELISTRELFW",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLECODELISTRELFW",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLEV",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLEV",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLEF",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLEF",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLEW",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLEW",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLEA",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLEA",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLEP",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLEP",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLEN",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLEN",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                },
+                {
+                    "Name": "DESCRIPTION",
+                    "@Search.defaultSearchElement": true,
+                    "@UI.identification": [
+                        {
+                            "position": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLERELVF",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLERELVF",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLERELVW",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLERELVW",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLERELVP",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLERELVP",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLERELVA",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLERELVA",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLERELFP",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLERELFP",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLERELWP",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLERELWP",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLERELPA",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLERELPA",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLERELFW",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLERELFW",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                }
+            ]
+        }
+    }
+};
+
+{
+    "uri": "~/$metadata/EntitySets",
+    "method": "PUT",
+    "content": {
+        "Fullname": "TEST/VIEW/EXAMPLERELPN",
+        "EntityType": {
+            "@EnterpriseSearch.enabled": true,
+            "@Search.searchable": true,
+            "@EnterpriseSearchHana.identifier": "EXAMPLERELPN",
+            "@EnterpriseSearchHana.passThroughAllAnnotations": true,
+            "Properties": [
+                {
+                    "Name": "_ID",
+                    "@EnterpriseSearch.key": true,
+                    "@Search.defaultSearchElement": true,
+                    "@UI.hidden": true
+                }
+            ]
+        }
+    }
+}

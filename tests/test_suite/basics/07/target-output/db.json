@@ -1,0 +1,140 @@
+{
+    "inserts": {
+        "ENTITY/EXAMPLEPERSON": {
+            "columns": {
+                "_ID": 0,
+                "FIRSTNAME": 1,
+                "LASTNAME": 2
+            },
+            "rows": [
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:0",
+                    "Max",
+                    "Mustermann"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:1",
+                    "Maximilia",
+                    "Musterfrau"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:2",
+                    "Anton",
+                    "Platzhalter"
+                ]
+            ]
+        },
+        "ENTITY/EXAMPLEPERSON_ADDRESS": {
+            "columns": {
+                "_ID": 0,
+                "_ID1": 1,
+                "COUNTRY": 2,
+                "ZIP": 3,
+                "CITY": 4,
+                "STREET": 5,
+                "STREETNUMBER": 6
+            },
+            "rows": [
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:0",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS:0",
+                    "Germany",
+                    "69190",
+                    "Walldorf",
+                    "Hauptstrasse",
+                    "77"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:1",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS:1",
+                    "Austria",
+                    "2700",
+                    "Wiener Neustadt",
+                    "Hauptplatz",
+                    "11"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:2",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS:2",
+                    "Germany",
+                    "69115",
+                    "Heidelberg",
+                    "Bergheimer Str.",
+                    "147"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON:2",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS:3",
+                    "Austria",
+                    "1020",
+                    "Wien",
+                    "Lassallestra\u00dfe",
+                    "7B"
+                ]
+            ]
+        },
+        "ENTITY/EXAMPLEPERSON_ADDRESS_PHONE": {
+            "columns": {
+                "_ID1": 0,
+                "_ID2": 1,
+                "COUNTRY": 2
+            },
+            "rows": [
+                [
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS:0",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS_PHONE:0",
+                    "+49"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS:1",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS_PHONE:1",
+                    "+43"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS:2",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS_PHONE:2",
+                    "+49"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS:3",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS_PHONE:3",
+                    "+43"
+                ]
+            ]
+        },
+        "ENTITY/EXAMPLEPERSON_ADDRESS_PHONE_NUMBER": {
+            "columns": {
+                "_ID2": 0,
+                "_ID3": 1,
+                "PREFIX": 2,
+                "SUFFIX": 3
+            },
+            "rows": [
+                [
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS_PHONE:0",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS_PHONE_NUMBER:0",
+                    "6222",
+                    "8765434"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS_PHONE:1",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS_PHONE_NUMBER:1",
+                    "2622",
+                    "123456"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS_PHONE:2",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS_PHONE_NUMBER:2",
+                    "2222",
+                    "987654321"
+                ],
+                [
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS_PHONE:3",
+                    "ID:ENTITY/EXAMPLEPERSON_ADDRESS_PHONE_NUMBER:3",
+                    "1",
+                    "7777777"
+                ]
+            ]
+        }
+    }
+}

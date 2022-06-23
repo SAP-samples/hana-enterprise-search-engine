@@ -165,6 +165,19 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
                 else:
                     node['properties'][element_name] = get_sql_type(node_name_mapping, cson, element, pk)
                     node['properties'][element_name]['external_path'] = [element_name_ext]
+            elif 'elements' in element: # nested definition
+                element['kind'] = 'type'
+                subnode = cson_entity_to_nodes(node_name_mapping, cson, nodes, path + [type_name],\
+                    element_name_ext, element, subnode_level +  1, False)
+                for column in subnode['properties'].values():
+                    if 'external_path' in column:
+                        property_name_int, _ =\
+                            property_name_mapping.register([element_name_ext] + column['external_path'])
+                    else:
+                        property_name_int, _ = property_name_mapping.register([element_name_ext])
+                    node['properties'][property_name_int] = column
+                    node['properties'][property_name_int]['external_path'] =\
+                        [element_name_ext] + column['external_path']
             else:
                 print('ToDo 1')
 

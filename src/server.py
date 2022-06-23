@@ -18,7 +18,7 @@ from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH
 from config import get_user_name
 import sys
 #import logging
-import server_globals as globals
+import server_globals as glob
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
@@ -39,14 +39,27 @@ def validate_tenant_id(tenant_id: str):
 
 def get_tenant_schema_name(tenant_id: str):
     validate_tenant_id(tenant_id)
-    return f'{globals.db_tenant_prefix}{tenant_id}'
+    return f'{glob.db_tenant_prefix}{tenant_id}'
 
+def esh_search_escape(s):
+    return s.replace("'","''")
+
+def cleanse_output(res_in):
+    res_out = []
+    for res in res_in:
+        if '@com.sap.vocabularies.Search.v1.SearchStatistics' in res \
+            and 'ConnectorStatistics' in res['@com.sap.vocabularies.Search.v1.SearchStatistics']:
+            for c in res['@com.sap.vocabularies.Search.v1.SearchStatistics']['ConnectorStatistics']:
+                del c['Schema']
+                del c['Name']
+        res_out.append(res)
+    return res_out
 
 @app.post('/v1/tenant/{tenant_id}')
 async def post_tenant(tenant_id):
     """Create new tenant """
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(globals.connection_pools[DBUserType.ADMIN]) as db:
+    with DBConnection(glob.connection_pools[DBUserType.ADMIN]) as db:
         try:
             sql = f'create schema "{tenant_schema_name}"'
             db.cur.execute(sql)
@@ -61,9 +74,9 @@ async def post_tenant(tenant_id):
         except HDBException as e:
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
         try:
-            read_user_name = get_user_name(globals.db_schema_prefix, DBUserType.DATA_READ)
-            write_user_name = get_user_name(globals.db_schema_prefix, DBUserType.DATA_WRITE)
-            schema_modify_user_name = get_user_name(globals.db_schema_prefix, DBUserType.SCHEMA_MODIFY)
+            read_user_name = get_user_name(glob.db_schema_prefix, DBUserType.DATA_READ)
+            write_user_name = get_user_name(glob.db_schema_prefix, DBUserType.DATA_WRITE)
+            schema_modify_user_name = get_user_name(glob.db_schema_prefix, DBUserType.SCHEMA_MODIFY)
             db.cur.execute(f'GRANT SELECT ON SCHEMA "{tenant_schema_name}" TO {read_user_name}')
             db.cur.execute(f'GRANT SELECT ON "{tenant_schema_name}"."_MODEL" TO {read_user_name}')
             db.cur.execute(f'GRANT INSERT ON SCHEMA "{tenant_schema_name}" TO {write_user_name}')
@@ -85,7 +98,7 @@ async def post_tenant(tenant_id):
 async def delete_tenant(tenant_id: str):
     """Delete tenant"""
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(globals.connection_pools[DBUserType.ADMIN]) as db:
+    with DBConnection(glob.connection_pools[DBUserType.ADMIN]) as db:
         try:
             db.cur.execute(f'drop schema "{tenant_schema_name}" cascade')
         except HDBException as e:
@@ -98,12 +111,12 @@ async def delete_tenant(tenant_id: str):
 @app.get('/v1/tenant')
 async def get_tenants():
     """Get all tenants"""
-    with DBConnection(globals.connection_pools[DBUserType.ADMIN]) as db:
+    with DBConnection(glob.connection_pools[DBUserType.ADMIN]) as db:
         try:
             sql = f'select schema_name, create_time from sys.schemas \
-                where schema_name like \'{globals.db_tenant_prefix}%\' order by CREATE_TIME'
+                where schema_name like \'{glob.db_tenant_prefix}%\' order by CREATE_TIME'
             db.cur.execute(sql)
-            return [{'name': w[0][len(globals.db_tenant_prefix):], 'createdAt':  w[1]}  for w in db.cur.fetchall()]
+            return [{'name': w[0][len(glob.db_tenant_prefix):], 'createdAt':  w[1]}  for w in db.cur.fetchall()]
         except HDBException as e:
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
 
@@ -113,7 +126,7 @@ async def get_tenants():
 async def post_model(tenant_id: str, cson=Body(...)):
     """ Deploy model """
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(globals.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
+    with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
         db.cur.execute(f'select count(*) from "{tenant_schema_name}"."_MODEL"')
         num_deployments = db.cur.fetchone()[0]
         if num_deployments == 0:
@@ -139,12 +152,12 @@ async def post_model(tenant_id: str, cson=Body(...)):
 async def post_data(tenant_id, objects=Body(...)):
     """POST Data"""
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(globals.connection_pools[DBUserType.DATA_WRITE]) as db:
+    with DBConnection(glob.connection_pools[DBUserType.DATA_WRITE]) as db:
         sql = f'select top 1 NODES from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
         db.cur.execute(sql)
         res = db.cur.fetchone()
         if not (res and len(res) == 1):
-            logging.error(f'Tenant %s has no entries in the _MODEL table', tenant_id)
+            logging.error('Tenant %s has no entries in the _MODEL table', tenant_id)
             handle_error('Configuration inconsistent', 500)
         nodes = json.loads(res[0])
         dml = mapping.objects_to_dml(nodes, objects)
@@ -158,10 +171,10 @@ async def post_data(tenant_id, objects=Body(...)):
 
 def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    search_query = f'''CALL ESH_SEARCH('["/{esh_version}/{tenant_schema_name}{esh_query.replace("'","''")}"]',?)'''
+    sql = f'''CALL ESH_SEARCH('["/{esh_version}/{tenant_schema_name}{esh_search_escape(esh_query)}"]',?)'''
     #logging.info(search_query)
-    with DBConnection(globals.connection_pools[DBUserType.DATA_READ]) as db:
-        _ = db.cur.execute(search_query)
+    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+        _ = db.cur.execute(sql)
         for row in db.cur.fetchall():
             if is_metadata:
                 return row[0]
@@ -169,26 +182,43 @@ def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
                 return json.loads(row[0])
     return None
 
+def perform_bulk_search(esh_version, tenant_id, esh_query):
+    tenant_schema_name = get_tenant_schema_name(tenant_id)
+    payload = [f'/{esh_version}/{tenant_schema_name}/{w}' for w in esh_query]
+    bulk_request = esh_search_escape(json.dumps([{'URI': payload}]))
+    sql = f"CALL ESH_SEARCH('{bulk_request}',?)"
+    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+        _ = db.cur.execute(sql)
+        #res = '[' + ','.join([w[0] for w in db.cur.fetchall()]) + ']'
+        #return Response(content=res, media_type="application/json")
+        res = [json.loads(w[0]) for w in db.cur.fetchall()]
+        return cleanse_output(res)
+
 # Search
 @app.post('/v1/search/{tenant_id}')
 async def execute_search(tenant_id, query=Body(...)):
     validate_tenant_id(tenant_id)
-    result = []
-    with DBConnection(globals.connection_pools[DBUserType.DATA_READ]) as db:
-        tenant_schema_name = get_tenant_schema_name(tenant_id)
-        es_statements  = [f'/v{globals.esh_apiversion}/{tenant_schema_name}' + \
-            IESSearchOptions(w).to_statement().replace("'","''") for w in query]
-        search_query = f'''CALL ESH_SEARCH('{json.dumps(es_statements)}',?)'''
-        _ = db.cur.execute(search_query)
-        for row in db.cur.fetchall():
-            res = json.loads(row[0])
-            if '@com.sap.vocabularies.Search.v1.SearchStatistics' in res \
-                and 'ConnectorStatistics' in res['@com.sap.vocabularies.Search.v1.SearchStatistics']:
-                for c in res['@com.sap.vocabularies.Search.v1.SearchStatistics']['ConnectorStatistics']:
-                    del c['Schema']
-                    del c['Name']
-            result.append(res)
-    return result
+    esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
+    return perform_bulk_search(get_esh_version(''), tenant_id, esh_query)
+
+
+#    result = []
+#    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+#        tenant_schema_name = get_tenant_schema_name(tenant_id)
+#        es_statements  = [f'/{glob.esh_apiversion}/{tenant_schema_name}' + \
+#            esh_search_escape(IESSearchOptions(w).to_statement()) for w in query]
+#        sql = f'''CALL ESH_SEARCH('{json.dumps(es_statements)}',?)'''
+#        _ = db.cur.execute(sql)
+#        for row in db.cur.fetchall():
+#            res = json.loads(row[0])
+#            if '@com.sap.vocabularies.Search.v1.SearchStatistics' in res \
+#                and 'ConnectorStatistics' in res['@com.sap.vocabularies.Search.v1.SearchStatistics']:
+#                for c in res['@com.sap.vocabularies.Search.v1.SearchStatistics']['ConnectorStatistics']:
+#                    del c['Schema']
+#                    del c['Name']
+#            result.append(res)
+#    return result
+
 
 '''
 @app.get('/',response_class=RedirectResponse, status_code=302)
@@ -206,13 +236,15 @@ async def get_search_by_tenant(tenant_id):
 
 @app.get('/sap/es/odata/{tenant_id:path}/{esh_version:path}/$metadata')
 def get_search_metadata(tenant_id,esh_version):
-    #print(tenant_id, esh_version)
-    return Response(content=perform_search(esh_version, tenant_id, '/$metadata', True), media_type='application/xml')
+    return Response(\
+        content=perform_search(get_esh_version(esh_version), tenant_id, '/$metadata', True)\
+            , media_type='application/xml')
 
 @app.get('/sap/es/odata/{tenant_id:path}/{esh_version:path}/$metadata/{path:path}')
 def get_search_metadata_entity_set(tenant_id, esh_version, path):
     return Response(\
-        content=perform_search(esh_version, tenant_id, '/$metadata/{}' + path, True), media_type='application/xml')
+        content=perform_search(get_esh_version(esh_version), tenant_id, '/$metadata/{}' + path, True)\
+            , media_type='application/xml')
 
 @app.get('/sap/es/odata/{tenant_id:path}/{esh_version:path}/{path:path}')
 def get_search(tenant_id, esh_version, path, req: Request):
@@ -220,15 +252,19 @@ def get_search(tenant_id, esh_version, path, req: Request):
     if '$top' not in request_args:
         request_args['$top'] = 10
     esh_query_string = f'/{path}?' + '&'.join(f'{key}={value}' for key, value in request_args.items())
-    return perform_search(esh_version, tenant_id, esh_query_string)
+    return cleanse_output([perform_search(get_esh_version(esh_version), tenant_id, esh_query_string)])[0]
 
-@app.post('/sap/es/odata/{tenant_id:path}/{esh_version:path}/$all')
+def get_esh_version(version):
+    if version == 'latest' or version == '':
+        return glob.esh_apiversion
+    return version
+
+
+@app.post('/sap/es/odata/{tenant_id:path}/{esh_version:path}')
 #def post_search(root=Body(...), db: Session = Depends(get_db)):
-def post_search(tenant_id, esh_version, root=Body(...)):
-    es_search_options = IESSearchOptions(root)
-    print(json.dumps(es_search_options.to_dict(), indent=4))
-    print(es_search_options.to_statement())
-    return perform_search(esh_version, tenant_id, es_search_options.to_statement())
+def post_search(tenant_id, esh_version, body=Body(...)):
+    return perform_bulk_search(get_esh_version(esh_version), tenant_id, body)
+
 
 @app.get('/{path:path}')
 async def tile_request(path: str, response: Response):
@@ -258,23 +294,23 @@ if __name__ == '__main__':
         sys.exit(-1)
     db_host = config['db']['connection']['host']
     db_port = config['db']['connection']['port']
-    globals.db_schema_prefix = config['deployment']['schemaPrefix']
-    globals.db_tenant_prefix = globals.db_schema_prefix + TENANT_PREFIX
+    glob.db_schema_prefix = config['deployment']['schemaPrefix']
+    glob.db_tenant_prefix = glob.db_schema_prefix + TENANT_PREFIX
     for user_type_value, user_item in config['db']['user'].items():
         user_type = DBUserType(user_type_value)
         user_name = user_item['name']
         user_password = user_item['password']
         credentials = Credentials(db_host, db_port, user_name, user_password)
-        globals.connection_pools[user_type] = ConnectionPool(credentials)
-        with DBConnection(globals.connection_pools[user_type]) as db_main:
+        glob.connection_pools[user_type] = ConnectionPool(credentials)
+        with DBConnection(glob.connection_pools[user_type]) as db_main:
             db_main.cur.execute('select * from dummy')
 
-    with DBConnection(globals.connection_pools[DBUserType.DATA_READ]) as db:
-        r = [ { "URI": [ "/$apiversion" ] } ]
+    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db_read:
+        r = [ { 'URI': [ '/$apiversion' ] } ]
         search_query = f'''CALL ESH_SEARCH('{json.dumps(r)}',?)'''
-        _ = db.cur.execute(search_query)
-        globals.esh_apiversion = json.loads(db.cur.fetchone()[0])['apiversion']
-        #logging.info('ESH_SEARCH calls will use API-version %s', globals.esh_apiversion)
+        _ = db_read.cur.execute(search_query)
+        glob.esh_apiversion = 'v' + str(json.loads(db_read.cur.fetchone()[0])['apiversion'])
+        #logging.info('ESH_SEARCH calls will use API-version %s', glob.esh_apiversion)
 
     #ui_default_tenant = config['UIDefaultTenant']
     cs = config['server']

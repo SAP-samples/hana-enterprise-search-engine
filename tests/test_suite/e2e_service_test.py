@@ -13,7 +13,6 @@ parser = argparse.ArgumentParser(description='Runs test cases for mapper')
 parser.add_argument('-f', '--folder', nargs='?', help='folder name')
 parser.add_argument('-t', '--test', nargs='?', help='test number')
 parser.add_argument('--nocdscompile', help='no cds compiliation', action='store_true')
-#parser.add_argument('--tenant', nargs='?', help='test tenant')
 parser.add_argument('--nocleanup', help='no cleanup after test execution', action='store_true')
 args = parser.parse_args()
 
@@ -23,7 +22,8 @@ sys.path.append(src_path)
 
 def round_dict(d, k):
     if k in d:
-        d[k] = round(d[k], 1)
+        d[k] = int(round(d[k], 0))
+
 
 def round_esh_response(esh_res):
     round_dict(esh_res, '@com.sap.vocabularies.Search.v1.ResponseTime')
@@ -34,6 +34,18 @@ def round_esh_response(esh_res):
             round_dict(c, '@com.sap.vocabularies.Search.v1.SearchTime')
             round_dict(c, '@com.sap.vocabularies.Search.v1.CPUTime')
     return esh_res
+
+
+def check_search_response(ref_obj, test_obj, ref_file_name):
+    if ref_obj:
+        if ref_obj != test_obj:
+            return False
+    else:
+        with open(os.path.join(folder_path, ref_file_name)\
+            , encoding = 'utf-8') as fr:
+            json.dump(test_obj, fr, indent = 4)
+    return True
+
 
 folders = next(os.walk(current_path))[1]
 
@@ -91,13 +103,22 @@ for folder in folders:
         for cson_file_name in cson_file_names:
             test_name = cson_file_name[:-10]
             data_file_name = test_name + '.data.json'
-            search_request_file_name = test_name + '.searchRequest.json'
-            search_response_file_name = test_name + '.searchResponse.json'
-            if os.path.exists(os.path.join(folder_path, search_request_file_name)):
-                with open(os.path.join(folder_path, search_request_file_name), encoding = 'utf-8') as f:
-                    search_request = json.load(f)
+            openapi_search_request_file_name = test_name + '.searchRequestOpenAPI.json'
+            openapi_search_response_file_name = test_name + '.searchResponseOpenAPI.json'
+            odata_search_request_file_name = test_name + '.searchRequestOData.txt'
+            odata_search_response_file_name_post = test_name + '.searchResponseODataPOST.json'
+            odata_search_response_file_name_get = test_name + '.searchResponseODataGET.json'
+            reference_search_response_file_name = test_name + '.searchResponseReference.json'
+            if os.path.exists(os.path.join(folder_path, openapi_search_request_file_name)):
+                with open(os.path.join(folder_path, openapi_search_request_file_name), encoding = 'utf-8') as f:
+                    openapi_search_request = json.load(f)
             else:
-                search_request = None
+                openapi_search_request = None
+            if os.path.exists(os.path.join(folder_path, odata_search_request_file_name)):
+                with open(os.path.join(folder_path, odata_search_request_file_name), encoding = 'utf-8') as f:
+                    odata_search_request = [w for w in f.read().split('\n') if w.strip() != '']
+            else:
+                odata_search_request = None
             if os.path.exists(os.path.join(folder_path, data_file_name)):
                 with open(os.path.join(folder_path, cson_file_name), encoding = 'utf-8') as f:
                     cson = json.load(f)
@@ -113,14 +134,51 @@ for folder in folders:
 
                 r = requests.post(f'{base_url}/v1/data/{tenant_name}', json=data)
                 res.append(r.status_code)
-                if search_request:
+    
+                ref_search_resp_file_name = os.path.join(folder_path, reference_search_response_file_name)
+                if os.path.exists(ref_search_resp_file_name):
+                    with open(ref_search_resp_file_name, encoding = 'utf-8') as fr:
+                        reference_search_response = json.load(fr)
+                else:
+                    reference_search_response = None
+                if openapi_search_request:
                     tstart = time.time()
-                    r = requests.post(f'{base_url}/v1/search/{tenant_name}', json=search_request)
-                    print(time.time() - tstart)
+                    r = requests.post(f'{base_url}/v1/search/{tenant_name}', json=openapi_search_request)
+                    #print(time.time() - tstart)
                     res.append(r.status_code)
-                    with open(os.path.join(folder_path, search_response_file_name), 'w', encoding = 'utf-8') as fw:
+                    with open(os.path.join(folder_path, openapi_search_response_file_name), 'w',\
+                        encoding = 'utf-8') as fw:
                         search_response = [round_esh_response(w) for w in r.json()]
                         json.dump(search_response, fw, indent=4)
+                    if not check_search_response(reference_search_response, search_response, ref_search_resp_file_name):
+                        res.append('wrong OpenAPI search response')
+                if odata_search_request:
+                    # GET
+                    tstart = time.time()
+                    search_response = []
+                    for search_request in odata_search_request:
+                        r = requests.get(f'{base_url}/sap/es/odata/{tenant_name}/latest/{search_request}')
+                        search_response.append(r.json())
+                        res.append(r.status_code)
+                    #print(time.time() - tstart)
+                    with open(os.path.join(folder_path, odata_search_response_file_name_get), 'w',\
+                        encoding = 'utf-8') as fw:
+                        search_response = [round_esh_response(w) for w in search_response]
+                        json.dump(search_response, fw, indent=4)
+                    if not check_search_response(reference_search_response, search_response, ref_search_resp_file_name):
+                        res.append('wrong OData GET search response')
+                    # POST
+                    tstart = time.time()
+                    r = requests.post(f'{base_url}/sap/es/odata/{tenant_name}/latest'\
+                        , json=odata_search_request)
+                    #print(time.time() - tstart)
+                    res.append(r.status_code)
+                    with open(os.path.join(folder_path, odata_search_response_file_name_post), 'w',\
+                        encoding = 'utf-8') as fw:
+                        search_response = [round_esh_response(w) for w in r.json()]
+                        json.dump(search_response, fw, indent=4)
+                    if not check_search_response(reference_search_response, search_response, ref_search_resp_file_name):
+                        res.append('wrong OData POST search response')
                 if not args.nocleanup:
                     r = requests.delete(f'{base_url}/v1/tenant/{tenant_name}')
                     res.append(r.status_code)
@@ -129,6 +187,6 @@ for folder in folders:
                     print(f'Test {folder}.{test_name} sucessfully executed in {trun} s')
                 else:
                     res_str = ', '.join([str(w) for w in res])
-                    print(f'Test {folder}.{test_name} failed with HTTP codes {res_str} in {trun} s')
+                    print(f'Test {folder}.{test_name} failed with (HTTP) codes {res_str} in {trun} s')
     except requests.exceptions.ConnectionError as e:
         logging.error('Connection error. Server might not be running')

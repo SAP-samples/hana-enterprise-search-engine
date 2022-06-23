@@ -2,15 +2,15 @@
     {
         "value": [],
         "@odata.count": 0,
-        "@com.sap.vocabularies.Search.v1.ResponseTime": 0.1,
-        "@com.sap.vocabularies.Search.v1.SearchTime": 0.1,
+        "@com.sap.vocabularies.Search.v1.ResponseTime": 0,
+        "@com.sap.vocabularies.Search.v1.SearchTime": 0,
         "@com.sap.vocabularies.Search.v1.SearchStatistics": {
             "ConnectorStatistics": [
                 {
                     "OdataID": "EXAMPLEPERSON",
                     "StatusCode": 200,
-                    "@com.sap.vocabularies.Search.v1.SearchTime": 0.1,
-                    "@com.sap.vocabularies.Search.v1.CPUTime": 0.1
+                    "@com.sap.vocabularies.Search.v1.SearchTime": 0,
+                    "@com.sap.vocabularies.Search.v1.CPUTime": 0
                 }
             ],
             "StatusCode": 200
@@ -35,15 +35,15 @@
             }
         ],
         "@odata.count": 1,
-        "@com.sap.vocabularies.Search.v1.ResponseTime": 0.1,
-        "@com.sap.vocabularies.Search.v1.SearchTime": 0.1,
+        "@com.sap.vocabularies.Search.v1.ResponseTime": 0,
+        "@com.sap.vocabularies.Search.v1.SearchTime": 0,
         "@com.sap.vocabularies.Search.v1.SearchStatistics": {
             "ConnectorStatistics": [
                 {
                     "OdataID": "EXAMPLEPERSON",
                     "StatusCode": 200,
-                    "@com.sap.vocabularies.Search.v1.SearchTime": 0.1,
-                    "@com.sap.vocabularies.Search.v1.CPUTime": 0.1
+                    "@com.sap.vocabularies.Search.v1.SearchTime": 0,
+                    "@com.sap.vocabularies.Search.v1.CPUTime": 0
                 }
             ],
             "StatusCode": 200

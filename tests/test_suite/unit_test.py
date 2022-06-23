@@ -12,9 +12,6 @@ current_path = sys.path[0]
 src_path = current_path[:-len('tests\\test_cases')] + 'src'
 sys.path.append(src_path)
 
-#PATH = 'tests\\mapping'
-
-
 spec1 = importlib.util.spec_from_file_location('sqlcreate', 'src/sqlcreate.py')
 sqlcreate = importlib.util.module_from_spec(spec1)
 spec1.loader.exec_module(sqlcreate)
@@ -97,7 +94,7 @@ for folder in folders:
         cson_file_names = [w for w in os.listdir(folder_path) if w.endswith('.cson.json')]
 
     for cson_file_name in cson_file_names:
-        #if cson_file_name != '03.cson.json':
+        #if cson_file_name != '09.cson.json':
         #    continue
         test_name = cson_file_name[:-9]
         nodes_file_name = test_name + 'nodes.json'

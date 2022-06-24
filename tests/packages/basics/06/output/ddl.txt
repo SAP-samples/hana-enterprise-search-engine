@@ -15,7 +15,8 @@ viewAttribute=('ADDRESS_PHONE_NUMBER_PREFIX',"ENTITY/EXAMPLEPERSON","ADDRESS_PHO
 viewAttribute=('ADDRESS_PHONE_NUMBER_SUFFIX',"ENTITY/EXAMPLEPERSON","ADDRESS_PHONE_NUMBER_SUFFIX",'','default','attribute'),
 view=('default',"ENTITY/EXAMPLEPERSON"),
 defaultView='default',
-OPTIMIZEMETAMODEL=0);
+OPTIMIZEMETAMODEL=0,
+'LEGACY_MODE' = 'TRUE');
 
 {
     "uri": "~/$metadata/EntitySets",

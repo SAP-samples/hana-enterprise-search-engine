@@ -16,7 +16,8 @@ viewAttribute=('_ID',"ENTITY/COUNTRYCODE","_ID",'','default','attribute'),
 viewAttribute=('DESCRIPTION',"ENTITY/COUNTRYCODE","DESCRIPTION",'','default','attribute'),
 view=('default',"ENTITY/COUNTRYCODE"),
 defaultView='default',
-OPTIMIZEMETAMODEL=0);
+OPTIMIZEMETAMODEL=0,
+'LEGACY_MODE' = 'TRUE');
 
 create or replace column view "VIEW/ORGANIZATIONTYPE" with parameters (indexType=6,
 joinIndex="ENTITY/ORGANIZATIONTYPE",joinIndexType=0,joinIndexEstimation=0,
@@ -24,7 +25,8 @@ viewAttribute=('_ID',"ENTITY/ORGANIZATIONTYPE","_ID",'','default','attribute'),
 viewAttribute=('DESCRIPTION',"ENTITY/ORGANIZATIONTYPE","DESCRIPTION",'','default','attribute'),
 view=('default',"ENTITY/ORGANIZATIONTYPE"),
 defaultView='default',
-OPTIMIZEMETAMODEL=0);
+OPTIMIZEMETAMODEL=0,
+'LEGACY_MODE' = 'TRUE');
 
 create or replace column view "VIEW/PERSONORGANIZATIONRE" with parameters (indexType=6,
 joinIndex="ENTITY/PERSONORGANIZATIONRE",joinIndexType=0,joinIndexEstimation=0,
@@ -32,7 +34,8 @@ viewAttribute=('_ID',"ENTITY/PERSONORGANIZATIONRE","_ID",'','default','attribute
 viewAttribute=('DESCRIPTION',"ENTITY/PERSONORGANIZATIONRE","DESCRIPTION",'','default','attribute'),
 view=('default',"ENTITY/PERSONORGANIZATIONRE"),
 defaultView='default',
-OPTIMIZEMETAMODEL=0);
+OPTIMIZEMETAMODEL=0,
+'LEGACY_MODE' = 'TRUE');
 
 create or replace column view "VIEW/PERSON" with parameters (indexType=6,
 joinIndex="ENTITY/PERSON",joinIndexType=0,joinIndexEstimation=0,
@@ -45,7 +48,8 @@ viewAttribute=('ADDRESS_STREET',"ENTITY/PERSON","ADDRESS_STREET",'','default','a
 viewAttribute=('ADDRESS_HOUSENUMBER',"ENTITY/PERSON","ADDRESS_HOUSENUMBER",'','default','attribute'),
 view=('default',"ENTITY/PERSON"),
 defaultView='default',
-OPTIMIZEMETAMODEL=0);
+OPTIMIZEMETAMODEL=0,
+'LEGACY_MODE' = 'TRUE');
 
 create or replace column view "VIEW/ORGANIZATION" with parameters (indexType=6,
 joinIndex="ENTITY/ORGANIZATION",joinIndexType=0,joinIndexEstimation=0,
@@ -57,14 +61,16 @@ viewAttribute=('ADDRESS_STREET',"ENTITY/ORGANIZATION","ADDRESS_STREET",'','defau
 viewAttribute=('ADDRESS_HOUSENUMBER',"ENTITY/ORGANIZATION","ADDRESS_HOUSENUMBER",'','default','attribute'),
 view=('default',"ENTITY/ORGANIZATION"),
 defaultView='default',
-OPTIMIZEMETAMODEL=0);
+OPTIMIZEMETAMODEL=0,
+'LEGACY_MODE' = 'TRUE');
 
 create or replace column view "VIEW/RELPERSONORGANIZATIO" with parameters (indexType=6,
 joinIndex="ENTITY/RELPERSONORGANIZATIO",joinIndexType=0,joinIndexEstimation=0,
 viewAttribute=('_ID',"ENTITY/RELPERSONORGANIZATIO","_ID",'','default','attribute'),
 view=('default',"ENTITY/RELPERSONORGANIZATIO"),
 defaultView='default',
-OPTIMIZEMETAMODEL=0);
+OPTIMIZEMETAMODEL=0,
+'LEGACY_MODE' = 'TRUE');
 
 {
     "uri": "~/$metadata/EntitySets",

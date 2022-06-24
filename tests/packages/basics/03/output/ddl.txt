@@ -12,7 +12,8 @@ viewAttribute=('ADDRESS_STREET',"ENTITY/EXAMPLEPERSON","ADDRESS_STREET",'','defa
 viewAttribute=('ADDRESS_STREETNUMBER',"ENTITY/EXAMPLEPERSON","ADDRESS_STREETNUMBER",'','default','attribute'),
 view=('default',"ENTITY/EXAMPLEPERSON"),
 defaultView='default',
-OPTIMIZEMETAMODEL=0);
+OPTIMIZEMETAMODEL=0,
+'LEGACY_MODE' = 'TRUE');
 
 {
     "uri": "~/$metadata/EntitySets",

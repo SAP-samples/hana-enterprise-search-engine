@@ -13,7 +13,8 @@ viewAttribute=('FIRSTNAME',"ENTITY/EXAMPLEPERSON","FIRSTNAME",'','default','attr
 viewAttribute=('LASTNAME',"ENTITY/EXAMPLEPERSON","LASTNAME",'','default','attribute'),
 view=('default',"ENTITY/EXAMPLEPERSON"),
 defaultView='default',
-OPTIMIZEMETAMODEL=0);
+OPTIMIZEMETAMODEL=0,
+'LEGACY_MODE' = 'TRUE');
 
 {
     "uri": "~/$metadata/EntitySets",

@@ -93,8 +93,9 @@ The message "Application startup complete" indicates a successful server startup
 ### Run end-to-end test
 
 ```bat
-(.venv) c:\devpath\hana-search> python tests\packages\e2e_service_test.py
+(.venv) c:\devpath\hana-search> python tests\packages\run_tests.py
 ```
+The test script prints a success-message in the last output line if all tests are executed successfully.
 
 
 ## Known Issues

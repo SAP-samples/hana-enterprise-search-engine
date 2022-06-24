@@ -11,7 +11,8 @@ joinIndex="ENTITY/EXAMPLEL0",joinIndexType=0,joinIndexEstimation=0,
 viewAttribute=('_ID',"ENTITY/EXAMPLEL0","_ID",'','default','attribute'),
 view=('default',"ENTITY/EXAMPLEL0"),
 defaultView='default',
-OPTIMIZEMETAMODEL=0);
+OPTIMIZEMETAMODEL=0,
+'LEGACY_MODE' = 'TRUE');
 
 {
     "uri": "~/$metadata/EntitySets",

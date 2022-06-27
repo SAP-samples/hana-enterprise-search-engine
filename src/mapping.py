@@ -98,6 +98,22 @@ def get_key_columns(subnode_level, pk):
         res = (pk_name, {d[0] + str(subnode_level - 1): d[1], d[0] + str(subnode_level): d[1]})
     return res
 
+
+def cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
+    node_name_mapping, cson, nodes, path, type_name, subnode_level):
+    subnode = cson_entity_to_nodes(node_name_mapping, cson, nodes, path + [type_name],\
+        element_name_ext, element, subnode_level +  1, False)
+    for column in subnode['properties'].values():
+        if 'external_path' in column:
+            property_name_int, _ =\
+                property_name_mapping.register([element_name_ext] + column['external_path'])
+        else:
+            property_name_int, _ = property_name_mapping.register([element_name_ext])
+        node['properties'][property_name_int] = column
+        node['properties'][property_name_int]['external_path'] =\
+            [element_name_ext] + column['external_path']
+
+
 def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_definition,\
     subnode_level = 0, is_table = True, has_pc = False, pk = DefaultPK):
     ''' Transforms cson entity definition to model definition.
@@ -129,35 +145,28 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
             element_name, _ = property_name_mapping.register([element_name_ext])
             element_needs_pc = PRIVACY_CATEGORY_ANNOTATION in element
             if 'items' in element or element_needs_pc: # collection (many keyword)
-                if 'items' in element and element['items']['type'] in cson['definitions']:
-                    subnode = cson_entity_to_nodes(node_name_mapping, cson, nodes, path + [type_name],\
-                        element_name_ext, cson['definitions'][element['items']['type']],\
-                            subnode_level +  1, True, element_needs_pc)
+                if 'items' in element and 'elements' in element['items']: # nested definition
+                    sub_type = element['items']
+                    sub_type['kind'] = 'type'
+                elif 'items' in element and element['items']['type'] in cson['definitions']:
+                    sub_type = cson['definitions'][element['items']['type']]
                 else: # built-in type
                     if 'items' in element:
-                        sub_type = {'kind':'type'} | deepcopy(element['items'])
+                        sub_type = element['items']
+                        sub_type['kind'] = 'type'
                     else:
-                        sub_type = {'kind':'type'} | deepcopy(element)
-                    subnode = cson_entity_to_nodes(node_name_mapping, cson, nodes, path +\
-                        [type_name], element_name_ext, sub_type, subnode_level +  1, True, element_needs_pc)
+                        sub_type = element
+                        sub_type['kind'] = 'type'
+                subnode = cson_entity_to_nodes(node_name_mapping, cson, nodes, path +\
+                    [type_name], element_name_ext, sub_type, subnode_level +  1, True, element_needs_pc)
                 subnodes.append(subnode)
                 node['properties'][element_name] = {'rel': {'table_name':subnode['table_name'],\
                     'type':'containment'}, 'external_path': [element_name_ext]}
             elif 'type' in element:
                 if element['type'] in cson['definitions']:
                     if 'elements' in cson['definitions'][element['type']]:
-                        subnode = cson_entity_to_nodes(node_name_mapping, cson, nodes, path + [type_name],\
-                            element_name_ext, cson['definitions'][element['type']], subnode_level +  1, False)
-                        for column in subnode['properties'].values():
-                            #print("here {}={}".format(element_name + '.' + column_name, column))
-                            if 'external_path' in column:
-                                property_name_int, _ =\
-                                    property_name_mapping.register([element_name_ext] + column['external_path'])
-                            else:
-                                property_name_int, _ = property_name_mapping.register([element_name_ext])
-                            node['properties'][property_name_int] = column
-                            node['properties'][property_name_int]['external_path'] =\
-                                [element_name_ext] + column['external_path']
+                        cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
+                            node_name_mapping, cson, nodes, path, type_name, subnode_level)
                     else:
                         node['properties'][element_name] =\
                             get_sql_type(node_name_mapping, cson, cson['definitions'][element['type']], pk)
@@ -167,19 +176,10 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
                     node['properties'][element_name]['external_path'] = [element_name_ext]
             elif 'elements' in element: # nested definition
                 element['kind'] = 'type'
-                subnode = cson_entity_to_nodes(node_name_mapping, cson, nodes, path + [type_name],\
-                    element_name_ext, element, subnode_level +  1, False)
-                for column in subnode['properties'].values():
-                    if 'external_path' in column:
-                        property_name_int, _ =\
-                            property_name_mapping.register([element_name_ext] + column['external_path'])
-                    else:
-                        property_name_int, _ = property_name_mapping.register([element_name_ext])
-                    node['properties'][property_name_int] = column
-                    node['properties'][property_name_int]['external_path'] =\
-                        [element_name_ext] + column['external_path']
+                cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
+                    node_name_mapping, cson, nodes, path, type_name, subnode_level)
             else:
-                print('ToDo 1')
+                raise NotImplementedError
 
     elif path and type_definition['kind'] == 'type': # single property for one node
         if not type_definition['type'] in cson['definitions']:
@@ -209,7 +209,7 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
                 node['properties']['_VALUE'] = get_sql_type(node_name_mapping, cson, type_definition, pk)
             #node['properties']['ONE'] = 2
     else:
-        print('ToDo 2')
+        raise NotImplementedError
 
     if subnodes:
         node['contains'] = [w['table_name'] for w in subnodes]

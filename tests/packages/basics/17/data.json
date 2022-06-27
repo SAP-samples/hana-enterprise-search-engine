@@ -1,0 +1,94 @@
+{
+    "example.Person": [
+        {
+            "firstName": "Max",
+            "lastName": "Mustermann",
+            "address": [
+                {
+                    "country": "Germany",
+                    "zip": "69190",
+                    "city": "Walldorf",
+                    "street": "Hauptstrasse",
+                    "streetNumber": "77",
+                    "phone": [
+                        {
+                            "country": "+49",
+                            "number": [
+                                {
+                                    "prefix": "6222",
+                                    "suffix": "8765434"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "address": [
+                {
+                    "streetNumber": "11",
+                    "zip": "2700",
+                    "city": "Wiener Neustadt",
+                    "country": "Austria",
+                    "street": "Hauptplatz",
+                    "phone": [
+                        {
+                            "number": [
+                                {
+                                    "prefix": "2622",
+                                    "suffix": "123456"
+                                }
+                            ],
+                            "country": "+43"
+                        }
+                    ]
+                }
+            ],
+            "lastName": "Musterfrau",
+            "firstName": "Maximilia"
+        },
+        {
+            "lastName": "Platzhalter",
+            "address": [
+                {
+                    "phone": [
+                        {
+                            "country": "+49",
+                            "number": [
+                                {
+                                    "prefix": "2222",
+                                    "suffix": "987654321"
+                                }
+                            ]
+                        }
+                    ],
+                    "city": "Heidelberg",
+                    "country": "Germany",
+                    "streetNumber": "147",
+                    "zip": "69115",
+                    "street": "Bergheimer Str."
+                },
+                {
+                    "country": "Austria",
+                    "zip": "1020",
+                    "city": "Wien",
+                    "phone": [
+                        {
+                            "country": "+43",
+                            "number": [
+                                {
+                                    "prefix": "1",
+                                    "suffix": "7777777"
+                                }
+                            ]
+                        }
+                    ],
+                    "street": "Lassallestraße",
+                    "streetNumber": "7B"
+                }
+            ],
+            "firstName": "Anton"
+        }
+    ]
+}

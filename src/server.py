@@ -290,7 +290,7 @@ if __name__ == '__main__':
     try:
         with open('src/.config.json', encoding = 'utf-8') as fr:
             config = json.load(fr)
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         logging.error('Inconsistent or missing installation. src/.config.json not found.')
         exit(-1)
     if reinstall_needed(versions, config):

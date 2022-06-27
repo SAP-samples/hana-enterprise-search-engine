@@ -1,0 +1,37 @@
+{
+  "namespace": "example",
+  "definitions": {
+    "example.L0": {
+      "kind": "entity",
+      "elements": {
+        "pl0": {
+          "items": {
+            "elements": {
+              "pl1": {
+                "items": {
+                  "elements": {
+                    "pl2": {
+                      "items": {
+                        "elements": {
+                          "pl3": {
+                            "type": "cds.String",
+                            "length": 80
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "meta": {
+    "creator": "CDS Compiler v2.15.2",
+    "flavor": "inferred"
+  },
+  "$version": "2.0"
+}

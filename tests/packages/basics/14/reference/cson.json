@@ -1,0 +1,54 @@
+{
+  "namespace": "example",
+  "definitions": {
+    "example.Name": {
+      "kind": "type",
+      "type": "cds.String",
+      "length": 256
+    },
+    "example.Person": {
+      "kind": "entity",
+      "elements": {
+        "firstName": {
+          "type": "example.Name",
+          "length": 256
+        },
+        "lastName": {
+          "type": "example.Name",
+          "length": 256
+        },
+        "address": {
+          "items": {
+            "elements": {
+              "country": {
+                "type": "cds.String",
+                "length": 80
+              },
+              "zip": {
+                "type": "cds.String",
+                "length": 10
+              },
+              "city": {
+                "type": "cds.String",
+                "length": 80
+              },
+              "street": {
+                "type": "cds.String",
+                "length": 80
+              },
+              "streetNumber": {
+                "type": "cds.String",
+                "length": 80
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "meta": {
+    "creator": "CDS Compiler v2.15.2",
+    "flavor": "inferred"
+  },
+  "$version": "2.0"
+}

@@ -21,7 +21,8 @@ class SharedConnection():
             address = credentials.host,
             port = credentials.port,
             user = credentials.user,
-            password = credentials.password
+            password = credentials.password,
+            autocommit = False
         )
         self.cur = self.con.cursor()
     def __enter__(self):

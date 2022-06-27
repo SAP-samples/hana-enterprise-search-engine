@@ -1,5 +1,6 @@
-# pyesh specific
+# application specific
 .config.json
+.vscode/launch.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

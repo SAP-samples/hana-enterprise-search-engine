@@ -33,6 +33,7 @@ def get_user_name(db_schema_prefix:str, user_type:DBUserType): #pylint: disable=
     return f'{db_schema_prefix}_{user_type.name}'
 
 if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.INFO)
     config_file_full_name = os.path.join(sys.path[0], CONFIG_FILE_NAME)
     parser = ArgumentParser(description='Runs test cases for mapper')
     parser.add_argument('--action', type=str, choices=['install', 'delete', 'cleanup'], default='install',\
@@ -71,68 +72,79 @@ if __name__ == '__main__':
                 config['deployment']['schemaPrefix'] = args.db_schema_prefix
                 config['deployment']['testTenant'] = generate_secure_alphanum_string()
                 config['db'] = {'connection':{'host': args.db_host, 'port': args.db_port}, 'user':{}}
-                exceeded_by = len(args.db_schema_prefix) - SCHEMA_PREFIX_MAX_LENGTH
-                if exceeded_by > 0:
-                    msg = (f'schema-prefex max length {SCHEMA_PREFIX_MAX_LENGTH} '
-                        f'exceeded by {exceeded_by} with {args.db_schema_prefix}')
-                    logging.error(msg)
-                    sys.exit(-1)
                 if not (args.db_host and args.db_port and args.db_setup_user and \
                     args.db_setup_password and args.db_schema_prefix):
                     args_list = ['db-host', 'db-port', 'db-setup-user', 'db-setup-password', 'schema-prefix']
                     args_needed = ' '.join([f'--{w}' for w in args_list])
                     logging.error('the following arguments are required for installation: %s', args_needed)
                     sys.exit(-1)
-                else:
-                    config_admin_credentials = \
-                        Credentials(args.db_host, args.db_port, args.db_setup_user, args.db_setup_password)
-                    config_admin_pool = ConnectionPool(config_admin_credentials)
-                    with DBConnection(config_admin_pool) as db:
-                        sql = f"SELECT USER_NAME FROM SYS.USERS WHERE USER_NAME like '{args.db_schema_prefix}%'"
-                        error = check_if_exists(db, sql, 'user')
-                        sql = f"SELECT SCHEMA_NAME FROM SYS.SCHEMAS WHERE SCHEMA_NAME like '{args.db_schema_prefix}%'"
-                        error |= check_if_exists(db, sql, 'schema')
-                        if error:
-                            msg = (f'Schemas/users starting with {args.db_schema_prefix} already exist. '
-                            'Cleanup DB or choose other schema-prefix. Installation aborted')
-                            logging.error(msg)
-                            sys.exit(-1)
-                        sql = "select value from M_HOST_INFORMATION where key = 'build_version'"
-                        db.cur.execute(sql)
-                        release = db.cur.fetchone()[0].split('.')[0]
-                        match release:
-                            case '2':
-                                schema = '_SYS_RT'
-                            case '4':
-                                schema = 'SYS'
-                            case _:
-                                raise NotImplementedError
-                        for user_type in DBUserType:
-                            user_name = get_user_name(args.db_schema_prefix, user_type)
-                            user_password = generate_secure_alphanum_string()
+                exceeded_by = len(args.db_schema_prefix) - SCHEMA_PREFIX_MAX_LENGTH
+                if exceeded_by > 0:
+                    msg = (f'schema-prefex max length {SCHEMA_PREFIX_MAX_LENGTH} '
+                        f'exceeded by {exceeded_by} with {args.db_schema_prefix}')
+                    logging.error(msg)
+                    sys.exit(-1)
+                config_admin_credentials = \
+                    Credentials(args.db_host, args.db_port, args.db_setup_user, args.db_setup_password)
+                config_admin_pool = ConnectionPool(config_admin_credentials)
+                with DBConnection(config_admin_pool) as db:
+                    db.cur.execute('SET TRANSACTION AUTOCOMMIT DDL OFF')
+                    sql = f"SELECT USER_NAME FROM SYS.USERS WHERE USER_NAME like '{args.db_schema_prefix}%'"
+                    error = check_if_exists(db, sql, 'user')
+                    sql = f"SELECT SCHEMA_NAME FROM SYS.SCHEMAS WHERE SCHEMA_NAME like '{args.db_schema_prefix}%'"
+                    error |= check_if_exists(db, sql, 'schema')
+                    if error:
+                        msg = (f'Schemas/users starting with {args.db_schema_prefix} already exist. '
+                        'Cleanup DB or choose other schema-prefix. Installation aborted')
+                        logging.error(msg)
+                        sys.exit(-1)
+                    sql = "select value from M_HOST_INFORMATION where key = 'build_version'"
+                    db.cur.execute(sql)
+                    release = db.cur.fetchone()[0].split('.')[0]
+                    match release:
+                        case '2':
+                            schema = '_SYS_RT'
+                        case '4':
+                            schema = 'SYS'
+                        case _:
+                            raise NotImplementedError
+                    for user_type in DBUserType:
+                        user_name = get_user_name(args.db_schema_prefix, user_type)
+                        user_password = generate_secure_alphanum_string()
+                        try:
+                            logging.info('Creating new DB User %s with password %s', user_name, user_password)
                             sql = f'CREATE USER {user_name} PASSWORD {user_password} NO FORCE_FIRST_PASSWORD_CHANGE'
                             db.cur.execute(sql)
-                            logging.info('DB User %s created', user_name)
-                            config['db']['user'][user_type.value] = {'name': user_name, 'password': user_password}
-                            match user_type:
-                                case DBUserType.ADMIN:
-                                    sqls = [f'GRANT CREATE SCHEMA TO {user_name}']
-                                case DBUserType.SCHEMA_MODIFY:
-                                    sqls = [\
-                                        f'GRANT EXECUTE ON SYS.ESH_CONFIG TO {user_name} WITH GRANT OPTION',\
-                                        f'GRANT SELECT ON {schema}.ESH_MODEL TO {user_name} WITH GRANT OPTION',\
-                                        f'GRANT SELECT ON {schema}.ESH_MODEL_PROPERTY TO {user_name} WITH GRANT OPTION'\
-                                        ]
-                                case DBUserType.DATA_READ:
-                                    sqls = [\
-                                        f'GRANT EXECUTE ON SYS.ESH_SEARCH TO {user_name} WITH GRANT OPTION',\
-                                        f'GRANT SELECT ON {schema}.ESH_MODEL TO {user_name} WITH GRANT OPTION',\
-                                        f'GRANT SELECT ON {schema}.ESH_MODEL_PROPERTY TO {user_name} WITH GRANT OPTION'\
-                                        ]
-                            for sql in sqls:
-                                db.cur.execute(sql)
-                        with open(config_file_full_name, 'w', encoding = 'utf-8') as fw:
-                            json.dump(config, fw, indent = 4)
+                        except HDBException as e:
+                            if e.errorcode == 258:
+                                logging.error('Cannot create new user: system privilege USER ADMIN is missing')
+                            else:
+                                logging.error('Cannot create new user')
+                            db.con.rollback()
+                            exit(-1)
+                        logging.info('DB User %s created', user_name)
+                        config['db']['user'][user_type.value] = {'name': user_name, 'password': user_password}
+                        match user_type:
+                            case DBUserType.ADMIN:
+                                sqls = [f'GRANT CREATE SCHEMA TO {user_name}']
+                            case DBUserType.SCHEMA_MODIFY:
+                                sqls = [\
+                                    f'GRANT EXECUTE ON SYS.ESH_CONFIG TO {user_name} WITH GRANT OPTION',\
+                                    f'GRANT SELECT ON {schema}.ESH_MODEL TO {user_name} WITH GRANT OPTION',\
+                                    f'GRANT SELECT ON {schema}.ESH_MODEL_PROPERTY TO {user_name} WITH GRANT OPTION'\
+                                    ]
+                            case DBUserType.DATA_READ:
+                                sqls = [\
+                                    f'GRANT EXECUTE ON SYS.ESH_SEARCH TO {user_name} WITH GRANT OPTION',\
+                                    f'GRANT SELECT ON {schema}.ESH_MODEL TO {user_name} WITH GRANT OPTION',\
+                                    f'GRANT SELECT ON {schema}.ESH_MODEL_PROPERTY TO {user_name} WITH GRANT OPTION'\
+                                    ]
+                        for sql in sqls:
+                            logging.info(sql)
+                            db.cur.execute(sql)
+                    with open(config_file_full_name, 'w', encoding = 'utf-8') as fw:
+                        json.dump(config, fw, indent = 4)
+                logging.info('Successfully completed')
             case SetupAction.DELETE:
                 if not os.path.exists(config_file_full_name):
                     logging.error('Config file %s does not exist.', config_file_full_name)
@@ -157,7 +169,12 @@ if __name__ == '__main__':
                     os.remove(config_file_full_name)
                     logging.info('Deletion successful')
     except HDBException as e:
+        db.con.rollback()
         if e.errorcode == 10:
-            logging.error('Authentication failed. Check provided db-setup-user / db-setup-passord')
+            logging.error('Authentication failed. Check provided user and passord')
+        elif e.errorcode == 258:
+            logging.error('Insufficient privilege')
         else:
-            logging.error(e.errortext)
+            logging.error(e.errorcode, e.errortext)
+
+    db.con.commit()

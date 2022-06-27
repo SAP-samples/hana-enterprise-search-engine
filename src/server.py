@@ -142,6 +142,7 @@ async def post_model(tenant_id: str, cson=Body(...)):
                 db.cur.execute(f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}',?)")
                 sql = 'insert into _MODEL (CREATED_AT, CSON, NODES) VALUES (?, ?, ?)'
                 db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(nodes)))
+                db.con.commit()
             except HDBException as e:
                 handle_error(f'dbapi Error: {e.errorcode}, {e.errortext} for:\n\t{sql}')
             return {'detail': 'Model successfully deployed'}
@@ -167,6 +168,7 @@ async def post_data(tenant_id, objects=Body(...)):
             sql = f'insert into "{tenant_schema_name}"."{table_name}" ({column_names})\
                  values ({column_placeholders})'
             db.cur.executemany(sql, v['rows'])
+        db.con.commit()
 
 
 def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
@@ -282,10 +284,15 @@ def reinstall_needed(l_versions, l_config):
     return len(reinstall) > 0
 
 if __name__ == '__main__':
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
     with open('src/versions.json', encoding = 'utf-8') as fr:
         versions = json.load(fr)
-    with open('src/.config.json', encoding = 'utf-8') as fr:
-        config = json.load(fr)
+    try:
+        with open('src/.config.json', encoding = 'utf-8') as fr:
+            config = json.load(fr)
+    except FileNotFoundError as e:
+        logging.error('Inconsistent or missing installation. src/.config.json not found.')
+        exit(-1)
     if reinstall_needed(versions, config):
         logging.error('Reset needed due to sofftware changes')
         logging.error('Delete all tenants by running python src/config.py --action delete')

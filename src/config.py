@@ -33,7 +33,8 @@ def get_user_name(db_schema_prefix:str, user_type:DBUserType): #pylint: disable=
     return f'{db_schema_prefix}_{user_type.name}'
 
 if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.INFO)
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+    #logging.getLogger().setLevel(logging.INFO)
     config_file_full_name = os.path.join(sys.path[0], CONFIG_FILE_NAME)
     parser = ArgumentParser(description='Runs test cases for mapper')
     parser.add_argument('--action', type=str, choices=['install', 'delete', 'cleanup'], default='install',\
@@ -176,5 +177,4 @@ if __name__ == '__main__':
             logging.error('Insufficient privilege')
         else:
             logging.error(e.errorcode, e.errortext)
-
     db.con.commit()

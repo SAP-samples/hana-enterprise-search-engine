@@ -56,13 +56,18 @@ Install additional Python packages if this installation is used for development:
 
 
 ### Configuration
+An admin-user is needed with the following privileges:
+- system privilege CREATE SCHEMA (grantable to other users and roles)
+- system privilege USER ADMIN
+- object privilege ESH_CONFIG execute (grantable to others)
+
 Configuration is done with the config.py script using the following parameters
 - --action install
 - --db-host: The HANA host name
 - --db-port: The HANA port number
 - --db-setup-user: The HANA user name used for setup
 - --db-setup-password: The HANA user password for the seup-user. Note: This user-name and passwords are not stored
-- --db-schema-prefix: The prefix which is used for the schemas for this installation. E.g. HANA_SEARCH_\<myinitials>
+- --db-schema-prefix: The prefix which is used for the schemas of this installation. To avoid conflicts, there must not be any other schemas on the database starting with this schema prefix.
 
 ```bat
 c:\devpath\hana-search> python src/config.py --action install --db-host <<your_hana_host>> --db-port <<your_hana_port>> --db-setup-user <<your HANA admin user>> --db-setup-password <<your HANA admin password>> --db-schema-prefix <<your HANA >>

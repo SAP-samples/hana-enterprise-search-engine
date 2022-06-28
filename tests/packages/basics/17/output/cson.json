@@ -1,73 +1,69 @@
 {
-  "namespace": "example",
-  "definitions": {
-    "example.Person": {
-      "kind": "entity",
-      "elements": {
-        "firstName": {
-          "type": "cds.String",
-          "length": 256
-        },
-        "lastName": {
-          "type": "cds.String",
-          "length": 256
-        },
-        "address": {
-          "items": {
+    "namespace": "example",
+    "definitions": {
+        "example.Person": {
+            "kind": "entity",
             "elements": {
-              "country": {
-                "type": "cds.String",
-                "length": 80
-              },
-              "zip": {
-                "type": "cds.String",
-                "length": 10
-              },
-              "city": {
-                "type": "cds.String",
-                "length": 80
-              },
-              "street": {
-                "type": "cds.String",
-                "length": 80
-              },
-              "streetNumber": {
-                "type": "cds.String",
-                "length": 80
-              },
-              "phone": {
-                "items": {
-                  "elements": {
-                    "country": {
-                      "type": "cds.String",
-                      "length": 80
-                    },
-                    "number": {
-                      "items": {
+                "firstName": {
+                    "type": "cds.String",
+                    "length": 256
+                },
+                "lastName": {
+                    "type": "cds.String",
+                    "length": 256
+                },
+                "address": {
+                    "items": {
                         "elements": {
-                          "prefix": {
-                            "type": "cds.String",
-                            "length": 80
-                          },
-                          "suffix": {
-                            "type": "cds.String",
-                            "length": 80
-                          }
+                            "country": {
+                                "type": "cds.String",
+                                "length": 80
+                            },
+                            "zip": {
+                                "type": "cds.String",
+                                "length": 10
+                            },
+                            "city": {
+                                "type": "cds.String",
+                                "length": 80
+                            },
+                            "street": {
+                                "type": "cds.String",
+                                "length": 80
+                            },
+                            "streetNumber": {
+                                "type": "cds.String",
+                                "length": 80
+                            },
+                            "phone": {
+                                "items": {
+                                    "elements": {
+                                        "country": {
+                                            "type": "cds.String",
+                                            "length": 80
+                                        },
+                                        "number": {
+                                            "items": {
+                                                "elements": {
+                                                    "prefix": {
+                                                        "type": "cds.String",
+                                                        "length": 80
+                                                    },
+                                                    "suffix": {
+                                                        "type": "cds.String",
+                                                        "length": 80
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
-                      }
                     }
-                  }
                 }
-              }
             }
-          }
         }
-      }
-    }
-  },
-  "meta": {
-    "creator": "CDS Compiler v2.15.2",
-    "flavor": "inferred"
-  },
-  "$version": "2.0"
+    },
+    "$version": "2.0"
 }

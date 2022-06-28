@@ -1,166 +1,162 @@
 {
-  "definitions": {
-    "BusinessObject": {
-      "kind": "aspect",
-      "elements": {}
-    },
-    "RelationshipObject": {
-      "kind": "aspect",
-      "elements": {}
-    },
-    "CodeList": {
-      "kind": "aspect",
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 256
+    "definitions": {
+        "BusinessObject": {
+            "kind": "aspect",
+            "elements": {}
+        },
+        "RelationshipObject": {
+            "kind": "aspect",
+            "elements": {}
+        },
+        "CodeList": {
+            "kind": "aspect",
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 256
+                }
+            }
+        },
+        "CountryCode": {
+            "kind": "entity",
+            "includes": [
+                "CodeList"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 256
+                }
+            }
+        },
+        "OrganizationType": {
+            "kind": "entity",
+            "includes": [
+                "CodeList"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 256
+                }
+            }
+        },
+        "PersonOrganizationRelationshipType": {
+            "kind": "entity",
+            "includes": [
+                "CodeList"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 256
+                }
+            }
+        },
+        "Address": {
+            "kind": "type",
+            "elements": {
+                "country": {
+                    "type": "cds.Association",
+                    "target": "CountryCode",
+                    "keys": []
+                },
+                "postalCode": {
+                    "type": "cds.String",
+                    "length": 100
+                },
+                "city": {
+                    "type": "cds.String",
+                    "length": 100
+                },
+                "street": {
+                    "type": "cds.String",
+                    "length": 100
+                },
+                "houseNumber": {
+                    "type": "cds.String",
+                    "length": 100
+                }
+            }
+        },
+        "Person": {
+            "kind": "entity",
+            "includes": [
+                "BusinessObject"
+            ],
+            "elements": {
+                "firstName": {
+                    "type": "cds.String",
+                    "length": 256
+                },
+                "lastName": {
+                    "type": "cds.String",
+                    "length": 256
+                },
+                "address": {
+                    "type": "Address"
+                },
+                "organizations": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "RelPersonOrganization",
+                    "keys": []
+                }
+            }
+        },
+        "Organization": {
+            "kind": "entity",
+            "includes": [
+                "BusinessObject"
+            ],
+            "elements": {
+                "name": {
+                    "type": "cds.String",
+                    "length": 256
+                },
+                "address": {
+                    "type": "Address"
+                },
+                "organizationType": {
+                    "type": "cds.Association",
+                    "target": "OrganizationType",
+                    "keys": []
+                },
+                "persons": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "RelPersonOrganization",
+                    "keys": []
+                }
+            }
+        },
+        "RelPersonOrganization": {
+            "kind": "entity",
+            "includes": [
+                "RelationshipObject"
+            ],
+            "elements": {
+                "person": {
+                    "type": "cds.Association",
+                    "target": "Person",
+                    "keys": []
+                },
+                "organization": {
+                    "type": "cds.Association",
+                    "target": "Organization",
+                    "keys": []
+                },
+                "personOrganizationRelationshipType": {
+                    "type": "cds.Association",
+                    "target": "PersonOrganizationRelationshipType",
+                    "keys": []
+                }
+            }
         }
-      }
     },
-    "CountryCode": {
-      "kind": "entity",
-      "includes": [
-        "CodeList"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 256
-        }
-      }
-    },
-    "OrganizationType": {
-      "kind": "entity",
-      "includes": [
-        "CodeList"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 256
-        }
-      }
-    },
-    "PersonOrganizationRelationshipType": {
-      "kind": "entity",
-      "includes": [
-        "CodeList"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 256
-        }
-      }
-    },
-    "Address": {
-      "kind": "type",
-      "elements": {
-        "country": {
-          "type": "cds.Association",
-          "target": "CountryCode",
-          "keys": []
-        },
-        "postalCode": {
-          "type": "cds.String",
-          "length": 100
-        },
-        "city": {
-          "type": "cds.String",
-          "length": 100
-        },
-        "street": {
-          "type": "cds.String",
-          "length": 100
-        },
-        "houseNumber": {
-          "type": "cds.String",
-          "length": 100
-        }
-      }
-    },
-    "Person": {
-      "kind": "entity",
-      "includes": [
-        "BusinessObject"
-      ],
-      "elements": {
-        "firstName": {
-          "type": "cds.String",
-          "length": 256
-        },
-        "lastName": {
-          "type": "cds.String",
-          "length": 256
-        },
-        "address": {
-          "type": "Address"
-        },
-        "organizations": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "RelPersonOrganization",
-          "keys": []
-        }
-      }
-    },
-    "Organization": {
-      "kind": "entity",
-      "includes": [
-        "BusinessObject"
-      ],
-      "elements": {
-        "name": {
-          "type": "cds.String",
-          "length": 256
-        },
-        "address": {
-          "type": "Address"
-        },
-        "organizationType": {
-          "type": "cds.Association",
-          "target": "OrganizationType",
-          "keys": []
-        },
-        "persons": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "RelPersonOrganization",
-          "keys": []
-        }
-      }
-    },
-    "RelPersonOrganization": {
-      "kind": "entity",
-      "includes": [
-        "RelationshipObject"
-      ],
-      "elements": {
-        "person": {
-          "type": "cds.Association",
-          "target": "Person",
-          "keys": []
-        },
-        "organization": {
-          "type": "cds.Association",
-          "target": "Organization",
-          "keys": []
-        },
-        "personOrganizationRelationshipType": {
-          "type": "cds.Association",
-          "target": "PersonOrganizationRelationshipType",
-          "keys": []
-        }
-      }
-    }
-  },
-  "meta": {
-    "creator": "CDS Compiler v2.15.2",
-    "flavor": "inferred"
-  },
-  "$version": "2.0"
+    "$version": "2.0"
 }

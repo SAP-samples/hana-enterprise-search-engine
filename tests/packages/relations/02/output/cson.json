@@ -1,509 +1,505 @@
 {
-  "namespace": "example",
-  "definitions": {
-    "example.Code": {
-      "kind": "type",
-      "type": "cds.String",
-      "length": 80
-    },
-    "example.Base": {
-      "kind": "aspect",
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
+    "namespace": "example",
+    "definitions": {
+        "example.Code": {
+            "kind": "type",
+            "type": "cds.String",
+            "length": 80
+        },
+        "example.Base": {
+            "kind": "aspect",
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                }
+            }
+        },
+        "example.Relationship": {
+            "kind": "aspect",
+            "elements": {}
+        },
+        "example.Codelist": {
+            "kind": "entity",
+            "includes": [
+                "example.Base"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                }
+            }
+        },
+        "example.CodelistRelV": {
+            "kind": "entity",
+            "includes": [
+                "example.Codelist"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                }
+            }
+        },
+        "example.CodelistRelFP": {
+            "kind": "entity",
+            "includes": [
+                "example.Codelist"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                }
+            }
+        },
+        "example.CodelistRelPA": {
+            "kind": "entity",
+            "includes": [
+                "example.Codelist"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                }
+            }
+        },
+        "example.CodelistRelPN": {
+            "kind": "entity",
+            "includes": [
+                "example.Codelist"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                }
+            }
+        },
+        "example.CodelistRelWP": {
+            "kind": "entity",
+            "includes": [
+                "example.Codelist"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                }
+            }
+        },
+        "example.CodelistRelFW": {
+            "kind": "entity",
+            "includes": [
+                "example.Codelist"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                }
+            }
+        },
+        "example.V": {
+            "kind": "entity",
+            "includes": [
+                "example.Base"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                },
+                "relF": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "example.RelVF",
+                    "keys": []
+                },
+                "relW": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "example.RelVW",
+                    "keys": []
+                },
+                "relA": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "example.RelVA",
+                    "keys": []
+                },
+                "relP": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "example.RelVP",
+                    "keys": []
+                }
+            }
+        },
+        "example.F": {
+            "kind": "entity",
+            "includes": [
+                "example.Base"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                },
+                "relP": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "example.RelFP",
+                    "keys": []
+                },
+                "relW": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "example.RelFW",
+                    "keys": []
+                },
+                "relV": {
+                    "type": "cds.Association",
+                    "target": "example.RelVF",
+                    "keys": []
+                }
+            }
+        },
+        "example.W": {
+            "kind": "entity",
+            "includes": [
+                "example.Base"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                },
+                "relP": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "example.RelWP",
+                    "keys": []
+                },
+                "relV": {
+                    "type": "cds.Association",
+                    "target": "example.RelVW",
+                    "keys": []
+                },
+                "relF": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "example.RelFW",
+                    "keys": []
+                }
+            }
+        },
+        "example.A": {
+            "kind": "entity",
+            "includes": [
+                "example.Base"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                },
+                "relV": {
+                    "type": "cds.Association",
+                    "target": "example.RelVA",
+                    "keys": []
+                },
+                "relP": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "example.RelPA",
+                    "keys": []
+                }
+            }
+        },
+        "example.P": {
+            "kind": "entity",
+            "includes": [
+                "example.Base"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                },
+                "relA": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "example.RelPA",
+                    "keys": []
+                },
+                "relN": {
+                    "type": "cds.Association",
+                    "target": "example.RelPN",
+                    "keys": []
+                },
+                "relV": {
+                    "type": "cds.Association",
+                    "target": "example.RelVP",
+                    "keys": []
+                },
+                "relF": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "example.RelFP",
+                    "keys": []
+                }
+            }
+        },
+        "example.N": {
+            "kind": "entity",
+            "includes": [
+                "example.Base"
+            ],
+            "elements": {
+                "description": {
+                    "type": "cds.String",
+                    "length": 120
+                },
+                "relP": {
+                    "type": "cds.Association",
+                    "cardinality": {
+                        "max": "*"
+                    },
+                    "target": "example.RelPN",
+                    "keys": []
+                }
+            }
+        },
+        "example.RelVF": {
+            "kind": "entity",
+            "includes": [
+                "example.Relationship"
+            ],
+            "elements": {
+                "v": {
+                    "type": "cds.Association",
+                    "target": "example.V",
+                    "keys": []
+                },
+                "f": {
+                    "type": "cds.Association",
+                    "target": "example.F",
+                    "keys": []
+                },
+                "type": {
+                    "type": "cds.Association",
+                    "target": "example.CodelistRelV",
+                    "keys": []
+                }
+            }
+        },
+        "example.RelVW": {
+            "kind": "entity",
+            "includes": [
+                "example.Relationship"
+            ],
+            "elements": {
+                "v": {
+                    "type": "cds.Association",
+                    "target": "example.V",
+                    "keys": []
+                },
+                "w": {
+                    "type": "cds.Association",
+                    "target": "example.W",
+                    "keys": []
+                },
+                "type": {
+                    "type": "cds.Association",
+                    "target": "example.CodelistRelV",
+                    "keys": []
+                }
+            }
+        },
+        "example.RelVP": {
+            "kind": "entity",
+            "includes": [
+                "example.Relationship"
+            ],
+            "elements": {
+                "v": {
+                    "type": "cds.Association",
+                    "target": "example.V",
+                    "keys": []
+                },
+                "p": {
+                    "type": "cds.Association",
+                    "target": "example.P",
+                    "keys": []
+                },
+                "type": {
+                    "type": "cds.Association",
+                    "target": "example.CodelistRelV",
+                    "keys": []
+                }
+            }
+        },
+        "example.RelVA": {
+            "kind": "entity",
+            "includes": [
+                "example.Relationship"
+            ],
+            "elements": {
+                "v": {
+                    "type": "cds.Association",
+                    "target": "example.V",
+                    "keys": []
+                },
+                "a": {
+                    "type": "cds.Association",
+                    "target": "example.A",
+                    "keys": []
+                },
+                "type": {
+                    "type": "cds.Association",
+                    "target": "example.CodelistRelV",
+                    "keys": []
+                }
+            }
+        },
+        "example.RelFP": {
+            "kind": "entity",
+            "elements": {
+                "f": {
+                    "type": "cds.Association",
+                    "target": "example.F",
+                    "keys": []
+                },
+                "p": {
+                    "type": "cds.Association",
+                    "target": "example.P",
+                    "keys": []
+                },
+                "type": {
+                    "type": "cds.Association",
+                    "target": "example.CodelistRelFP",
+                    "keys": []
+                }
+            }
+        },
+        "example.RelWP": {
+            "kind": "entity",
+            "includes": [
+                "example.Relationship"
+            ],
+            "elements": {
+                "w": {
+                    "type": "cds.Association",
+                    "target": "example.W",
+                    "keys": []
+                },
+                "p": {
+                    "type": "cds.Association",
+                    "target": "example.P",
+                    "keys": []
+                },
+                "type": {
+                    "type": "cds.Association",
+                    "target": "example.CodelistRelWP",
+                    "keys": []
+                }
+            }
+        },
+        "example.RelPA": {
+            "kind": "entity",
+            "includes": [
+                "example.Relationship"
+            ],
+            "elements": {
+                "p": {
+                    "type": "cds.Association",
+                    "target": "example.P",
+                    "keys": []
+                },
+                "a": {
+                    "type": "cds.Association",
+                    "target": "example.A",
+                    "keys": []
+                },
+                "type": {
+                    "type": "cds.Association",
+                    "target": "example.CodelistRelPA",
+                    "keys": []
+                }
+            }
+        },
+        "example.RelFW": {
+            "kind": "entity",
+            "includes": [
+                "example.Relationship"
+            ],
+            "elements": {
+                "f": {
+                    "type": "cds.Association",
+                    "target": "example.F",
+                    "keys": []
+                },
+                "w": {
+                    "type": "cds.Association",
+                    "target": "example.W",
+                    "keys": []
+                },
+                "type": {
+                    "type": "cds.Association",
+                    "target": "example.CodelistRelFW",
+                    "keys": []
+                }
+            }
+        },
+        "example.RelPN": {
+            "kind": "entity",
+            "includes": [
+                "example.Relationship"
+            ],
+            "elements": {
+                "p": {
+                    "type": "cds.Association",
+                    "target": "example.P",
+                    "keys": []
+                },
+                "n": {
+                    "type": "cds.Association",
+                    "target": "example.N",
+                    "keys": []
+                },
+                "type": {
+                    "type": "cds.Association",
+                    "target": "example.CodelistRelPN",
+                    "keys": []
+                }
+            }
         }
-      }
     },
-    "example.Relationship": {
-      "kind": "aspect",
-      "elements": {}
-    },
-    "example.Codelist": {
-      "kind": "entity",
-      "includes": [
-        "example.Base"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
-        }
-      }
-    },
-    "example.CodelistRelV": {
-      "kind": "entity",
-      "includes": [
-        "example.Codelist"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
-        }
-      }
-    },
-    "example.CodelistRelFP": {
-      "kind": "entity",
-      "includes": [
-        "example.Codelist"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
-        }
-      }
-    },
-    "example.CodelistRelPA": {
-      "kind": "entity",
-      "includes": [
-        "example.Codelist"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
-        }
-      }
-    },
-    "example.CodelistRelPN": {
-      "kind": "entity",
-      "includes": [
-        "example.Codelist"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
-        }
-      }
-    },
-    "example.CodelistRelWP": {
-      "kind": "entity",
-      "includes": [
-        "example.Codelist"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
-        }
-      }
-    },
-    "example.CodelistRelFW": {
-      "kind": "entity",
-      "includes": [
-        "example.Codelist"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
-        }
-      }
-    },
-    "example.V": {
-      "kind": "entity",
-      "includes": [
-        "example.Base"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
-        },
-        "relF": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "example.RelVF",
-          "keys": []
-        },
-        "relW": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "example.RelVW",
-          "keys": []
-        },
-        "relA": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "example.RelVA",
-          "keys": []
-        },
-        "relP": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "example.RelVP",
-          "keys": []
-        }
-      }
-    },
-    "example.F": {
-      "kind": "entity",
-      "includes": [
-        "example.Base"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
-        },
-        "relP": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "example.RelFP",
-          "keys": []
-        },
-        "relW": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "example.RelFW",
-          "keys": []
-        },
-        "relV": {
-          "type": "cds.Association",
-          "target": "example.RelVF",
-          "keys": []
-        }
-      }
-    },
-    "example.W": {
-      "kind": "entity",
-      "includes": [
-        "example.Base"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
-        },
-        "relP": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "example.RelWP",
-          "keys": []
-        },
-        "relV": {
-          "type": "cds.Association",
-          "target": "example.RelVW",
-          "keys": []
-        },
-        "relF": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "example.RelFW",
-          "keys": []
-        }
-      }
-    },
-    "example.A": {
-      "kind": "entity",
-      "includes": [
-        "example.Base"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
-        },
-        "relV": {
-          "type": "cds.Association",
-          "target": "example.RelVA",
-          "keys": []
-        },
-        "relP": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "example.RelPA",
-          "keys": []
-        }
-      }
-    },
-    "example.P": {
-      "kind": "entity",
-      "includes": [
-        "example.Base"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
-        },
-        "relA": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "example.RelPA",
-          "keys": []
-        },
-        "relN": {
-          "type": "cds.Association",
-          "target": "example.RelPN",
-          "keys": []
-        },
-        "relV": {
-          "type": "cds.Association",
-          "target": "example.RelVP",
-          "keys": []
-        },
-        "relF": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "example.RelFP",
-          "keys": []
-        }
-      }
-    },
-    "example.N": {
-      "kind": "entity",
-      "includes": [
-        "example.Base"
-      ],
-      "elements": {
-        "description": {
-          "type": "cds.String",
-          "length": 120
-        },
-        "relP": {
-          "type": "cds.Association",
-          "cardinality": {
-            "max": "*"
-          },
-          "target": "example.RelPN",
-          "keys": []
-        }
-      }
-    },
-    "example.RelVF": {
-      "kind": "entity",
-      "includes": [
-        "example.Relationship"
-      ],
-      "elements": {
-        "v": {
-          "type": "cds.Association",
-          "target": "example.V",
-          "keys": []
-        },
-        "f": {
-          "type": "cds.Association",
-          "target": "example.F",
-          "keys": []
-        },
-        "type": {
-          "type": "cds.Association",
-          "target": "example.CodelistRelV",
-          "keys": []
-        }
-      }
-    },
-    "example.RelVW": {
-      "kind": "entity",
-      "includes": [
-        "example.Relationship"
-      ],
-      "elements": {
-        "v": {
-          "type": "cds.Association",
-          "target": "example.V",
-          "keys": []
-        },
-        "w": {
-          "type": "cds.Association",
-          "target": "example.W",
-          "keys": []
-        },
-        "type": {
-          "type": "cds.Association",
-          "target": "example.CodelistRelV",
-          "keys": []
-        }
-      }
-    },
-    "example.RelVP": {
-      "kind": "entity",
-      "includes": [
-        "example.Relationship"
-      ],
-      "elements": {
-        "v": {
-          "type": "cds.Association",
-          "target": "example.V",
-          "keys": []
-        },
-        "p": {
-          "type": "cds.Association",
-          "target": "example.P",
-          "keys": []
-        },
-        "type": {
-          "type": "cds.Association",
-          "target": "example.CodelistRelV",
-          "keys": []
-        }
-      }
-    },
-    "example.RelVA": {
-      "kind": "entity",
-      "includes": [
-        "example.Relationship"
-      ],
-      "elements": {
-        "v": {
-          "type": "cds.Association",
-          "target": "example.V",
-          "keys": []
-        },
-        "a": {
-          "type": "cds.Association",
-          "target": "example.A",
-          "keys": []
-        },
-        "type": {
-          "type": "cds.Association",
-          "target": "example.CodelistRelV",
-          "keys": []
-        }
-      }
-    },
-    "example.RelFP": {
-      "kind": "entity",
-      "elements": {
-        "f": {
-          "type": "cds.Association",
-          "target": "example.F",
-          "keys": []
-        },
-        "p": {
-          "type": "cds.Association",
-          "target": "example.P",
-          "keys": []
-        },
-        "type": {
-          "type": "cds.Association",
-          "target": "example.CodelistRelFP",
-          "keys": []
-        }
-      }
-    },
-    "example.RelWP": {
-      "kind": "entity",
-      "includes": [
-        "example.Relationship"
-      ],
-      "elements": {
-        "w": {
-          "type": "cds.Association",
-          "target": "example.W",
-          "keys": []
-        },
-        "p": {
-          "type": "cds.Association",
-          "target": "example.P",
-          "keys": []
-        },
-        "type": {
-          "type": "cds.Association",
-          "target": "example.CodelistRelWP",
-          "keys": []
-        }
-      }
-    },
-    "example.RelPA": {
-      "kind": "entity",
-      "includes": [
-        "example.Relationship"
-      ],
-      "elements": {
-        "p": {
-          "type": "cds.Association",
-          "target": "example.P",
-          "keys": []
-        },
-        "a": {
-          "type": "cds.Association",
-          "target": "example.A",
-          "keys": []
-        },
-        "type": {
-          "type": "cds.Association",
-          "target": "example.CodelistRelPA",
-          "keys": []
-        }
-      }
-    },
-    "example.RelFW": {
-      "kind": "entity",
-      "includes": [
-        "example.Relationship"
-      ],
-      "elements": {
-        "f": {
-          "type": "cds.Association",
-          "target": "example.F",
-          "keys": []
-        },
-        "w": {
-          "type": "cds.Association",
-          "target": "example.W",
-          "keys": []
-        },
-        "type": {
-          "type": "cds.Association",
-          "target": "example.CodelistRelFW",
-          "keys": []
-        }
-      }
-    },
-    "example.RelPN": {
-      "kind": "entity",
-      "includes": [
-        "example.Relationship"
-      ],
-      "elements": {
-        "p": {
-          "type": "cds.Association",
-          "target": "example.P",
-          "keys": []
-        },
-        "n": {
-          "type": "cds.Association",
-          "target": "example.N",
-          "keys": []
-        },
-        "type": {
-          "type": "cds.Association",
-          "target": "example.CodelistRelPN",
-          "keys": []
-        }
-      }
-    }
-  },
-  "meta": {
-    "creator": "CDS Compiler v2.15.2",
-    "flavor": "inferred"
-  },
-  "$version": "2.0"
+    "$version": "2.0"
 }

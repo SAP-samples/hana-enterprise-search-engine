@@ -245,6 +245,12 @@ for package, tests in packages.items():
                 f' --to json > {file_name(package, test, FileType.CSON, FileLocation.OUTPUT)}')
             print(command_line_statement)
             os.system(command_line_statement)
+            cson_file_name = file_name(package, test, FileType.CSON, FileLocation.OUTPUT)
+            with open(cson_file_name, encoding = 'utf-8') as fr:
+                cson = json.load(fr)
+            del cson['meta']
+            with open(cson_file_name, 'w', encoding = 'utf-8') as fw:
+                json.dump(cson, fw, indent = 4)
             add_message(package, test, MessageType.INFO, FileType.CDS, 'compiled')
         check(package, test, FileType.CSON)
         with open(file_name(package, test, FileType.CSON, FileLocation.OUTPUT), encoding='utf-8') as f:

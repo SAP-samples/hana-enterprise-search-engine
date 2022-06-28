@@ -1,49 +1,45 @@
 {
-  "namespace": "example",
-  "definitions": {
-    "example.L0": {
-      "kind": "entity",
-      "elements": {
-        "pl0": {
-          "items": {
-            "type": "example.L1"
-          }
+    "namespace": "example",
+    "definitions": {
+        "example.L0": {
+            "kind": "entity",
+            "elements": {
+                "pl0": {
+                    "items": {
+                        "type": "example.L1"
+                    }
+                }
+            }
+        },
+        "example.L1": {
+            "kind": "type",
+            "elements": {
+                "pl1": {
+                    "items": {
+                        "type": "example.L2"
+                    }
+                }
+            }
+        },
+        "example.L2": {
+            "kind": "type",
+            "elements": {
+                "pl2": {
+                    "items": {
+                        "type": "example.L3"
+                    }
+                }
+            }
+        },
+        "example.L3": {
+            "kind": "type",
+            "elements": {
+                "pl3": {
+                    "type": "cds.String",
+                    "length": 80
+                }
+            }
         }
-      }
     },
-    "example.L1": {
-      "kind": "type",
-      "elements": {
-        "pl1": {
-          "items": {
-            "type": "example.L2"
-          }
-        }
-      }
-    },
-    "example.L2": {
-      "kind": "type",
-      "elements": {
-        "pl2": {
-          "items": {
-            "type": "example.L3"
-          }
-        }
-      }
-    },
-    "example.L3": {
-      "kind": "type",
-      "elements": {
-        "pl3": {
-          "type": "cds.String",
-          "length": 80
-        }
-      }
-    }
-  },
-  "meta": {
-    "creator": "CDS Compiler v2.15.2",
-    "flavor": "inferred"
-  },
-  "$version": "2.0"
+    "$version": "2.0"
 }

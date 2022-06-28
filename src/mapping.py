@@ -22,6 +22,7 @@ def get_sql_type(node_name_mapping, cson, cap_type, pk):
     ''' get SQL type from CAP type'''
     # print("<<<<<<<<<<<< {}".format(cap_type))
     if cap_type['type'] in cson['definitions'] and 'type' in cson['definitions'][cap_type['type']]:
+        print(cap_type)
         return get_sql_type(node_name_mapping, cson, cson['definitions'][cap_type['type']], pk)
 
     sql_type = {}
@@ -42,8 +43,14 @@ def get_sql_type(node_name_mapping, cson, cap_type, pk):
             sql_type['type'] = 'INTEGER'
         case 'cds.Decimal':
             sql_type['type'] = 'DECIMAL'
-            sql_type['precision'] = cap_type['precision']
-            sql_type['scale'] = cap_type['scale']
+            if 'precision' in cap_type:
+                sql_type['precision'] = cap_type['precision']
+            if 'scale' in cap_type:
+                sql_type['scale'] = cap_type['scale']
+        case 'cds.Time':
+            sql_type['type'] = 'TIME'
+        case 'cds.DateTime':
+            sql_type['type'] = 'DATETIME'
         case 'cds.Association':
             for k, v in pk.get_definition(0)[1].items():
                 sql_type[k] = v
@@ -214,7 +221,10 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
     if subnodes:
         node['contains'] = [w['table_name'] for w in subnodes]
     if is_table:
-        node_map['properties'] = property_name_mapping.ext_tree['contains']
+        if 'contains' in property_name_mapping.ext_tree:
+            node_map['properties'] = property_name_mapping.ext_tree['contains']
+        else:
+            node_map['properties'] = {}
         nodes[table_name] = node
 
     return node

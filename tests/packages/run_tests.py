@@ -208,6 +208,8 @@ if args.folder:
     folder_to_use = args.folder
 else:
     folder_to_use = current_path
+#folder_to_use = 'C:\\development\\github\\InA\\iDH\\tests\\packages'
+
 all_packages = {k:[] for k in next(os.walk(folder_to_use))[1]}
 for k in all_packages.keys():
     all_packages[k] = next(os.walk(os.path.join(folder_to_use, k)))[1]
@@ -269,6 +271,12 @@ for package, tests in packages.items():
         check(package, test, FileType.CSON)
         with open(file_name(package, test, FileType.CSON, FileLocation.OUTPUT), encoding='utf-8') as f:
             cson = json.load(f)
+        data_exist = os.path.exists(file_name(package, test, FileType.DATA))
+        if data_exist:
+            with open(file_name(package, test, FileType.DATA), encoding='utf-8') as f:
+                data = json.load(f)
+        else:
+            add_message(package, test, MessageType.TODO, FileType.DATA, 'missing')
         if args.unit_tests:
             nodes = mapping.cson_to_nodes(cson, TestPK)
             fn = file_name(package, test, FileType.NODES, FileLocation.OUTPUT)
@@ -281,19 +289,14 @@ for package, tests in packages.items():
             with open(fn, 'w', encoding='utf-8') as fw:
                 fw.write(sql)
             check(package, test, FileType.DDL)
-        if not os.path.exists(file_name(package, test, FileType.DATA)):
-            add_message(package, test, MessageType.TODO, FileType.DATA, 'missing')
-            continue
-        with open(file_name(package, test, FileType.DATA), encoding='utf-8') as f:
-            data = json.load(f)
-        if args.unit_tests:
-            fn = file_name(package, test, FileType.DB, FileLocation.OUTPUT)
-            PK = TestPK
-            PK.reset()
-            db = mapping.objects_to_dml(nodes, data, PK)
-            with open(fn, 'w', encoding='utf-8') as fw:
-                json.dump(db, fw, indent=4)
-            check(package, test, FileType.DB)
+            if data_exist:
+                fn = file_name(package, test, FileType.DB, FileLocation.OUTPUT)
+                PK = TestPK
+                PK.reset()
+                db = mapping.objects_to_dml(nodes, data, PK)
+                with open(fn, 'w', encoding='utf-8') as fw:
+                    json.dump(db, fw, indent=4)
+                check(package, test, FileType.DB)
         if args.service_tests:
             r = requests.get(f'{base_url}/v1/tenant')
             check_response_status_code(r, RequestType.GET_ALL_TENANTS)
@@ -304,8 +307,9 @@ for package, tests in packages.items():
             check_response_status_code(r, RequestType.CREATE_TENANT)
             r = requests.post(f'{base_url}/v1/deploy/{tenant_name}', json=cson)
             check_response_status_code(r, RequestType.CREATE_MODEL)
-            r = requests.post(f'{base_url}/v1/data/{tenant_name}', json=data)
-            check_response_status_code(r, RequestType.LOAD_DATA)
+            if data_exist:
+                r = requests.post(f'{base_url}/v1/data/{tenant_name}', json=data)
+                check_response_status_code(r, RequestType.LOAD_DATA)
             # OpenAPI
             query_fn = file_name(package, test, FileType.SEARCH_REQ_OPENAPI)
             if os.path.exists(query_fn):

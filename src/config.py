@@ -14,7 +14,6 @@ from hdbcli.dbapi import Error as HDBException
 class SetupAction(Enum):
     INSTALL = 'install'
     DELETE = 'delete'
-    CLEANUP = 'cleanup'
 
 def generate_secure_alphanum_string(l:int = 32):
     alphabet = string.ascii_letters + string.digits
@@ -37,8 +36,8 @@ if __name__ == '__main__':
     #logging.getLogger().setLevel(logging.INFO)
     config_file_full_name = os.path.join(sys.path[0], CONFIG_FILE_NAME)
     parser = ArgumentParser(description='Runs test cases for mapper')
-    parser.add_argument('--action', type=str, choices=['install', 'delete', 'cleanup'], default='install',\
-        help="Configuration action. Warning: 'delete' or 'cleanup' will delete all data of all tentants!")
+    parser.add_argument('--action', type=str, choices=['install', 'delete'], default='install',\
+        help="Configuration action. Warning: 'delete' will delete all data of all tentants!")
     parser.add_argument('--db-host', help='HANA host', type=str, metavar='db_host')
     parser.add_argument('--db-port', help='HANA port', type=int, metavar='db_port')
     parser.add_argument('--db-setup-user', help='Admin user for setup', type=str, metavar='db_setup_user')
@@ -59,7 +58,7 @@ if __name__ == '__main__':
                 if os.path.exists(config_file_full_name):
                     logging.error('existing installation detected. Config file %s already exists.',\
                         config_file_full_name)
-                    msg = ('instead use --action delete or --action cleanup. '
+                    msg = ('instead use --action delete. '
                     'Warning: this will delete all data of all tenants')
                     logging.error(msg)
                     sys.exit(-1)
@@ -96,6 +95,7 @@ if __name__ == '__main__':
                     error |= check_if_exists(db, sql, 'schema')
                     if error:
                         msg = (f'Schemas/users starting with {args.db_schema_prefix} already exist. '
+                        'This is not supported. '
                         'Cleanup DB or choose other schema-prefix. Installation aborted')
                         logging.error(msg)
                         sys.exit(-1)

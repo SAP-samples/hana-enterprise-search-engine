@@ -39,6 +39,7 @@ class FileType(Enum):
     SEARCH_RESP_ODATA_GET = 'OData GET search response'
     SEARCH_RESP_ODATA_POST = 'OData POST search response'
     SEARCH_RESP_OPENAPI = 'OpenAPI search response'
+    FOLDER_ONLY = 'Folder'
     NONE = ''
 
 class RequestType(Enum):
@@ -60,7 +61,7 @@ class MessageType(Enum):
 
 def file_name(package_name, test_name, file_type:FileType\
     , location:FileLocation = None):
-    root = os.path.join(current_path,package_name, test_name)
+    root = os.path.join(folder_to_use,package_name, test_name)
     match file_type:
         case FileType.CDS:
             return os.path.join(root, 'model.cds')
@@ -93,6 +94,8 @@ def file_name(package_name, test_name, file_type:FileType\
                 return os.path.join(root, location.value, 'searchOpenAPI.json')
             elif FileLocation.REFERENCE:
                 return os.path.join(root, location.value, 'search.json')
+        case FileType.FOLDER_ONLY:
+            return os.path.join(root, location.value)
 
 
 def round_dict(d, key):
@@ -175,6 +178,7 @@ mapping = importlib.util.module_from_spec(spec2)
 spec2.loader.exec_module(mapping)
 
 parser = argparse.ArgumentParser(description='Runs test cases for mapper')
+parser.add_argument('-f', '--folder', nargs='?', help='test package folder', type=str)
 parser.add_argument('-p', '--package', nargs='?', help='test package name', type=str)
 parser.add_argument('-t', '--test', nargs='?', help='test number', type=str)
 parser.add_argument('--cds-compile', metavar='cds_compile'\
@@ -200,9 +204,13 @@ current_path = sys.path[0]
 src_path = current_path[:-len('tests')] + 'src'
 sys.path.append(src_path)
 
-all_packages = {k:[] for k in next(os.walk(current_path))[1]}
+if args.folder:
+    folder_to_use = args.folder
+else:
+    folder_to_use = current_path
+all_packages = {k:[] for k in next(os.walk(folder_to_use))[1]}
 for k in all_packages.keys():
-    all_packages[k] = next(os.walk(os.path.join(current_path, k)))[1]
+    all_packages[k] = next(os.walk(os.path.join(folder_to_use, k)))[1]
 
 # Check passed arguments
 if args.test and not args.package:
@@ -238,6 +246,12 @@ for package, tests in packages.items():
         if not os.path.exists(file_name(package, test, FileType.CDS)):
             add_message(package, test, MessageType.ERROR, FileType.CDS, 'missing')
             continue
+        if not os.path.exists(file_name(package, test, FileType.FOLDER_ONLY, FileLocation.OUTPUT)):
+            os.mkdir(file_name(package, test, FileType.FOLDER_ONLY, FileLocation.OUTPUT))
+            add_message(package, test, MessageType.INFO, FileType.FOLDER_ONLY, 'output folder created')
+        if not os.path.exists(file_name(package, test, FileType.FOLDER_ONLY, FileLocation.REFERENCE)):
+            os.mkdir(file_name(package, test, FileType.FOLDER_ONLY, FileLocation.REFERENCE))
+            add_message(package, test, MessageType.INFO, FileType.FOLDER_ONLY, 'reference folder created')
         if args.cds_compile\
             or not os.path.exists(file_name(package, test, FileType.CSON, FileLocation.OUTPUT)):
             command_line_statement = (

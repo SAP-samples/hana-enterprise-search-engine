@@ -192,6 +192,7 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
         for element_name_ext, element in type_definition['elements'].items():
             if 'type' in element and element['type'] == 'cds.Association':
                 element['target_table_name'], _ = node_name_mapping.register([element['target']], ENTITY_PREFIX)
+                element['target_pk'] = cson['definitions'][element['target']]['pk']
                 element_name, _ = property_name_mapping.register([element_name_ext], definition=element)
             else:
                 element_name, _ = property_name_mapping.register([element_name_ext])
@@ -350,11 +351,14 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
         for k, v in obj.items():
             if subnode_level == 0 and k == 'id':
                 DataException('Reserved property "id"')
-            associated_object_id = ''
+            value = None
             if k in nodes_index['properties']:
-                if 'definition' in nodes_index['properties'][k] and 'type' in nodes_index['properties'][k]['definition']\
-                    and nodes_index['properties'][k]['definition']['type'] == 'cds.Association':
-                    if 'source' in v:
+                prop = nodes_index['properties'][k]
+                if 'definition' in prop and 'type' in prop['definition']\
+                    and prop['definition']['type'] == 'cds.Association':
+                    if prop['definition']['target_pk'] in v:
+                        value = v[prop['definition']['target_pk']]
+                    elif 'source' in v:
                         if isinstance(v['source'], list):
                             hashable_keys = set([json.dumps(w) for w in v['source']])
                             if len(hashable_keys) == 0:
@@ -363,11 +367,11 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
                                 DataException('Association property %s has conflicting sources', k)    
                             hashable_key = list(hashable_keys)[0]
                             if hashable_key in idmapping:
-                                associated_object_id = idmapping[hashable_key]['id']
+                                value = idmapping[hashable_key]['id']
                             else:
-                                target_table_name = nodes_index['properties'][k]['definition']['target_table_name']
-                                associated_object_id = pk.get_pk(target_table_name, 0)
-                                idmapping[hashable_key] = {'id':associated_object_id, 'resolved':False}
+                                target_table_name = prop['definition']['target_table_name']
+                                value = pk.get_pk(target_table_name, 0)
+                                idmapping[hashable_key] = {'id':value, 'resolved':False}
                         else:
                             DataException('Association property %s is not a list', k)
                     else:
@@ -375,16 +379,14 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
             else:
                 raise DataException('Unknown property "%s"', k)
             column_name = get_column_name(nodes_index['properties'], col_prefix + [k])
-            if isinstance(v, list):
+            if value == None and isinstance(v, list):
                 object_to_dml(nodes, inserts, nodes_index['contains'][k], v, idmapping, subnode_level + 1,\
                     parent_object_id = object_id, pk = pk)
-            elif isinstance(v, dict) and not associated_object_id:
+            elif value == None and isinstance(v, dict):
                 object_to_dml(nodes, inserts, nodes_index, [v], idmapping, subnode_level, col_prefix + [k],\
                     propagated_row = row, propagated_object_id=object_id, pk = pk)
             else:
-                if associated_object_id:
-                    value = associated_object_id
-                else:
+                if not value:
                     value = v
                 if not column_name in inserts[full_table_name]['columns']:
                     inserts[full_table_name]['columns'][column_name] = len(inserts[full_table_name]['columns'])

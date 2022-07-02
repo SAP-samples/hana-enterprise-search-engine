@@ -9,7 +9,7 @@ class NameMapping():
         self.ext_tree: dict = {}
         self.int: set = set()
         self.max_length = max_length
-    def register(self, ext_path:list, type_prefix = '', extt:dict = None, depth = 0,\
+    def register(self, ext_path:list, type_prefix = '', definition = {}, extt:dict = None, depth = 0,\
         int_name_prefix:str = '', ext_path_prefix:list = []) -> str:
         ext_tree = extt if extt else self.ext_tree
         next_step_ext = ext_path[0]
@@ -18,8 +18,11 @@ class NameMapping():
         if not next_step_ext in ext_tree['contains']:
             internal = type_prefix + self.new_int_name(next_step_ext, depth, int_name_prefix, ext_path_prefix)
             ext_tree['contains'][next_step_ext] = {'int': internal}
+        if definition:
+            ext_tree['contains'][next_step_ext]['definition'] = definition    
+                
         if len(ext_path) > 1:
-            return self.register(ext_path[1:], type_prefix, ext_tree['contains'][next_step_ext],\
+            return self.register(ext_path[1:], type_prefix, definition, ext_tree['contains'][next_step_ext],\
                 depth + 1, ext_tree['contains'][next_step_ext]['int'], ext_path_prefix + [next_step_ext])
         return ext_tree['contains'][next_step_ext]['int'], ext_tree['contains'][next_step_ext]
 

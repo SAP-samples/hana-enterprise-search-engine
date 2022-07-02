@@ -1,0 +1,222 @@
+{
+    "nodes": {
+        "ENTITY/ORGANIZATION_SOURCE": {
+            "external_path": [
+                "Organization",
+                "source"
+            ],
+            "level": 1,
+            "table_name": "ENTITY/ORGANIZATION_SOURCE",
+            "properties": {
+                "NAME": {
+                    "length": 4000,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "name"
+                    ]
+                },
+                "TYPE": {
+                    "length": 4000,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "type"
+                    ]
+                },
+                "SID": {
+                    "length": 4000,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "sid"
+                    ]
+                }
+            }
+        },
+        "ENTITY/ORGANIZATION": {
+            "external_path": [
+                "Organization"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/ORGANIZATION",
+            "properties": {
+                "ID": {
+                    "type": "NVARCHAR",
+                    "length": 36,
+                    "external_path": [
+                        "id"
+                    ]
+                },
+                "SOURCE": {
+                    "rel": {
+                        "table_name": "ENTITY/ORGANIZATION_SOURCE",
+                        "type": "containment"
+                    },
+                    "external_path": [
+                        "source"
+                    ]
+                },
+                "NAME": {
+                    "length": 4000,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "name"
+                    ]
+                },
+                "OWNER": {
+                    "type": "VARCHAR",
+                    "length": 36,
+                    "rel": {
+                        "table_name": "ENTITY/PERSON",
+                        "type": "association"
+                    },
+                    "external_path": [
+                        "owner"
+                    ]
+                }
+            },
+            "contains": [
+                "ENTITY/ORGANIZATION_SOURCE"
+            ]
+        },
+        "ENTITY/PERSON_SOURCE": {
+            "external_path": [
+                "Person",
+                "source"
+            ],
+            "level": 1,
+            "table_name": "ENTITY/PERSON_SOURCE",
+            "properties": {
+                "NAME": {
+                    "length": 4000,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "name"
+                    ]
+                },
+                "TYPE": {
+                    "length": 4000,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "type"
+                    ]
+                },
+                "SID": {
+                    "length": 4000,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "sid"
+                    ]
+                }
+            }
+        },
+        "ENTITY/PERSON": {
+            "external_path": [
+                "Person"
+            ],
+            "level": 0,
+            "table_name": "ENTITY/PERSON",
+            "properties": {
+                "ID": {
+                    "type": "NVARCHAR",
+                    "length": 36,
+                    "external_path": [
+                        "id"
+                    ]
+                },
+                "SOURCE": {
+                    "rel": {
+                        "table_name": "ENTITY/PERSON_SOURCE",
+                        "type": "containment"
+                    },
+                    "external_path": [
+                        "source"
+                    ]
+                },
+                "FIRSTNAME": {
+                    "length": 4000,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "firstName"
+                    ]
+                },
+                "LASTNAME": {
+                    "length": 4000,
+                    "type": "NVARCHAR",
+                    "external_path": [
+                        "lastName"
+                    ]
+                }
+            },
+            "contains": [
+                "ENTITY/PERSON_SOURCE"
+            ]
+        }
+    },
+    "index": {
+        "Organization": {
+            "int": "ENTITY/ORGANIZATION",
+            "contains": {
+                "source": {
+                    "int": "ENTITY/ORGANIZATION_SOURCE",
+                    "properties": {
+                        "name": {
+                            "int": "NAME"
+                        },
+                        "type": {
+                            "int": "TYPE"
+                        },
+                        "sid": {
+                            "int": "SID"
+                        }
+                    }
+                }
+            },
+            "properties": {
+                "id": {
+                    "int": "ID"
+                },
+                "source": {
+                    "int": "SOURCE"
+                },
+                "name": {
+                    "int": "NAME"
+                },
+                "owner": {
+                    "int": "OWNER"
+                }
+            }
+        },
+        "Person": {
+            "int": "ENTITY/PERSON",
+            "contains": {
+                "source": {
+                    "int": "ENTITY/PERSON_SOURCE",
+                    "properties": {
+                        "name": {
+                            "int": "NAME"
+                        },
+                        "type": {
+                            "int": "TYPE"
+                        },
+                        "sid": {
+                            "int": "SID"
+                        }
+                    }
+                }
+            },
+            "properties": {
+                "id": {
+                    "int": "ID"
+                },
+                "source": {
+                    "int": "SOURCE"
+                },
+                "firstName": {
+                    "int": "FIRSTNAME"
+                },
+                "lastName": {
+                    "int": "LASTNAME"
+                }
+            }
+        }
+    }
+}

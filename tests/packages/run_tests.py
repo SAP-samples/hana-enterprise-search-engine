@@ -243,7 +243,11 @@ for msg_typ in MessageType:
     test_result[msg_typ] = {}
 
 for package, tests in packages.items():
+    if not package == 'ids':
+        continue
     for test in tests:
+        if not test == '02':
+            continue
         print(f'Test {package}.{test} started')
         if not os.path.exists(file_name(package, test, FileType.CDS)):
             add_message(package, test, MessageType.ERROR, FileType.CDS, 'missing')
@@ -297,6 +301,7 @@ for package, tests in packages.items():
                 with open(fn, 'w', encoding='utf-8') as fw:
                     json.dump(db, fw, indent=4)
                 check(package, test, FileType.DB)
+        '''
         if args.service_tests:
             r = requests.get(f'{base_url}/v1/tenant')
             check_response_status_code(r, RequestType.GET_ALL_TENANTS)
@@ -347,6 +352,7 @@ for package, tests in packages.items():
         if args.service_tests and args.cleanup:
             r = requests.delete(f'{base_url}/v1/tenant/{tenant_name}')
             check_response_status_code(r, RequestType.DELETE_TENANT)
+        '''
 
 for msg_type, v1 in test_result.items():
     if len(v1) != 0:

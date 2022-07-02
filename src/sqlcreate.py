@@ -13,14 +13,16 @@ ESH_CONFIG_TEMPLATE = {
             '@Search.searchable': True,
             '@EnterpriseSearchHana.identifier': 'VORGANG_MODEL',
             '@EnterpriseSearchHana.passThroughAllAnnotations': True,
-            'Properties': [
-                {
-                    'Name': '_ID',
-                    '@EnterpriseSearch.key': True,
-                    '@Search.defaultSearchElement': True,
-                    '@UI.hidden': True
-                }]}}}
+            'Properties': []}}}
 
+'''
+{
+    'Name': '_ID',
+    '@EnterpriseSearch.key': True,
+    '@Search.defaultSearchElement': True,
+    '@UI.hidden': True
+}
+'''
 class Constants(object):
     table_name = 'table_name'
     properties = 'properties'
@@ -30,24 +32,22 @@ class Constants(object):
     scale = 'scale'
 
 def get_columns(node):
-    #Sprint("Table name: {}".format(table[Constants.name]))
     columns = []
     for prop_name, prop in node[Constants.properties].items():
         if 'rel' in prop and \
             (prop['rel']['type'] == 'containment' or 'hidden' in prop['rel'] and prop['rel']['hidden']):
             continue
-        #print("Default: table_name={}, prop_name={}".format(node[Constants.name],prop_name))
-        #print(prop_name)
-        #print(prop)
         if Constants.length in prop:
             column_type = f'{prop[Constants.type]}({prop[Constants.length]})'
         elif Constants.precision in prop and Constants.scale in prop:
             column_type = f'{prop[Constants.type]}({prop[Constants.precision]},{prop[Constants.scale]})'
         else:
-            # print("Default: table_name={}, prop_name={}, settings={}".format(node[Constants.name],prop_name,prop))
             column_type = prop[Constants.type]
-        cl = f'"{prop_name}" {column_type}'
-        # TODO Implement length, scale,...
+        if 'pk' in node and node['pk'] == prop_name:
+            suffix = ' PRIMARY KEY'
+        else:
+            suffix = ''
+        cl = f'"{prop_name}" {column_type}{suffix}'
         columns.append(cl)
     return columns
 

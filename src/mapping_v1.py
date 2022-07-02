@@ -1,7 +1,6 @@
 """Mapping between external objects and internal tables using 'nodes' as internal runtime-format """
 from uuid import uuid1
 from name_mapping import NameMapping
-import json
 
 ENTITY_PREFIX = 'ENTITY/'
 VIEW_PREFIX = 'VIEW/'
@@ -18,11 +17,11 @@ class DefaultPK:
         #pylint: disable=unused-argument
         return ('_ID', {'type':'VARCHAR', 'length': 36})
 
-'''
 class ExternalPK:
     @staticmethod
     def external():
         return True
+    '''
     def get_pk(node_name, subnode_level):
         raise NotImplementedError
     def __init__(self, definition) -> None:
@@ -30,19 +29,13 @@ class ExternalPK:
     def get_definition(self, subnode_level):
         return self.definition
         #pylint: disable=unused-argument
-'''
-
-class ModelException(Exception):
-    pass
-
-class DataException(Exception):
-    pass
-
+    '''
 
 def get_sql_type(node_name_mapping, cson, cap_type, pk):
     ''' get SQL type from CAP type'''
     # print("<<<<<<<<<<<< {}".format(cap_type))
     if cap_type['type'] in cson['definitions'] and 'type' in cson['definitions'][cap_type['type']]:
+        print(cap_type)
         return get_sql_type(node_name_mapping, cson, cson['definitions'][cap_type['type']], pk)
 
     sql_type = {}
@@ -75,14 +68,8 @@ def get_sql_type(node_name_mapping, cson, cap_type, pk):
         case 'cds.DateTime':
             sql_type['type'] = 'DATETIME'
         case 'cds.Association':
-            #target_key_property = [v for v in cson['definitions'][cap_type['target']]['elements'].values() \
-            #    if 'key' in v and v['key']][0]
-            target_key_property = cson['definitions'][cap_type['target']]['elements'][cson['definitions'][cap_type['target']]['pk']]
-            sql_type = get_sql_type(node_name_mapping, cson, target_key_property, pk)
-            '''
             for k, v in pk.get_definition(0)[1].items():
                 sql_type[k] = v
-            '''
             rel = {}
             rel_to, _ = node_name_mapping.register([cap_type['target']], ENTITY_PREFIX)
             rel['table_name'] = rel_to
@@ -100,7 +87,7 @@ def get_sql_type(node_name_mapping, cson, cap_type, pk):
             else:
                 None #pylint: disable=pointless-statement
             print(f'Unexpected type: {cap_type["type"]}')
-            raise ModelException('Unexpected cds type %s', cap_type["type"])
+            raise NotImplementedError
 
     # Copy annotations
     annotations = {k:v for k,v in cap_type.items() if k.startswith('@')}
@@ -154,47 +141,32 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
     subnode_level = 0, is_table = True, has_pc = False, pk = DefaultPK):
     ''' Transforms cson entity definition to model definition.
     The nodes links the external object-oriented-view with internal HANA-database-view.'''
-    if not 'elements' in type_definition:
-        raise ModelException('At least one property must exist')
     external_path = path + [type_name]
     node = {'external_path':external_path, 'level': subnode_level}
-    property_name_mapping = NameMapping()
     if subnode_level == 0:
         annotations = {k:v for k,v in type_definition.items() if k.startswith('@')}
         if annotations:
             node['annotations'] = annotations
     if is_table:
         if subnode_level == 0:
-            #keys = [k for k, v in type_definition['elements'].items() if 'key' in v and v['key']]
-            #if len(keys) != 1:
-            #    raise ModelException('An entity must have exactly one key property')
-            #defintion = {}
-            #if 'elements' in type_definition:# and 'id' in type_definition['elements']:
-            #pk_property_name, _ = property_name_mapping.register([keys[0]])
-            pk_property_name, _ = property_name_mapping.register([type_definition['pk']])
-            node['pk'] = pk_property_name
-            table_name, node_map = node_name_mapping.register(external_path, ENTITY_PREFIX\
-                , definition = {'pk': pk_property_name})
-            node['properties'] = {}
+            table_name, node_map = node_name_mapping.register(external_path, ENTITY_PREFIX)
         else:
             table_name, node_map = node_name_mapping.register(external_path)
-            pk_name, key_columns = get_key_columns(subnode_level, pk)
-            node['pk'] = pk_name
-            node['properties'] = key_columns
         node['table_name'] = table_name
-        #if has_pc:
-        #    node['properties'][PRIVACY_CATEGORY_COLUMN_DEFINITION[0]] = PRIVACY_CATEGORY_COLUMN_DEFINITION[1]
+        pk_name, key_columns = get_key_columns(subnode_level, pk)
+        if 
+        node['pk'] = pk_name
+        node['properties'] = key_columns
+        if has_pc:
+            node['properties'][PRIVACY_CATEGORY_COLUMN_DEFINITION[0]] = PRIVACY_CATEGORY_COLUMN_DEFINITION[1]
     else:
         node = {'properties': {}}
     subnodes = []
-    type_definition = find_definition(cson, type_definition) # ToDo: check, if needed
+    type_definition = find_definition(cson, type_definition)
+    property_name_mapping = NameMapping()
     if type_definition['kind'] == 'entity' or (path and 'elements' in type_definition):
         for element_name_ext, element in type_definition['elements'].items():
-            if 'type' in element and element['type'] == 'cds.Association':
-                element['target_table_name'], _ = node_name_mapping.register([element['target']], ENTITY_PREFIX)
-                element_name, _ = property_name_mapping.register([element_name_ext], definition=element)
-            else:
-                element_name, _ = property_name_mapping.register([element_name_ext])
+            element_name, _ = property_name_mapping.register([element_name_ext])
             element_needs_pc = PRIVACY_CATEGORY_ANNOTATION in element
             if 'items' in element or element_needs_pc: # collection (many keyword)
                 if 'items' in element and 'elements' in element['items']: # nested definition
@@ -283,12 +255,6 @@ def cson_to_nodes(cson, pk = DefaultPK):
     node_name_mapping = NameMapping()
     for name, definition in cson['definitions'].items():
         if definition['kind'] == 'entity':
-            keys = [k for k, v in definition['elements'].items() if 'key' in v and v['key']]
-            if len(keys) != 1:
-                raise ModelException('An entity must have exactly one key property')
-            definition['pk'] = keys[0]
-    for name, definition in cson['definitions'].items():
-        if definition['kind'] == 'entity':
             cson_entity_to_nodes(node_name_mapping, cson, nodes, [], name, definition, pk = pk)
 
     # analyze associations
@@ -306,16 +272,12 @@ def cson_to_nodes(cson, pk = DefaultPK):
 
 def get_column_name(nodes_index, exp_path):
     if len(exp_path) > 1:
-        if not 'contains' in nodes_index[exp_path[0]]:
-            raise DataException('Unknown property "%s"', exp_path[1])
         next_nodes_index = nodes_index[exp_path[0]]['contains']
         return get_column_name(next_nodes_index, exp_path[1:])
-    if not exp_path[0] in nodes_index:
-        raise DataException('Unknown property "%s"', exp_path[0])
     return nodes_index[exp_path[0]]['int']
 
 
-def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level = 0, col_prefix = [],\
+def object_to_dml(nodes, inserts, nodes_index, objects, subnode_level = 0, col_prefix = [],\
     parent_object_id = None, propagated_row = None, propagated_object_id = None, pk = DefaultPK):
     for obj in objects:
         full_table_name = nodes_index['int']
@@ -327,83 +289,31 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
             if parent_object_id:
                 row.append(parent_object_id)
             object_id = pk.get_pk(full_table_name, subnode_level)
-            if subnode_level == 0:
-                if nodes_index['definition']['pk'] == 'ID':
-                    obj['id'] = object_id
-                if 'source' in obj:
-                    for source in obj['source']:
-                        hashable_key = json.dumps(source)
-                        if hashable_key in idmapping:
-                            idmapping[hashable_key]['resolved'] = True
-                        else:
-                            idmapping[hashable_key] = {'id':object_id, 'resolved':True}
-            else:
-                row.append(object_id)
-                if not full_table_name in inserts:
-                    _, key_columns = get_key_columns(subnode_level, pk)
-                    key_col_names = {k:idx for idx, k in enumerate(key_columns.keys())}
-                    inserts[full_table_name] = {'columns': key_col_names, 'rows':[]}
+            row.append(object_id)
             if not full_table_name in inserts:
-                inserts[full_table_name] = {'columns': {}, 'rows':[]}
-            else:
-                row.extend([None]*(len(inserts[full_table_name]['columns']) - len(row)))
+                _, key_columns = get_key_columns(subnode_level, pk)
+                key_col_names = {k:idx for idx, k in enumerate(key_columns.keys())}
+                inserts[full_table_name] = {'columns': key_col_names, 'rows':[]}
+            row.extend([None]*(len(inserts[full_table_name]['columns']) - len(row)))
         for k, v in obj.items():
-            if subnode_level == 0 and k == 'id':
-                DataException('Reserved property "id"')
-            associated_object_id = ''
-            if k in nodes_index['properties']:
-                if 'definition' in nodes_index['properties'][k] and 'type' in nodes_index['properties'][k]['definition']\
-                    and nodes_index['properties'][k]['definition']['type'] == 'cds.Association':
-                    if 'source' in v:
-                        if isinstance(v['source'], list):
-                            hashable_keys = set([json.dumps(w) for w in v['source']])
-                            if len(hashable_keys) == 0:
-                                DataException('Association property %s has no source', k)    
-                            elif len(hashable_keys) > 1:
-                                DataException('Association property %s has conflicting sources', k)    
-                            hashable_key = list(hashable_keys)[0]
-                            if hashable_key in idmapping:
-                                associated_object_id = idmapping[hashable_key]['id']
-                            else:
-                                target_table_name = nodes_index['properties'][k]['definition']['target_table_name']
-                                associated_object_id = pk.get_pk(target_table_name, 0)
-                                idmapping[hashable_key] = {'id':associated_object_id, 'resolved':False}
-                        else:
-                            DataException('Association property %s is not a list', k)
-                    else:
-                        raise DataException('Association property %s has no source property', k)
-            else:
-                raise DataException('Unknown property "%s"', k)
             column_name = get_column_name(nodes_index['properties'], col_prefix + [k])
             if isinstance(v, list):
-                object_to_dml(nodes, inserts, nodes_index['contains'][k], v, idmapping, subnode_level + 1,\
+                object_to_dml(nodes, inserts, nodes_index['contains'][k], v, subnode_level + 1,\
                     parent_object_id = object_id, pk = pk)
-            elif isinstance(v, dict) and not associated_object_id:
-                object_to_dml(nodes, inserts, nodes_index, [v], idmapping, subnode_level, col_prefix + [k],\
+            elif isinstance(v, dict):
+                object_to_dml(nodes, inserts, nodes_index, [v], subnode_level, col_prefix + [k],\
                     propagated_row = row, propagated_object_id=object_id, pk = pk)
             else:
-                if associated_object_id:
-                    value = associated_object_id
-                else:
-                    value = v
                 if not column_name in inserts[full_table_name]['columns']:
                     inserts[full_table_name]['columns'][column_name] = len(inserts[full_table_name]['columns'])
-                    row.append(value)
+                    row.append(v)
                 else:
-                    row[inserts[full_table_name]['columns'][column_name]] = value
+                    row[inserts[full_table_name]['columns'][column_name]] = v
         if not propagated_row:
             inserts[full_table_name]['rows'].append(row)
 
 def objects_to_dml(nodes, objects, pk = DefaultPK):
     inserts = {}
-    idmapping = {}
     for object_type, objects in objects.items():
-        object_to_dml(nodes, inserts, nodes['index'][object_type], objects, idmapping, pk = pk)
-    if idmapping:
-        dangling = [json.loads(k) for k, v in idmapping.items() if not v['resolved']]
-        if dangling:
-            # ToDo: Handle references to objects which are not in one data package
-            raise DataException('References to objects outside of one data package is not yet supported. No object exists with source %s', json.dumps(dangling))
-
-
+        object_to_dml(nodes, inserts, nodes['index'][object_type], objects, pk = pk)
     return {'inserts': inserts}

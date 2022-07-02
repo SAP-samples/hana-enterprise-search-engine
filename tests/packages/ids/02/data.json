@@ -1,0 +1,36 @@
+{
+    "Organization": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Organization",
+                    "sid": "objectid098765"
+                }
+            ],
+            "name": "ACME corp",
+            "owner": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Pers",
+                        "sid": "001"
+                    }
+                ]
+            }
+        }
+    ],
+    "Person": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Pers",
+                    "sid": "001"
+                }
+            ],
+            "firstName": "John",
+            "lastName": "Doe"
+        }
+    ]
+}

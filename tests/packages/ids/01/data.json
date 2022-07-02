@@ -1,0 +1,14 @@
+{
+    "Organization": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Organization",
+                    "sid": "objectid098765"
+                }
+            ],
+            "name": "ACME corp"
+        }
+    ]
+}

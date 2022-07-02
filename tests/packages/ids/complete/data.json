@@ -1,0 +1,57 @@
+{
+    "Person": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Person",
+                    "sid": "12345"
+                }
+            ],
+            "firstName": "John",
+            "lastName": "Doe",
+            "country": {
+                "code": "US"
+            }
+        }
+    ],
+    "Organization": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Organization",
+                    "sid": "ABC"
+                }
+            ],
+            "name": "ACME corp",
+            "owner": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "12345"
+                    }
+                ]
+            }
+        }
+    ],
+    "CountryCode": [
+        {
+            "code": "US",
+            "description": "United States of America"
+        },
+        {
+            "code": "FR",
+            "description": "France"
+        },
+        {
+            "code": "DE",
+            "description": "Germany"
+        },
+        {
+            "code": "AT",
+            "description": "Austria"
+        }
+    ]
+}

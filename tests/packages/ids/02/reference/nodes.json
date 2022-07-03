@@ -6,8 +6,16 @@
                 "source"
             ],
             "level": 1,
-            "table_name": "ENTITY/ORGANIZATION_SOURCE",
+            "pk": "_ID1",
             "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "_ID1": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
                 "NAME": {
                     "length": 4000,
                     "type": "NVARCHAR",
@@ -29,14 +37,15 @@
                         "sid"
                     ]
                 }
-            }
+            },
+            "table_name": "ENTITY/ORGANIZATION_SOURCE"
         },
         "ENTITY/ORGANIZATION": {
             "external_path": [
                 "Organization"
             ],
             "level": 0,
-            "table_name": "ENTITY/ORGANIZATION",
+            "pk": "ID",
             "properties": {
                 "ID": {
                     "type": "NVARCHAR",
@@ -52,7 +61,8 @@
                     },
                     "external_path": [
                         "source"
-                    ]
+                    ],
+                    "isVirtual": true
                 },
                 "NAME": {
                     "length": 4000,
@@ -62,7 +72,7 @@
                     ]
                 },
                 "OWNER": {
-                    "type": "VARCHAR",
+                    "type": "NVARCHAR",
                     "length": 36,
                     "rel": {
                         "table_name": "ENTITY/PERSON",
@@ -73,6 +83,7 @@
                     ]
                 }
             },
+            "table_name": "ENTITY/ORGANIZATION",
             "contains": [
                 "ENTITY/ORGANIZATION_SOURCE"
             ]
@@ -83,8 +94,16 @@
                 "source"
             ],
             "level": 1,
-            "table_name": "ENTITY/PERSON_SOURCE",
+            "pk": "_ID1",
             "properties": {
+                "_ID": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
+                "_ID1": {
+                    "type": "VARCHAR",
+                    "length": 36
+                },
                 "NAME": {
                     "length": 4000,
                     "type": "NVARCHAR",
@@ -106,14 +125,15 @@
                         "sid"
                     ]
                 }
-            }
+            },
+            "table_name": "ENTITY/PERSON_SOURCE"
         },
         "ENTITY/PERSON": {
             "external_path": [
                 "Person"
             ],
             "level": 0,
-            "table_name": "ENTITY/PERSON",
+            "pk": "ID",
             "properties": {
                 "ID": {
                     "type": "NVARCHAR",
@@ -129,7 +149,8 @@
                     },
                     "external_path": [
                         "source"
-                    ]
+                    ],
+                    "isVirtual": true
                 },
                 "FIRSTNAME": {
                     "length": 4000,
@@ -146,6 +167,7 @@
                     ]
                 }
             },
+            "table_name": "ENTITY/PERSON",
             "contains": [
                 "ENTITY/PERSON_SOURCE"
             ]
@@ -154,6 +176,9 @@
     "index": {
         "Organization": {
             "int": "ENTITY/ORGANIZATION",
+            "definition": {
+                "pk": "ID"
+            },
             "contains": {
                 "source": {
                     "int": "ENTITY/ORGANIZATION_SOURCE",
@@ -181,12 +206,28 @@
                     "int": "NAME"
                 },
                 "owner": {
-                    "int": "OWNER"
+                    "int": "OWNER",
+                    "definition": {
+                        "type": "cds.Association",
+                        "target": "Person",
+                        "keys": [
+                            {
+                                "ref": [
+                                    "id"
+                                ]
+                            }
+                        ],
+                        "target_table_name": "ENTITY/PERSON",
+                        "target_pk": "id"
+                    }
                 }
             }
         },
         "Person": {
             "int": "ENTITY/PERSON",
+            "definition": {
+                "pk": "ID"
+            },
             "contains": {
                 "source": {
                     "int": "ENTITY/PERSON_SOURCE",

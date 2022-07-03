@@ -16,21 +16,7 @@ class DefaultPK:
     @staticmethod
     def get_definition(subnode_level):
         #pylint: disable=unused-argument
-        return ('_ID', {'type':'VARCHAR', 'length': 36})
-
-'''
-class ExternalPK:
-    @staticmethod
-    def external():
-        return True
-    def get_pk(node_name, subnode_level):
-        raise NotImplementedError
-    def __init__(self, definition) -> None:
-        self.definition = definition
-    def get_definition(self, subnode_level):
-        return self.definition
-        #pylint: disable=unused-argument
-'''
+        return ('_ID', {'type':'VARCHAR', 'length': 36, 'isIdColumn': True})
 
 class ModelException(Exception):
     pass
@@ -41,7 +27,6 @@ class DataException(Exception):
 
 def get_sql_type(node_name_mapping, cson, cap_type, pk):
     ''' get SQL type from CAP type'''
-    # print("<<<<<<<<<<<< {}".format(cap_type))
     if cap_type['type'] in cson['definitions'] and 'type' in cson['definitions'][cap_type['type']]:
         return get_sql_type(node_name_mapping, cson, cson['definitions'][cap_type['type']], pk)
 
@@ -75,14 +60,8 @@ def get_sql_type(node_name_mapping, cson, cap_type, pk):
         case 'cds.DateTime':
             sql_type['type'] = 'DATETIME'
         case 'cds.Association':
-            #target_key_property = [v for v in cson['definitions'][cap_type['target']]['elements'].values() \
-            #    if 'key' in v and v['key']][0]
             target_key_property = cson['definitions'][cap_type['target']]['elements'][cson['definitions'][cap_type['target']]['pk']]
             sql_type = get_sql_type(node_name_mapping, cson, target_key_property, pk)
-            '''
-            for k, v in pk.get_definition(0)[1].items():
-                sql_type[k] = v
-            '''
             rel = {}
             rel_to, _ = node_name_mapping.register([cap_type['target']], ENTITY_PREFIX)
             rel['table_name'] = rel_to
@@ -92,8 +71,6 @@ def get_sql_type(node_name_mapping, cson, cap_type, pk):
             sql_type['rel'] = rel
         case _:
             if cap_type['type'].startswith(cson['namespace']):
-                # print("******* {}".format(cap_type['type']))
-                #print(get_sql_type(cson['definitions'][cap_type['type']]))
                 rep_type = find_definition(cson, cap_type)
                 print(rep_type)
                 sql_type['type'] = get_sql_type(node_name_mapping, cson, cson['definitions'][rep_type['type']], pk)
@@ -125,14 +102,33 @@ def find_definition(cson, type_definition):
 def get_key_columns(subnode_level, pk):
     d = pk.get_definition(subnode_level)
     if subnode_level == 0:
-        res = (d[0], {d[0]: d[1]})
+        res = (d[0], None, {d[0]: d[1]})
     elif subnode_level == 1:
         pk_name = d[0] + str(subnode_level)
-        res = (pk_name, {d[0]: d[1], pk_name: d[1]})
+        pk_parent_name = d[0]
+        res = (pk_name, pk_parent_name, {pk_parent_name: d[1], pk_name: d[1]})
     else:
         pk_name = d[0] + str(subnode_level)
-        res = (pk_name, {d[0] + str(subnode_level - 1): d[1], d[0] + str(subnode_level): d[1]})
+        pk_parent_name = d[0] + str(subnode_level - 1)
+        res = (pk_name, pk_parent_name, {pk_parent_name: d[1], pk_name: d[1]})
     return res
+
+def add_key_columns_to_node(node, subnode_level, pk):
+    d = pk.get_definition(subnode_level)
+    if subnode_level == 0:
+        raise NotImplementedError
+    elif subnode_level == 1:
+        pk_name = d[0] + str(subnode_level)
+        pk_parent_name = d[0]
+        key_properties = {pk_parent_name: d[1], pk_name: d[1]}
+    else:
+        pk_name = d[0] + str(subnode_level)
+        pk_parent_name = d[0] + str(subnode_level - 1)
+        key_properties = {pk_parent_name: d[1], pk_name: d[1]}
+    node['pk'] = pk_name
+    node['pkParent'] = pk_parent_name
+    node['properties'] = key_properties
+
 
 
 def cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
@@ -154,8 +150,6 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
     subnode_level = 0, is_table = True, has_pc = False, pk = DefaultPK):
     ''' Transforms cson entity definition to model definition.
     The nodes links the external object-oriented-view with internal HANA-database-view.'''
-    if not 'elements' in type_definition:
-        raise ModelException('At least one property must exist')
     external_path = path + [type_name]
     node = {'external_path':external_path, 'level': subnode_level}
     property_name_mapping = NameMapping()
@@ -165,12 +159,6 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
             node['annotations'] = annotations
     if is_table:
         if subnode_level == 0:
-            #keys = [k for k, v in type_definition['elements'].items() if 'key' in v and v['key']]
-            #if len(keys) != 1:
-            #    raise ModelException('An entity must have exactly one key property')
-            #defintion = {}
-            #if 'elements' in type_definition:# and 'id' in type_definition['elements']:
-            #pk_property_name, _ = property_name_mapping.register([keys[0]])
             pk_property_name, _ = property_name_mapping.register([type_definition['pk']])
             node['pk'] = pk_property_name
             table_name, node_map = node_name_mapping.register(external_path, ENTITY_PREFIX\
@@ -178,9 +166,13 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
             node['properties'] = {}
         else:
             table_name, node_map = node_name_mapping.register(external_path)
+            add_key_columns_to_node(node, subnode_level, pk)
+            '''
             pk_name, key_columns = get_key_columns(subnode_level, pk)
             node['pk'] = pk_name
+            node['pkParent'] = pk_parent_name
             node['properties'] = key_columns
+            '''
         node['table_name'] = table_name
         #if has_pc:
         #    node['properties'][PRIVACY_CATEGORY_COLUMN_DEFINITION[0]] = PRIVACY_CATEGORY_COLUMN_DEFINITION[1]
@@ -190,7 +182,24 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
     type_definition = find_definition(cson, type_definition) # ToDo: check, if needed
     if type_definition['kind'] == 'entity' or (path and 'elements' in type_definition):
         for element_name_ext, element in type_definition['elements'].items():
-            if 'type' in element and element['type'] == 'cds.Association':
+            is_virtual = '@sap.esh.isVirtual' in element and element['@sap.esh.isVirtual']
+            is_association = 'type' in element and element['type'] == 'cds.Association'
+            if is_virtual:
+                if not is_association:
+                    raise ModelException(f'{element_name_ext}: '
+                    'Annotation @sap.esh.isVirtual is only allowed on associations')
+                if subnode_level != 0:
+                    raise ModelException(f'{element_name_ext}: '
+                    'Annotation @sap.esh.isVirtual is only allowed on root level')
+                referred_element = element['target']
+                backward_rel = [k for k, v in cson['definitions'][referred_element]['elements'].items()\
+                     if 'type' in v and v['type'] == 'cds.Association' and v['target'] == type_name]
+                if len(backward_rel) != 1:
+                    raise ModelException(f'{element_name_ext}: Annotation @sap.esh.isVirtual is only allowed if '
+                    f'exactly one backward association exists from referred entity {referred_element}',)
+                element['isVirtual'] = True
+
+            if is_association:
                 element['target_table_name'], _ = node_name_mapping.register([element['target']], ENTITY_PREFIX)
                 element['target_pk'] = cson['definitions'][element['target']]['pk']
                 element_name, _ = property_name_mapping.register([element_name_ext], definition=element)
@@ -214,7 +223,7 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
                     [type_name], element_name_ext, sub_type, subnode_level +  1, True, element_needs_pc)
                 subnodes.append(subnode)
                 node['properties'][element_name] = {'rel': {'table_name':subnode['table_name'],\
-                    'type':'containment'}, 'external_path': [element_name_ext]}
+                    'type':'containment'}, 'external_path': [element_name_ext], 'isVirtual': True}
             elif 'type' in element:
                 if element['type'] in cson['definitions']:
                     if 'elements' in cson['definitions'][element['type']]:
@@ -286,39 +295,51 @@ def cson_to_nodes(cson, pk = DefaultPK):
         if definition['kind'] == 'entity':
             keys = [k for k, v in definition['elements'].items() if 'key' in v and v['key']]
             if len(keys) != 1:
-                raise ModelException('An entity must have exactly one key property')
+                raise ModelException(f'{name}: An entity must have exactly one key property')
             definition['pk'] = keys[0]
     for name, definition in cson['definitions'].items():
         if definition['kind'] == 'entity':
             cson_entity_to_nodes(node_name_mapping, cson, nodes, [], name, definition, pk = pk)
 
-    # analyze associations
+
     for node_name, node in nodes.items():
-        for _, prop in node['properties'].items():
-            if 'rel' in prop and prop['rel']['type'] == 'association' and is_many_rel(prop['rel']):
+        for prop_name, prop in node['properties'].items():
+            is_virtual = 'annotations' in prop and '@sap.esh.isVirtual' in prop['annotations'] and \
+                prop['annotations']['@sap.esh.isVirtual']
+            is_association = 'rel' in prop and prop['rel']['type'] == 'association'
+            if is_virtual:
+                if not is_association:
+                    raise ModelException(f'{prop_name}: Annotation @sap.esh.isVirtual is only allowed on associations')
+                if node['level'] != 0:
+                    raise ModelException(f'{prop_name}: Annotation @sap.esh.isVirtual is only allowed on root level')
                 referred_node = nodes[prop['rel']['table_name']]
                 backward_rel = [(r, is_many_rel(r['rel'])) for r in referred_node['properties'].values() \
                     if 'rel' in r and r['rel']['table_name'] == node_name]
-                if [1 for r, is_many in backward_rel if not is_many]:
-                    prop['rel']['hidden'] = True
-                elif [1 for r, is_many in backward_rel if is_many]:
-                    raise NotImplementedError
+                if len(backward_rel) != 1:
+                    msg = ( f'{prop_name}: Annotation @sap.esh.isVirtual is only '
+                    'allowed if exactly one backward association exists from referred entity ')
+                    msg += referred_node['externalPath'][0]
+                    raise ModelException(msg)
+                prop['isVirtual'] = True
+
     return {'nodes': nodes, 'index': node_name_mapping.ext_tree['contains']}
 
 def get_column_name(nodes_index, exp_path):
     if len(exp_path) > 1:
         if not 'contains' in nodes_index[exp_path[0]]:
-            raise DataException('Unknown property "%s"', exp_path[1])
+            raise DataException(f'Unknown property {exp_path[1]}')
         next_nodes_index = nodes_index[exp_path[0]]['contains']
         return get_column_name(next_nodes_index, exp_path[1:])
     if not exp_path[0] in nodes_index:
-        raise DataException('Unknown property "%s"', exp_path[0])
+        raise DataException(f'Unknown property {exp_path[0]}')
     return nodes_index[exp_path[0]]['int']
 
 
 def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level = 0, col_prefix = [],\
-    parent_object_id = None, propagated_row = None, propagated_object_id = None, pk = DefaultPK):
+    parent_object_id = None, propagated_row = None, propagated_object_id = None, pk = DefaultPK, properties = {}):
     for obj in objects:
+        if subnode_level == 0 and 'id' in obj:
+            raise DataException('Reserved property name ########## id')
         full_table_name = nodes_index['int']
         if propagated_row:
             row = propagated_row
@@ -341,7 +362,7 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
             else:
                 row.append(object_id)
                 if not full_table_name in inserts:
-                    _, key_columns = get_key_columns(subnode_level, pk)
+                    _, _, key_columns = get_key_columns(subnode_level, pk)
                     key_col_names = {k:idx for idx, k in enumerate(key_columns.keys())}
                     inserts[full_table_name] = {'columns': key_col_names, 'rows':[]}
             if not full_table_name in inserts:
@@ -349,22 +370,22 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
             else:
                 row.extend([None]*(len(inserts[full_table_name]['columns']) - len(row)))
         for k, v in obj.items():
-            if subnode_level == 0 and k == 'id':
-                DataException('Reserved property "id"')
             value = None
-            if k in nodes_index['properties']:
-                prop = nodes_index['properties'][k]
+            if k in properties:
+                prop = properties[k]
                 if 'definition' in prop and 'type' in prop['definition']\
                     and prop['definition']['type'] == 'cds.Association':
+                    if 'isVirtual' in prop['definition'] and prop['definition']['isVirtual']:
+                        raise DataException(f'Data must not be provided for virtual property {k}')
                     if prop['definition']['target_pk'] in v:
                         value = v[prop['definition']['target_pk']]
                     elif 'source' in v:
                         if isinstance(v['source'], list):
                             hashable_keys = set([json.dumps(w) for w in v['source']])
                             if len(hashable_keys) == 0:
-                                DataException('Association property %s has no source', k)    
+                                raise DataException(f'Association property {k} has no source')    
                             elif len(hashable_keys) > 1:
-                                DataException('Association property %s has conflicting sources', k)    
+                                raise DataException(f'Association property {k} has conflicting sources')
                             hashable_key = list(hashable_keys)[0]
                             if hashable_key in idmapping:
                                 value = idmapping[hashable_key]['id']
@@ -373,19 +394,19 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
                                 value = pk.get_pk(target_table_name, 0)
                                 idmapping[hashable_key] = {'id':value, 'resolved':False}
                         else:
-                            DataException('Association property %s is not a list', k)
+                            raise DataException(f'Association property {k} is not a list')
                     else:
-                        raise DataException('Association property %s has no source property', k)
+                        raise DataException(f'Association property {k} has no source property')
             else:
-                raise DataException('Unknown property "%s"', k)
-            column_name = get_column_name(nodes_index['properties'], col_prefix + [k])
+                raise DataException(f'Unknown property {k}')
             if value == None and isinstance(v, list):
                 object_to_dml(nodes, inserts, nodes_index['contains'][k], v, idmapping, subnode_level + 1,\
-                    parent_object_id = object_id, pk = pk)
+                    parent_object_id = object_id, pk = pk, properties=nodes_index['contains'][k]['properties'])
             elif value == None and isinstance(v, dict):
                 object_to_dml(nodes, inserts, nodes_index, [v], idmapping, subnode_level, col_prefix + [k],\
-                    propagated_row = row, propagated_object_id=object_id, pk = pk)
+                    propagated_row = row, propagated_object_id=object_id, pk = pk, properties = properties[k]['contains'])
             else:
+                column_name = get_column_name(nodes_index['properties'], col_prefix + [k])
                 if not value:
                     value = v
                 if not column_name in inserts[full_table_name]['columns']:
@@ -396,16 +417,19 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
         if not propagated_row:
             inserts[full_table_name]['rows'].append(row)
 
+
 def objects_to_dml(nodes, objects, pk = DefaultPK):
     inserts = {}
     idmapping = {}
     for object_type, objects in objects.items():
-        object_to_dml(nodes, inserts, nodes['index'][object_type], objects, idmapping, pk = pk)
+        if not object_type in nodes['index']:
+            raise DataException(f'Unknown object type {object_type}')
+        ni = nodes['index'][object_type]
+        object_to_dml(nodes, inserts, ni, objects, idmapping, pk = pk, properties= ni['properties'])
     if idmapping:
         dangling = [json.loads(k) for k, v in idmapping.items() if not v['resolved']]
         if dangling:
             # ToDo: Handle references to objects which are not in one data package
-            raise DataException('References to objects outside of one data package is not yet supported. No object exists with source %s', json.dumps(dangling))
-
-
+            raise DataException('References to objects outside of one data package '
+            f'is not yet supported. No object exists with source {json.dumps(dangling)}')
     return {'inserts': inserts}

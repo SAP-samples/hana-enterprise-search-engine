@@ -34,8 +34,7 @@ class Constants(object):
 def get_columns(node):
     columns = []
     for prop_name, prop in node[Constants.properties].items():
-        if 'rel' in prop and \
-            (prop['rel']['type'] == 'containment' or 'hidden' in prop['rel'] and prop['rel']['hidden']):
+        if 'isVirtual' in prop and prop['isVirtual']:
             continue
         if Constants.length in prop:
             column_type = f'{prop[Constants.type]}({prop[Constants.length]})'
@@ -59,6 +58,11 @@ def sequence(i = 0, prefix = '', fill = 3):
             yield i
         i += 1
 
+def sequenceInt(i = 10, step = 10):
+    while True:
+        yield i
+        i += step
+
 class ColumnView:
     """Column view definition"""
     def __init__(self, view_name: str, anchor_table_name: str) -> None:
@@ -71,6 +75,7 @@ class ColumnView:
         self.table(anchor_table_name)
         self.join_path_id_gen = sequence(1, 'JP', 3)
         self.join_condition_id_gen = sequence(1, 'JC', 3)
+        self.ui_position_gen = sequenceInt()
     def table(self, table_name):
         if not table_name in self.join_index:
             self.join_index[table_name] = 0
@@ -162,40 +167,48 @@ def traverse_contains(cv: ColumnView, esh_config_properties, nodes, parent_node,
     join_path_id = None, view_columns_prefix = None, ignore_in_view = None, is_root_node = True):
     ui_position = 10
     for prop_name, prop in parent_node['properties'].items():
+        is_enteprise_search_key = is_root_node and prop_name == parent_node['pk']
         if ignore_in_view and ignore_in_view == prop_name:
             continue
-        if 'rel' in prop:
-            continue
+        #if 'rel' in prop:
+        #    continue
         if view_columns_prefix:
             view_column_name = '.'.join([view_columns_prefix, prop_name])
         else:
             view_column_name = prop_name
         view_column_name = view_column_name.replace('.', '_')
         if 'rel' in prop:
-            child_node_name = prop['rel']['table_name']
-            child_node = nodes['nodes'][child_node_name]
-            if join_path_id:
-                jp_id = join_path_id
-            else:
-                jp_id = next(cv.join_path_id_gen)
-            child_join_index = cv.table(child_node['table_name'])
-            cv.add_join_condition(jp_id, parent_join_index, parent_node['pk'], child_join_index, parent_node['pk'])
-            traverse_contains(cv, esh_config_properties, nodes, child_node, child_join_index, jp_id,\
-                view_column_name, parent_node['pk'], is_root_node = False)
+            if prop['rel']['type'] == 'containment':
+                child_node_name = prop['rel']['table_name']
+                child_node = nodes['nodes'][child_node_name]
+                if join_path_id:
+                    jp_id = join_path_id
+                else:
+                    jp_id = next(cv.join_path_id_gen)
+                child_join_index = cv.table(child_node['table_name'])
+                cv.add_join_condition(jp_id, parent_join_index, parent_node['pk'], child_join_index, child_node['pkParent'])
+                traverse_contains(cv, esh_config_properties, nodes, child_node, child_join_index, jp_id,\
+                    view_column_name, parent_node['pk'], is_root_node = False)
         else:
-            cv.view_attribute.append((view_column_name, parent_node[Constants.table_name], prop_name, ''))
+            if 'isIdColumn' in prop and prop['isIdColumn']:
+                continue
+            if join_path_id:
+                cv.view_attribute.append((view_column_name, parent_node[Constants.table_name], prop_name, join_path_id))
+            else:
+                cv.view_attribute.append((view_column_name, parent_node[Constants.table_name], prop_name, ''))
             # ESH config
-            if prop_name != '_ID':
-                col_conf = {'Name': view_column_name}
-                if 'annotations' in prop:
-                    col_conf |= prop['annotations']
-                # for UI5 enterprise search UI to work
-                if 'annotations' in prop and '@EndUserText.Label' in prop['annotations']\
-                    and not '@SAP.Common.Label' in prop['annotations']:
-                    col_conf['@SAP.Common.Label'] = prop['annotations']['@EndUserText.Label']
-                if not prop_name.startswith('_ID'):
-                    col_conf['@Search.defaultSearchElement'] = True
-                if is_root_node:
-                    col_conf['@UI.identification'] = [{'position': ui_position}]
-                    ui_position += 10
-                esh_config_properties.append(col_conf)
+            col_conf = {'Name': view_column_name}
+            if 'annotations' in prop:
+                col_conf |= prop['annotations']
+            # for UI5 enterprise search UI to work
+            if is_enteprise_search_key:
+                col_conf['@EnterpriseSearch.key'] = True
+                col_conf['@UI.hidden'] = True
+            else:
+                col_conf['@Search.defaultSearchElement'] = True
+            if 'annotations' in prop and '@EndUserText.Label' in prop['annotations']\
+                and not '@SAP.Common.Label' in prop['annotations']:
+                col_conf['@SAP.Common.Label'] = prop['annotations']['@EndUserText.Label']
+            if is_root_node and not is_enteprise_search_key:
+                col_conf['@UI.identification'] = [{'position': next(cv.ui_position_gen)}]
+            esh_config_properties.append(col_conf)

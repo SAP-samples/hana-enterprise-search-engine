@@ -131,8 +131,11 @@ async def post_model(tenant_id: str, cson=Body(...)):
         num_deployments = db.cur.fetchone()[0]
         if num_deployments == 0:
             created_at = datetime.now()
-            nodes = mapping.cson_to_nodes(cson)
-            ddl = sqlcreate.nodes_to_ddl(nodes, tenant_schema_name)
+            try:
+                nodes = mapping.cson_to_nodes(cson)
+                ddl = sqlcreate.nodes_to_ddl(nodes, tenant_schema_name)
+            except mapping.ModelException as e:
+                handle_error(str(e), 400)
             try:
                 db.cur.execute(f'set schema "{tenant_schema_name}"')
                 for sql in ddl['tables']:
@@ -161,7 +164,10 @@ async def post_data(tenant_id, objects=Body(...)):
             logging.error('Tenant %s has no entries in the _MODEL table', tenant_id)
             handle_error('Configuration inconsistent', 500)
         nodes = json.loads(res[0])
-        dml = mapping.objects_to_dml(nodes, objects)
+        try:
+            dml = mapping.objects_to_dml(nodes, objects)
+        except mapping.DataException as e:
+            handle_error(str(e), 400)
         for table_name, v in dml['inserts'].items():
             column_names = ','.join([f'"{k}"' for k in v['columns'].keys()])
             column_placeholders = ','.join(['?']*len(v['columns']))
@@ -169,6 +175,19 @@ async def post_data(tenant_id, objects=Body(...)):
                  values ({column_placeholders})'
             db.cur.executemany(sql, v['rows'])
         db.con.commit()
+    response = {}
+    for object_type, objlist in objects.items():
+        for obj in objlist:
+            res = {}
+            if 'id' in obj:
+                res['id'] = obj['id']
+            if 'source' in obj:
+                res['source'] = obj['source']
+            if res:
+                if not object_type in response:
+                    response[object_type] = []
+                response[object_type].append(res)
+    return response
 
 
 def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):

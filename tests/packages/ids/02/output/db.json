@@ -1,0 +1,68 @@
+{
+    "inserts": {
+        "ENTITY/ORGANIZATION": {
+            "columns": {
+                "NAME": 0,
+                "OWNER": 1,
+                "ID": 2
+            },
+            "rows": [
+                [
+                    "ACME corp",
+                    "ID:ENTITY/PERSON:0",
+                    "ID:ENTITY/ORGANIZATION:0"
+                ]
+            ]
+        },
+        "ENTITY/ORGANIZATION_SOURCE": {
+            "columns": {
+                "_ID": 0,
+                "_ID1": 1,
+                "NAME": 2,
+                "TYPE": 3,
+                "SID": 4
+            },
+            "rows": [
+                [
+                    "ID:ENTITY/ORGANIZATION:0",
+                    "ID:ENTITY/ORGANIZATION_SOURCE:0",
+                    "systemA",
+                    "Organization",
+                    "objectid098765"
+                ]
+            ]
+        },
+        "ENTITY/PERSON": {
+            "columns": {
+                "FIRSTNAME": 0,
+                "LASTNAME": 1,
+                "ID": 2
+            },
+            "rows": [
+                [
+                    "John",
+                    "Doe",
+                    "ID:ENTITY/PERSON:1"
+                ]
+            ]
+        },
+        "ENTITY/PERSON_SOURCE": {
+            "columns": {
+                "_ID": 0,
+                "_ID1": 1,
+                "NAME": 2,
+                "TYPE": 3,
+                "SID": 4
+            },
+            "rows": [
+                [
+                    "ID:ENTITY/PERSON:1",
+                    "ID:ENTITY/PERSON_SOURCE:0",
+                    "systemA",
+                    "Pers",
+                    "001"
+                ]
+            ]
+        }
+    }
+}

@@ -107,7 +107,7 @@ class ColumnView:
         for jc in self.join_conditions:
             v += f'joinCondition=(\'{jc[0]}\',"{jc[1]}","{jc[2]}","{jc[3]}","{jc[4]}",\'\',81,0),\n'
         for jp_name, jp_conditions in self.join_path.items():
-            v += f"joinPath=('{jp_name}','{','.join(jp_conditions)}'),\n"
+            v += f"joinPath=('{jp_name}','{','.join(sorted(list(jp_conditions)))}'),\n"
         for view_prop_name, table_name, table_prop_name, join_path_id in self.view_attribute:
             v += f"viewAttribute=('{view_prop_name}',\"{table_name}\",\"{table_prop_name}\",'{join_path_id}'"\
                 +",'default','attribute'),\n"

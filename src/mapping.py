@@ -60,7 +60,8 @@ def get_sql_type(node_name_mapping, cson, cap_type, pk):
         case 'cds.DateTime':
             sql_type['type'] = 'DATETIME'
         case 'cds.Association':
-            target_key_property = cson['definitions'][cap_type['target']]['elements'][cson['definitions'][cap_type['target']]['pk']]
+            target_key_property = \
+                cson['definitions'][cap_type['target']]['elements'][cson['definitions'][cap_type['target']]['pk']]
             sql_type = get_sql_type(node_name_mapping, cson, target_key_property, pk)
             rel = {}
             rel_to, _ = node_name_mapping.register([cap_type['target']], ENTITY_PREFIX)
@@ -76,8 +77,9 @@ def get_sql_type(node_name_mapping, cson, cap_type, pk):
                 sql_type['type'] = get_sql_type(node_name_mapping, cson, cson['definitions'][rep_type['type']], pk)
             else:
                 None #pylint: disable=pointless-statement
-            print(f'Unexpected type: {cap_type["type"]}')
-            raise ModelException('Unexpected cds type %s', cap_type["type"])
+            t = cap_type['type']
+            print(f'Unexpected type: {t}')
+            raise ModelException(f'Unexpected cds type {t}')
 
     # Copy annotations
     annotations = {k:v for k,v in cap_type.items() if k.startswith('@')}
@@ -132,9 +134,9 @@ def add_key_columns_to_node(node, subnode_level, pk):
 
 
 def cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
-    node_name_mapping, cson, nodes, path, type_name, subnode_level):
+    node_name_mapping, cson, nodes, path, type_name, subnode_level, parent):
     subnode = cson_entity_to_nodes(node_name_mapping, cson, nodes, path + [type_name],\
-        element_name_ext, element, subnode_level +  1, False)
+        element_name_ext, element, subnode_level +  1, False, parent = parent)
     for column in subnode['properties'].values():
         if 'external_path' in column:
             property_name_int, _ =\
@@ -147,11 +149,13 @@ def cson_entity_to_subnodes(element_name_ext, element, node, property_name_mappi
 
 
 def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_definition,\
-    subnode_level = 0, is_table = True, has_pc = False, pk = DefaultPK):
+    subnode_level = 0, is_table = True, has_pc = False, pk = DefaultPK, parent = None):
     ''' Transforms cson entity definition to model definition.
     The nodes links the external object-oriented-view with internal HANA-database-view.'''
     external_path = path + [type_name]
     node = {'external_path':external_path, 'level': subnode_level}
+    if parent:
+        node['parent'] = parent
     property_name_mapping = NameMapping()
     if subnode_level == 0:
         annotations = {k:v for k,v in type_definition.items() if k.startswith('@')}
@@ -167,13 +171,8 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
         else:
             table_name, node_map = node_name_mapping.register(external_path)
             add_key_columns_to_node(node, subnode_level, pk)
-            '''
-            pk_name, key_columns = get_key_columns(subnode_level, pk)
-            node['pk'] = pk_name
-            node['pkParent'] = pk_parent_name
-            node['properties'] = key_columns
-            '''
         node['table_name'] = table_name
+        parent = table_name
         #if has_pc:
         #    node['properties'][PRIVACY_CATEGORY_COLUMN_DEFINITION[0]] = PRIVACY_CATEGORY_COLUMN_DEFINITION[1]
     else:
@@ -220,7 +219,8 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
                         sub_type = element
                         sub_type['kind'] = 'type'
                 subnode = cson_entity_to_nodes(node_name_mapping, cson, nodes, path +\
-                    [type_name], element_name_ext, sub_type, subnode_level +  1, True, element_needs_pc)
+                    [type_name], element_name_ext, sub_type, subnode_level +  1, True\
+                    , element_needs_pc, parent = parent)
                 subnodes.append(subnode)
                 node['properties'][element_name] = {'rel': {'table_name':subnode['table_name'],\
                     'type':'containment'}, 'external_path': [element_name_ext], 'isVirtual': True}
@@ -228,7 +228,7 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
                 if element['type'] in cson['definitions']:
                     if 'elements' in cson['definitions'][element['type']]:
                         cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
-                            node_name_mapping, cson, nodes, path, type_name, subnode_level)
+                            node_name_mapping, cson, nodes, path, type_name, subnode_level, parent = parent)
                     else:
                         node['properties'][element_name] =\
                             get_sql_type(node_name_mapping, cson, cson['definitions'][element['type']], pk)
@@ -239,7 +239,7 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
             elif 'elements' in element: # nested definition
                 element['kind'] = 'type'
                 cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
-                    node_name_mapping, cson, nodes, path, type_name, subnode_level)
+                    node_name_mapping, cson, nodes, path, type_name, subnode_level, parent=parent)
             else:
                 raise NotImplementedError
 
@@ -281,7 +281,6 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
         else:
             node_map['properties'] = {}
         nodes[table_name] = node
-
     return node
 
 def is_many_rel(property_rel):
@@ -322,7 +321,36 @@ def cson_to_nodes(cson, pk = DefaultPK):
                     raise ModelException(msg)
                 prop['isVirtual'] = True
 
+        node['sql'] = {}
+        table_name = node['table_name']
+        nl = node['level']
+        if nl <= 1:
+            if nl == 0:
+                key_column = node['pk']
+            else:
+                key_column = node['pkParent']
+            select_columns = [f'"{k}"' for k, v in node['properties'].items() if not ('isVirtual' in v and v['isVirtual'])]
+            sql = f'SELECT {", ".join(select_columns)} from "{table_name}" where "{key_column}" in ({{id_list}})'
+        else:
+            select_columns = [f'L{nl}."{k}"' for k, v in node['properties'].items() if not ('isVirtual' in v and v['isVirtual'])]
+            joins = []
+            for i, parent in enumerate(get_parents(nodes, node, node['level'] - 1)):
+                joins.append(f'inner join "{parent}" L{i+1} on L{i+2}._ID{i+1} = L{i+1}._ID{i+1}')
+            joins.reverse()
+            sql = f'SELECT {", ".join(select_columns)} from "{table_name}" L{nl} {" ".join(joins)} where L1."_ID" in ({{id_list}})'
+
+        node['sql']['read'] = sql
+
     return {'nodes': nodes, 'index': node_name_mapping.ext_tree['contains']}
+
+
+def get_parents(nodes, node, steps):
+    parent = node['parent']
+    if steps == 1:
+        return [parent]
+    else:
+        return get_parents(nodes, nodes[parent], steps - 1) + [parent]
+
 
 def get_column_name(nodes_index, exp_path):
     if len(exp_path) > 1:
@@ -383,7 +411,7 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
                         if isinstance(v['source'], list):
                             hashable_keys = set([json.dumps(w) for w in v['source']])
                             if len(hashable_keys) == 0:
-                                raise DataException(f'Association property {k} has no source')    
+                                raise DataException(f'Association property {k} has no source')
                             elif len(hashable_keys) > 1:
                                 raise DataException(f'Association property {k} has conflicting sources')
                             hashable_key = list(hashable_keys)[0]
@@ -399,12 +427,13 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
                         raise DataException(f'Association property {k} has no source property')
             else:
                 raise DataException(f'Unknown property {k}')
-            if value == None and isinstance(v, list):
+            if value is None and isinstance(v, list):
                 object_to_dml(nodes, inserts, nodes_index['contains'][k], v, idmapping, subnode_level + 1,\
                     parent_object_id = object_id, pk = pk, properties=nodes_index['contains'][k]['properties'])
-            elif value == None and isinstance(v, dict):
+            elif value is None and isinstance(v, dict):
                 object_to_dml(nodes, inserts, nodes_index, [v], idmapping, subnode_level, col_prefix + [k],\
-                    propagated_row = row, propagated_object_id=object_id, pk = pk, properties = properties[k]['contains'])
+                    propagated_row = row, propagated_object_id=object_id
+                    , pk = pk, properties = properties[k]['contains'])
             else:
                 column_name = get_column_name(nodes_index['properties'], col_prefix + [k])
                 if not value:

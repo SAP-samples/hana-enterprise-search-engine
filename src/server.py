@@ -155,6 +155,8 @@ async def post_model(tenant_id: str, cson=Body(...)):
 @app.post('/v1/data/{tenant_id}')
 async def post_data(tenant_id, objects=Body(...)):
     """POST Data"""
+    if not isinstance(objects, dict):
+        handle_error('provide dictionary of object types', 400)
     tenant_schema_name = get_tenant_schema_name(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.DATA_WRITE]) as db:
         sql = f'select top 1 NODES from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
@@ -176,11 +178,17 @@ async def post_data(tenant_id, objects=Body(...)):
             db.cur.executemany(sql, v['rows'])
         db.con.commit()
     response = {}
-    for object_type, objlist in objects.items():
-        for obj in objlist:
+    for object_type, obj_list in objects.items():
+        if not isinstance(obj_list, list):
+            handle_error('provide list of objects per object type', 400)
+        if object_type not in nodes['index']:
+            handle_error(f'unknown object type {object_type}', 400)
+        root_node = nodes['nodes'][nodes['index'][object_type]['int']]
+        key_property = root_node['properties'][root_node['pk']]['external_path'][0]
+        for obj in obj_list:
             res = {}
-            if 'id' in obj:
-                res['id'] = obj['id']
+            if key_property in obj:
+                res[key_property] = obj[key_property]
             if 'source' in obj:
                 res['source'] = obj['source']
             if res:
@@ -188,6 +196,100 @@ async def post_data(tenant_id, objects=Body(...)):
                     response[object_type] = []
                 response[object_type].append(res)
     return response
+
+@app.post('/v1/read/{tenant_id}')
+async def read_data(tenant_id, objects=Body(...)):
+    """POST Data"""
+    if not isinstance(objects, dict):
+        handle_error('provide dictionary of object types', 400)
+    tenant_schema_name = get_tenant_schema_name(tenant_id)
+    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+        db.cur.execute(f'set schema "{tenant_schema_name}"')
+        sql = f'select top 1 NODES from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
+        db.cur.execute(sql)
+        res = db.cur.fetchone()
+        if not (res and len(res) == 1):
+            logging.error('Tenant %s has no entries in the _MODEL table', tenant_id)
+            handle_error('Configuration inconsistent', 500)
+        response = {}
+        nodes = json.loads(res[0])
+        for object_type, obj_list  in objects.items():
+            if not isinstance(obj_list, list):
+                handle_error('provide list of objects per object type', 400)
+            if object_type not in nodes['index']:
+                handle_error(f'unknown object type {object_type}', 400)
+            root_node = nodes['nodes'][nodes['index'][object_type]['int']]
+            ids = []
+            primary_key_property_name = \
+                root_node['properties'][root_node['pk']]['external_path'][0]
+            node_sequence = []
+            get_node_sequence(nodes, node_sequence, root_node)
+            for obj in obj_list:
+                if not primary_key_property_name in obj:
+                    handle_error(f'primary key {primary_key_property_name} not found', 400)
+                ids.append(obj[primary_key_property_name])
+            id_list = ', '.join([f"'{w}'" for w in ids])
+            all_objects = {}
+
+            for node in node_sequence:
+                is_list = node['level'] > 0
+                all_objects[node['table_name']] = {}
+                sql = node['sql']['read'].format(id_list = id_list)
+                print(sql)
+                db.cur.execute(sql)
+                for row in db.cur:
+                    i = 0
+                    res_obj = {}
+                    for prop_name, prop in node['properties'].items():
+                        if prop_name == node['pk']:
+                            sub_obj_key = row[i]
+                            if node['level'] == 0:
+                                res_key = row[i]
+                                add_value(res_obj, prop['external_path'], row[i])
+                        elif node['level'] > 0 and prop_name == node['pkParent']:
+                            res_key = row[i]
+                        elif 'isVirtual' in prop and prop['isVirtual']:
+                            if prop['rel']['type'] == 'containment':
+                                if sub_obj_key in all_objects[prop['rel']['table_name']]:
+                                    sub_obj = all_objects[prop['rel']['table_name']][sub_obj_key]
+                                    add_value(res_obj, prop['external_path'], sub_obj)
+                            continue
+                        elif 'rel' in prop and prop['rel']['type'] == 'association':
+                            rel_node = nodes['nodes'][prop['rel']['table_name']]
+                            path = prop['external_path']\
+                                 + rel_node['properties'][rel_node['pk']]['external_path']
+                            add_value(res_obj, path, row[i])
+                        else:
+                            add_value(res_obj, prop['external_path'], row[i])
+                        i += 1
+                    if is_list:
+                        if not res_key in all_objects[node['table_name']]:
+                            all_objects[node['table_name']][res_key] = []
+                        all_objects[node['table_name']][res_key].append(res_obj)
+                    else:
+                        all_objects[node['table_name']][res_key] = res_obj
+            response[object_type] = []
+            for i in ids:
+                response[object_type].append(all_objects[root_node['table_name']][i])
+    return response
+
+
+def add_value(obj, path, value):
+    if value is None:
+        return
+    if len(path) == 1:
+        obj[path[0]] = value
+    else:
+        if not path[0] in obj:
+            obj[path[0]] = {}
+        add_value(obj[path[0]], path[1:], value)
+
+def get_node_sequence(nodes, node_sequence, current_node):
+    for prop in current_node['properties'].values():
+        if 'rel' in prop and prop['rel']['type'] == 'containment':
+            next_node = nodes['nodes'][prop['rel']['table_name']]
+            get_node_sequence(nodes, node_sequence, next_node)
+    node_sequence.append(current_node)
 
 
 def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):

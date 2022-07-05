@@ -1,4 +1,4 @@
-"""Creates SQL commands from node"""
+'''Creates SQL commands from node'''
 from copy import deepcopy
 import mapping
 

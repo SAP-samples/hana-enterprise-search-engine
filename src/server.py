@@ -80,8 +80,8 @@ async def post_tenant(tenant_id):
             db.cur.execute(f'GRANT SELECT ON SCHEMA "{tenant_schema_name}" TO {read_user_name}')
             db.cur.execute(f'GRANT SELECT ON "{tenant_schema_name}"."_MODEL" TO {read_user_name}')
             db.cur.execute(f'GRANT INSERT ON SCHEMA "{tenant_schema_name}" TO {write_user_name}')
+            db.cur.execute(f'GRANT SELECT ON SCHEMA "{tenant_schema_name}" TO {write_user_name}')
             db.cur.execute(f'GRANT DELETE ON SCHEMA "{tenant_schema_name}" TO {write_user_name}')
-            db.cur.execute(f'GRANT SELECT ON "{tenant_schema_name}"."_MODEL" TO {write_user_name}')
             db.cur.execute(f'GRANT SELECT ON "{tenant_schema_name}"."_MODEL" TO {schema_modify_user_name}')
             db.cur.execute(f'GRANT INSERT ON "{tenant_schema_name}"."_MODEL" TO {schema_modify_user_name}')
             db.cur.execute(f'GRANT DELETE ON "{tenant_schema_name}"."_MODEL" TO {schema_modify_user_name}')
@@ -127,7 +127,8 @@ async def post_model(tenant_id: str, cson=Body(...)):
     """ Deploy model """
     tenant_schema_name = get_tenant_schema_name(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
-        db.cur.execute(f'select count(*) from "{tenant_schema_name}"."_MODEL"')
+        db.cur.execute(f'set schema "{tenant_schema_name}"')
+        db.cur.execute(f'select count(*) from "_MODEL"')
         num_deployments = db.cur.fetchone()[0]
         if num_deployments == 0:
             created_at = datetime.now()
@@ -137,7 +138,6 @@ async def post_model(tenant_id: str, cson=Body(...)):
             except mapping.ModelException as e:
                 handle_error(str(e), 400)
             try:
-                db.cur.execute(f'set schema "{tenant_schema_name}"')
                 for sql in ddl['tables']:
                     db.cur.execute(sql)
                 for sql in ddl['views']:
@@ -152,20 +152,28 @@ async def post_model(tenant_id: str, cson=Body(...)):
         else:
             handle_error('Model already deployed', 422)
 
-@app.post('/v1/data/{tenant_id}')
-async def post_data(tenant_id, objects=Body(...)):
-    """POST Data"""
-    if not isinstance(objects, dict):
-        handle_error('provide dictionary of object types', 400)
+def get_nodes(tenant_id):
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(glob.connection_pools[DBUserType.DATA_WRITE]) as db:
+    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+        db.cur.execute(f'set schema "{tenant_schema_name}"')
         sql = f'select top 1 NODES from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
         db.cur.execute(sql)
         res = db.cur.fetchone()
         if not (res and len(res) == 1):
             logging.error('Tenant %s has no entries in the _MODEL table', tenant_id)
             handle_error('Configuration inconsistent', 500)
-        nodes = json.loads(res[0])
+    return json.loads(res[0])
+
+
+@app.post('/v1/data/{tenant_id}')
+async def post_data(tenant_id, objects=Body(...)):
+    """CREATE Data"""
+    if not isinstance(objects, dict):
+        handle_error('provide dictionary of object types', 400)
+    tenant_schema_name = get_tenant_schema_name(tenant_id)
+    nodes = get_nodes(tenant_id)
+    with DBConnection(glob.connection_pools[DBUserType.DATA_WRITE]) as db:
+        db.cur.execute(f'set schema "{tenant_schema_name}"')
         try:
             dml = mapping.objects_to_dml(nodes, objects)
         except mapping.DataException as e:
@@ -197,22 +205,17 @@ async def post_data(tenant_id, objects=Body(...)):
                 response[object_type].append(res)
     return response
 
+
 @app.post('/v1/read/{tenant_id}')
 async def read_data(tenant_id, objects=Body(...)):
-    """POST Data"""
+    """READ Data"""
     if not isinstance(objects, dict):
         handle_error('provide dictionary of object types', 400)
     tenant_schema_name = get_tenant_schema_name(tenant_id)
+    nodes = get_nodes(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         db.cur.execute(f'set schema "{tenant_schema_name}"')
-        sql = f'select top 1 NODES from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
-        db.cur.execute(sql)
-        res = db.cur.fetchone()
-        if not (res and len(res) == 1):
-            logging.error('Tenant %s has no entries in the _MODEL table', tenant_id)
-            handle_error('Configuration inconsistent', 500)
         response = {}
-        nodes = json.loads(res[0])
         for object_type, obj_list  in objects.items():
             if not isinstance(obj_list, list):
                 handle_error('provide list of objects per object type', 400)
@@ -232,47 +235,82 @@ async def read_data(tenant_id, objects=Body(...)):
             all_objects = {}
 
             for node in node_sequence:
-                is_list = node['level'] > 0
                 all_objects[node['table_name']] = {}
-                sql = node['sql']['read'].format(id_list = id_list)
-                print(sql)
+                sql = node['sql']['select'].format(id_list = id_list)
                 db.cur.execute(sql)
-                for row in db.cur:
-                    i = 0
-                    res_obj = {}
-                    for prop_name, prop in node['properties'].items():
-                        if prop_name == node['pk']:
-                            sub_obj_key = row[i]
-                            if node['level'] == 0:
-                                res_key = row[i]
-                                add_value(res_obj, prop['external_path'], row[i])
-                        elif node['level'] > 0 and prop_name == node['pkParent']:
-                            res_key = row[i]
-                        elif 'isVirtual' in prop and prop['isVirtual']:
-                            if prop['rel']['type'] == 'containment':
-                                if sub_obj_key in all_objects[prop['rel']['table_name']]:
-                                    sub_obj = all_objects[prop['rel']['table_name']][sub_obj_key]
-                                    add_value(res_obj, prop['external_path'], sub_obj)
-                            continue
-                        elif 'rel' in prop and prop['rel']['type'] == 'association':
-                            rel_node = nodes['nodes'][prop['rel']['table_name']]
-                            path = prop['external_path']\
-                                 + rel_node['properties'][rel_node['pk']]['external_path']
-                            add_value(res_obj, path, row[i])
+                if '_VALUE' in node['properties']:
+                    for row in db.cur:
+                        if row[0] in all_objects[node['table_name']]:
+                            all_objects[node['table_name']][row[0]].append(row[2])
                         else:
-                            add_value(res_obj, prop['external_path'], row[i])
-                        i += 1
-                    if is_list:
-                        if not res_key in all_objects[node['table_name']]:
-                            all_objects[node['table_name']][res_key] = []
-                        all_objects[node['table_name']][res_key].append(res_obj)
-                    else:
-                        all_objects[node['table_name']][res_key] = res_obj
+                            all_objects[node['table_name']][row[0]] = [row[2]]
+                else:
+                    for row in db.cur:
+                        i = 0
+                        res_obj = {}
+                        for prop_name, prop in node['properties'].items():
+                            if prop_name == node['pk']:
+                                sub_obj_key = row[i]
+                                if node['level'] == 0:
+                                    res_key = row[i]
+                                    add_value(res_obj, prop['external_path'], row[i])
+                            elif node['level'] > 0 and prop_name == node['pkParent']:
+                                res_key = row[i]
+                            elif 'isVirtual' in prop and prop['isVirtual']:
+                                if prop['rel']['type'] == 'containment':
+                                    if sub_obj_key in all_objects[prop['rel']['table_name']]:
+                                        sub_obj = all_objects[prop['rel']['table_name']][sub_obj_key]
+                                        add_value(res_obj, prop['external_path'], sub_obj)
+                                continue
+                            elif 'rel' in prop and prop['rel']['type'] == 'association':
+                                rel_node = nodes['nodes'][prop['rel']['table_name']]
+                                path = prop['external_path']\
+                                    + rel_node['properties'][rel_node['pk']]['external_path']
+                                add_value(res_obj, path, row[i])
+                            else:
+                                add_value(res_obj, prop['external_path'], row[i])
+                            i += 1
+                        if node['level'] > 0:
+                            if not res_key in all_objects[node['table_name']]:
+                                all_objects[node['table_name']][res_key] = []
+                            all_objects[node['table_name']][res_key].append(res_obj)
+                        else:
+                            all_objects[node['table_name']][res_key] = res_obj
             response[object_type] = []
             for i in ids:
                 response[object_type].append(all_objects[root_node['table_name']][i])
     return response
 
+@app.delete('/v1/data/{tenant_id}')
+async def delete_data(tenant_id, objects=Body(...)):
+    """DELETE Data"""
+    if not isinstance(objects, dict):
+        handle_error('provide dictionary of object types', 400)
+    tenant_schema_name = get_tenant_schema_name(tenant_id)
+    nodes = get_nodes(tenant_id)
+    with DBConnection(glob.connection_pools[DBUserType.DATA_WRITE]) as db:
+        db.cur.execute(f'set schema "{tenant_schema_name}"')
+        for object_type, obj_list  in objects.items():
+            if not isinstance(obj_list, list):
+                handle_error('provide list of objects per object type', 400)
+            if object_type not in nodes['index']:
+                handle_error(f'unknown object type {object_type}', 400)
+            root_node = nodes['nodes'][nodes['index'][object_type]['int']]
+            ids = []
+            primary_key_property_name = \
+                root_node['properties'][root_node['pk']]['external_path'][0]
+            node_sequence = []
+            get_node_sequence(nodes, node_sequence, root_node)
+            for obj in obj_list:
+                if not primary_key_property_name in obj:
+                    handle_error(f'primary key {primary_key_property_name} not found', 400)
+                ids.append(obj[primary_key_property_name])
+            id_list = ', '.join([f"'{w}'" for w in ids])
+
+            for node in node_sequence:
+                sql = node['sql']['delete'].format(id_list = id_list)
+                db.cur.execute(sql)
+        db.con.commit()
 
 def add_value(obj, path, value):
     if value is None:

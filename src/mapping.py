@@ -71,6 +71,7 @@ def get_sql_type(node_name_mapping, cson, cap_type, pk):
                 rel['cardinality'] = cap_type['cardinality']
             sql_type['rel'] = rel
         case _:
+            print(cap_type['type'])
             if cap_type['type'].startswith(cson['namespace']):
                 rep_type = find_definition(cson, cap_type)
                 print(rep_type)
@@ -136,7 +137,7 @@ def add_key_columns_to_node(node, subnode_level, pk):
 def cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
     node_name_mapping, cson, nodes, path, type_name, subnode_level, parent):
     subnode = cson_entity_to_nodes(node_name_mapping, cson, nodes, path + [type_name],\
-        element_name_ext, element, subnode_level +  1, False, parent = parent)
+        element_name_ext, element, subnode_level, False, parent = parent)
     for column in subnode['properties'].values():
         if 'external_path' in column:
             property_name_int, _ =\
@@ -330,21 +331,36 @@ def cson_to_nodes(cson, pk = DefaultPK):
             else:
                 key_column = node['pkParent']
             select_columns = [f'"{k}"' for k, v in node['properties'].items() if not ('isVirtual' in v and v['isVirtual'])]
-            sql = f'SELECT {", ".join(select_columns)} from "{table_name}" where "{key_column}" in ({{id_list}})'
+            sql_table_joins = f'"{table_name}"'
+            sql_condition = f'"{key_column}" in ({{id_list}})'
+            node['sql']['delete'] = f'DELETE from {sql_table_joins} where {sql_condition}'
         else:
             select_columns = [f'L{nl}."{k}"' for k, v in node['properties'].items() if not ('isVirtual' in v and v['isVirtual'])]
             joins = []
-            for i, parent in enumerate(get_parents(nodes, node, node['level'] - 1)):
+            del_subselect = []
+            parents = get_parents(nodes, node, node['level'] - 1)
+            for i, parent in enumerate(parents):
                 joins.append(f'inner join "{parent}" L{i+1} on L{i+2}._ID{i+1} = L{i+1}._ID{i+1}')
+                if i == len(parents) - 1:
+                    del_subselect.append(f'select _ID{i+1} from "{parent}" L{i+1}')
+                else:
+                    del_subselect.append(f'inner join "{parent}" L{i+1} on L{i+2}._ID{i+1} = L{i+1}._ID{i+1}')
             joins.reverse()
-            sql = f'SELECT {", ".join(select_columns)} from "{table_name}" L{nl} {" ".join(joins)} where L1."_ID" in ({{id_list}})'
+            del_subselect.reverse()
+            del_subselect.append('where L1."_ID" in ({id_list})')
+            del_subselect_str = ' '.join(del_subselect)
+            sql_table_joins = f'"{table_name}" L{nl} {" ".join(joins)}'
+            sql_condition = f'L1."_ID" in ({{id_list}})'
+            node['sql']['delete'] = f'DELETE from "{table_name}" where _ID{len(parents)} in ({del_subselect_str})'
 
-        node['sql']['read'] = sql
+        node['sql']['select'] = f'SELECT {", ".join(select_columns)} from {sql_table_joins} where {sql_condition}'
 
     return {'nodes': nodes, 'index': node_name_mapping.ext_tree['contains']}
 
 
 def get_parents(nodes, node, steps):
+    if not 'parent' in node:
+        return []
     parent = node['parent']
     if steps == 1:
         return [parent]
@@ -363,16 +379,30 @@ def get_column_name(nodes_index, exp_path):
     return nodes_index[exp_path[0]]['int']
 
 
+
+def array_to_dml(inserts, nodes_index, objects, subnode_level, parent_object_id, pk):
+    full_table_name = nodes_index['int']
+    if not full_table_name in inserts:
+        _, _, key_columns = get_key_columns(subnode_level, pk)
+        key_col_names = {k:idx for idx, k in enumerate(key_columns.keys())}
+        inserts[full_table_name] = {'columns': key_col_names, 'rows':[]}
+        inserts[full_table_name]['columns']['_VALUE'] = 2
+    for obj in objects:
+        row = []
+        row.append(parent_object_id)
+        object_id = pk.get_pk(full_table_name, subnode_level)
+        row.append(object_id)
+        row.append(obj)
+        inserts[full_table_name]['rows'].append(row)
+
+
 def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level = 0, col_prefix = [],\
     parent_object_id = None, propagated_row = None, propagated_object_id = None, pk = DefaultPK, properties = {}):
     for obj in objects:
         if subnode_level == 0 and 'id' in obj:
-            raise DataException('Reserved property name ########## id')
+            raise DataException('id is a reserved property name')
         full_table_name = nodes_index['int']
-        if propagated_row:
-            row = propagated_row
-            object_id = propagated_object_id
-        else:
+        if propagated_row is None:
             row = []
             if parent_object_id:
                 row.append(parent_object_id)
@@ -397,6 +427,11 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
                 inserts[full_table_name] = {'columns': {}, 'rows':[]}
             else:
                 row.extend([None]*(len(inserts[full_table_name]['columns']) - len(row)))
+        else:
+            row = propagated_row
+            object_id = propagated_object_id
+
+#        if nodes_index['properties']:
         for k, v in obj.items():
             value = None
             if k in properties:
@@ -428,12 +463,22 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
             else:
                 raise DataException(f'Unknown property {k}')
             if value is None and isinstance(v, list):
-                object_to_dml(nodes, inserts, nodes_index['contains'][k], v, idmapping, subnode_level + 1,\
-                    parent_object_id = object_id, pk = pk, properties=nodes_index['contains'][k]['properties'])
+                if not k in nodes_index['contains']:
+                    raise DataException(f'{k} is not an array property')
+                if nodes_index['contains'][k]['properties']:
+                    object_to_dml(nodes, inserts, nodes_index['contains'][k], v, idmapping, subnode_level + 1,\
+                        parent_object_id = object_id, pk = pk, properties=nodes_index['contains'][k]['properties'])
+                else:
+                    array_to_dml(inserts, nodes_index['contains'][k], v, subnode_level + 1, object_id, pk)
             elif value is None and isinstance(v, dict):
-                object_to_dml(nodes, inserts, nodes_index, [v], idmapping, subnode_level, col_prefix + [k],\
-                    propagated_row = row, propagated_object_id=object_id
-                    , pk = pk, properties = properties[k]['contains'])
+                if 'contains' in nodes_index and k in nodes_index['contains']:
+                    object_to_dml(nodes, inserts, nodes_index['contains'][k], [v], idmapping, subnode_level, col_prefix + [k],\
+                        propagated_row = row, propagated_object_id=object_id
+                        , pk = pk, properties = properties[k]['contains'])
+                else:
+                    object_to_dml(nodes, inserts, nodes_index, [v], idmapping, subnode_level, col_prefix + [k],\
+                        propagated_row = row, propagated_object_id=object_id
+                        , pk = pk, properties = properties[k]['contains'])
             else:
                 column_name = get_column_name(nodes_index['properties'], col_prefix + [k])
                 if not value:
@@ -443,9 +488,8 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
                     row.append(value)
                 else:
                     row[inserts[full_table_name]['columns'][column_name]] = value
-        if not propagated_row:
+        if not propagated_row and full_table_name in inserts:
             inserts[full_table_name]['rows'].append(row)
-
 
 def objects_to_dml(nodes, objects, pk = DefaultPK):
     inserts = {}

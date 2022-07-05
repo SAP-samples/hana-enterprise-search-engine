@@ -1,0 +1,69 @@
+{
+    "Organization": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Organization",
+                    "sid": "objectid098765"
+                }
+            ],
+            "name": "ACME inc."
+        }
+    ],
+    "Person": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Person",
+                    "sid": "objectid123456"
+                }
+            ],
+            "firstName": "John",
+            "lastName": "Doe"
+        }
+    ],
+    "RelOrgPerson": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelOrgPerson",
+                    "sid": "objectid2222444555"
+                }
+            ],
+            "type": {
+                "code": "01"
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "objectid123456"
+                    }
+                ]
+            },
+            "organization": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Organization",
+                        "sid": "objectid098765"
+                    }
+                ]
+            }
+        }
+    ],
+    "TypeRelOrgPerson": [
+        {
+            "code": "01",
+            "description": "Owner"
+        },
+        {
+            "code": "02",
+            "description": "Employee"
+        }
+    ]
+}

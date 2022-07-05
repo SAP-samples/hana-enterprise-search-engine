@@ -1,0 +1,63 @@
+{
+    "statusCode": 200,
+    "body": {
+        "Organization": [
+            {
+                "id": "********-****-****-****-************",
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Organization",
+                        "sid": "objectid098765"
+                    }
+                ],
+                "name": "ACME inc."
+            }
+        ],
+        "Person": [
+            {
+                "id": "********-****-****-****-************",
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "objectid123456"
+                    }
+                ],
+                "firstName": "John",
+                "lastName": "Doe"
+            }
+        ],
+        "RelOrgPerson": [
+            {
+                "id": "********-****-****-****-************",
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelOrgPerson",
+                        "sid": "objectid2222444555"
+                    }
+                ],
+                "person": {
+                    "id": "********-****-****-****-************"
+                },
+                "organization": {
+                    "id": "********-****-****-****-************"
+                },
+                "type": {
+                    "code": "01"
+                }
+            }
+        ],
+        "TypeRelOrgPerson": [
+            {
+                "code": "01",
+                "description": "Owner"
+            },
+            {
+                "code": "02",
+                "description": "Employee"
+            }
+        ]
+    }
+}

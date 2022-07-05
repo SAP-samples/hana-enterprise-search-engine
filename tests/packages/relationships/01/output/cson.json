@@ -1,0 +1,205 @@
+{
+    "definitions": {
+        "Organization": {
+            "kind": "entity",
+            "includes": [
+                "sap.esh.Identifier"
+            ],
+            "elements": {
+                "id": {
+                    "key": true,
+                    "type": "cds.UUID"
+                },
+                "source": {
+                    "items": {
+                        "elements": {
+                            "name": {
+                                "type": "cds.String",
+                                "length": 4000
+                            },
+                            "type": {
+                                "type": "cds.String",
+                                "length": 4000
+                            },
+                            "sid": {
+                                "type": "cds.String",
+                                "length": 4000
+                            }
+                        }
+                    }
+                },
+                "name": {
+                    "type": "cds.String",
+                    "length": 4000
+                },
+                "relPerson": {
+                    "@sap.esh.isVirtual": true,
+                    "type": "cds.Association",
+                    "target": "RelOrgPerson",
+                    "keys": [
+                        {
+                            "ref": [
+                                "id"
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "Person": {
+            "kind": "entity",
+            "includes": [
+                "sap.esh.Identifier"
+            ],
+            "elements": {
+                "id": {
+                    "key": true,
+                    "type": "cds.UUID"
+                },
+                "source": {
+                    "items": {
+                        "elements": {
+                            "name": {
+                                "type": "cds.String",
+                                "length": 4000
+                            },
+                            "type": {
+                                "type": "cds.String",
+                                "length": 4000
+                            },
+                            "sid": {
+                                "type": "cds.String",
+                                "length": 4000
+                            }
+                        }
+                    }
+                },
+                "firstName": {
+                    "type": "cds.String",
+                    "length": 4000
+                },
+                "lastName": {
+                    "type": "cds.String",
+                    "length": 4000
+                },
+                "relOrganization": {
+                    "@sap.esh.isVirtual": true,
+                    "type": "cds.Association",
+                    "target": "RelOrgPerson",
+                    "keys": [
+                        {
+                            "ref": [
+                                "id"
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "RelOrgPerson": {
+            "kind": "entity",
+            "includes": [
+                "sap.esh.Identifier"
+            ],
+            "elements": {
+                "id": {
+                    "key": true,
+                    "type": "cds.UUID"
+                },
+                "source": {
+                    "items": {
+                        "elements": {
+                            "name": {
+                                "type": "cds.String",
+                                "length": 4000
+                            },
+                            "type": {
+                                "type": "cds.String",
+                                "length": 4000
+                            },
+                            "sid": {
+                                "type": "cds.String",
+                                "length": 4000
+                            }
+                        }
+                    }
+                },
+                "person": {
+                    "type": "cds.Association",
+                    "target": "Person",
+                    "keys": [
+                        {
+                            "ref": [
+                                "id"
+                            ]
+                        }
+                    ]
+                },
+                "organization": {
+                    "type": "cds.Association",
+                    "target": "Organization",
+                    "keys": [
+                        {
+                            "ref": [
+                                "id"
+                            ]
+                        }
+                    ]
+                },
+                "type": {
+                    "type": "cds.Association",
+                    "target": "TypeRelOrgPerson",
+                    "keys": [
+                        {
+                            "ref": [
+                                "code"
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "TypeRelOrgPerson": {
+            "kind": "entity",
+            "elements": {
+                "code": {
+                    "key": true,
+                    "type": "cds.String",
+                    "length": 80
+                },
+                "description": {
+                    "type": "cds.String",
+                    "length": 4000
+                }
+            }
+        },
+        "sap.esh.Identifier": {
+            "kind": "aspect",
+            "elements": {
+                "id": {
+                    "key": true,
+                    "type": "cds.UUID"
+                },
+                "source": {
+                    "items": {
+                        "elements": {
+                            "name": {
+                                "type": "cds.String",
+                                "length": 4000
+                            },
+                            "type": {
+                                "type": "cds.String",
+                                "length": 4000
+                            },
+                            "sid": {
+                                "type": "cds.String",
+                                "length": 4000
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "$version": "2.0"
+}

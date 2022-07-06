@@ -531,7 +531,7 @@ Many search requests can be sent in a list.
 | :-------------: | :-----------: | :----:  | :----:  | :----:    | :----:    | :----:    |
 | Search (new request format) | POST | /v2/search/{tenant-id}/{esh-version} | - | query | result | \* |
 
-This is an expermental format using a JSON-serialized version of the search request.
+This is an experimental format using a JSON-serialized version of the search request.
 #### Example Request URL:
 `POST /v2/search/testtenant01/latest`
 

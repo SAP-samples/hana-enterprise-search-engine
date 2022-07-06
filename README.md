@@ -458,6 +458,7 @@ This XML file does not appear to have any style information associated with it. 
 | :-------------: | :-----------: | :----:  | :----:  | :----:    | :----:    | :----:    |
 | Bulk Search (OData format) | POST | /v1/search/{tenant-id}/{esh-version} | - | query | result | \**** |
 
+Many search requests can be sent in a list.
 #### Example Request URL:
 `POST /v1/search/testtenant01/latest`
 
@@ -466,7 +467,8 @@ This XML file does not appear to have any style information associated with it. 
 [
     "$all?$top=10&$count=true&$apply=filter(Search.search(query='SCOPE:EXAMPLEPERSON AND (Max AND Mustermann) AND aaa AND bbb'))&whyfound=true&$select=FIRSTNAME,LASTNAME&$orderby=LASTNAME ASC&estimate=true&wherefound=true",
     "$all?$top=10&$count=true&$apply=filter(Search.search(query='SCOPE:EXAMPLEPERSON AND Max AND Mustermann'))&whyfound=true&$select=FIRSTNAME,LASTNAME&$orderby=LASTNAME ASC&estimate=true&wherefound=true"
-]```
+]
+```
 
 #### Example Response Body:
 ```json
@@ -529,6 +531,7 @@ This XML file does not appear to have any style information associated with it. 
 | :-------------: | :-----------: | :----:  | :----:  | :----:    | :----:    | :----:    |
 | Search (new request format) | POST | /v2/search/{tenant-id}/{esh-version} | - | query | result | \* |
 
+This is an expermental format using a JSON-serialized version of the search request.
 #### Example Request URL:
 `POST /v2/search/testtenant01/latest`
 

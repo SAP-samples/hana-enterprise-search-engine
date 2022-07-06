@@ -2,13 +2,37 @@
 [![REUSE status](https://api.reuse.software/badge/github.com/SAP-samples/hana-enterprise-search-engine)](https://api.reuse.software/info/github.com/SAP-samples/hana-enterprise-search-engine)
 
 ## Description
-This example shows how to use [SAP HANA Search](https://help.sap.com/docs/SAP_HANA_PLATFORM/691cb949c1034198800afde3e5be6570 "HANA search developer guide") to build a high-performance search-centric application on [SAP HANA DB](https://www.sap.com/products/hana.html) (cloud or on-premise). It is written in Python and demonstrates how to:
-- define separated data stores using a schema-based tenant concept
-- define an object-oriented data model using a subset of [SAP CAP CSN](https://cap.cloud.sap/docs/cds/csn  "documentation")
-- load data in JSON-Format
-- search
+This enterprise search engine example program shows how to utilize [SAP HANA Search](https://help.sap.com/docs/SAP_HANA_PLATFORM/691cb949c1034198800afde3e5be6570 "HANA search developer guide") which is part of both,cloud and on-premise shipments, of [SAP HANA DB](https://www.sap.com/products/hana.html). It provides REST-APIs for e.g. search and CRUD (create, read, update, delete) to process structured business objects and their relationships. To do so, it maps the business perspective to a technical perspective which is then processed by HANA. [SAP CAP](https://cap.cloud.sap) can be used to model the objects of the business perspective. The example also shows how to use the enterprise search UI which is delivered as part of SAP UI5.
 
-via REST-APIs.
+![Architecture Overview](/images/hana-enterprise-search-engine.png)
+
+via the following REST-APIs
+
+| Functionality | HTTP method | URL | URL parameters | Request Body | Response Body | API maturity |
+| :-------------: | :-----------: | :----:  | :----:  | :----:    | :----:    | :----:    |
+| Create tenant | POST | /v1/tenant/{tenant-id} | - | - | status | \** |
+| Get all tenants | GET | /v1/tenant | - | - | tenants | \** |
+| Delete tenant | DELETE | /v1/tenant/{tenant-id} | - | - | status | \** |
+| Deploy data model | POST | /v1/deploy/{tenant-id} | - | model | status | \** |
+| Create data | POST | /v1/data/{tenant-id} | - | objects | identifiers | \** |
+| Read data | POST | /v1/read/{tenant-id} | - | identifiers | objects | \** |
+| Delete data | POST | /v1/data/{tenant-id} | - | identifiers | - | \** |
+| Search (OData format) | GET | /v1/search/{tenant-id}/{esh-version} | query | - | - | \**** |
+| Get metadata (OData format) | GET | /v1/search/{tenant-id}/{esh-version}/$metadata | - | - | metadata | \**** |
+| Bulk Search (OData format) | POST | /v1/search/{tenant-id}/{esh-version} | - | query | result | \**** |
+| Search UI | GET | /v1/searchui/{tenant-id} | query | - | - | \**** |
+| Search (new request format) | POST | /v2/search/{tenant-id}/{esh-version} | - | query | result | \* |
+
+API maturity:
+
+\* ... experimental, expect major changes / rework, 
+
+\** ... in development, API changes and bugs expected
+
+\*** ... stable API, good error handling
+
+\**** ... used in production since years
+
 
 ## Requirements
 - Up-to date SAP HANA (on-prem or cloud)

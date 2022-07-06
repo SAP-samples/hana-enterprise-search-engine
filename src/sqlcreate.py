@@ -186,7 +186,8 @@ def traverse_contains(cv: ColumnView, esh_config_properties, nodes, parent_node,
                 else:
                     jp_id = next(cv.join_path_id_gen)
                 child_join_index = cv.table(child_node['table_name'])
-                cv.add_join_condition(jp_id, parent_join_index, parent_node['pk'], child_join_index, child_node['pkParent'])
+                cv.add_join_condition(jp_id, parent_join_index, parent_node['pk']\
+                    , child_join_index, child_node['pkParent'])
                 traverse_contains(cv, esh_config_properties, nodes, child_node, child_join_index, jp_id,\
                     view_column_name, parent_node['pk'], is_root_node = False)
         else:

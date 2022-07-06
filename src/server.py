@@ -355,12 +355,10 @@ def perform_bulk_search(esh_version, tenant_id, esh_query):
         res = [json.loads(w[0]) for w in db.cur.fetchall()]
         return cleanse_output(res)
 
-# Search
-@app.post('/v1/search/{tenant_id}')
-async def execute_search(tenant_id, query=Body(...)):
-    validate_tenant_id(tenant_id)
-    esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
-    return perform_bulk_search(get_esh_version(''), tenant_id, esh_query)
+def get_esh_version(version):
+    if version == 'latest' or version == '':
+        return glob.esh_apiversion
+    return version
 
 
 #    result = []
@@ -391,23 +389,23 @@ async def get_root():
 async def get_search_by_tenant(tenant_id):
     redirect_url = (
         '/sap/esh/search/ui/container/SearchUI.html?sinaConfiguration='
-        f'{{"provider":"hana_odata","url":"/sap/es/odata/{tenant_id}"}}#Action-search&/top=10'
+        f'{{"provider":"hana_odata","url":"/v1/search/{tenant_id}"}}#Action-search&/top=10'
     )
     return RedirectResponse(redirect_url)
 
-@app.get('/sap/es/odata/{tenant_id:path}/{esh_version:path}/$metadata')
+@app.get('/v1/search/{tenant_id:path}/{esh_version:path}/$metadata')
 def get_search_metadata(tenant_id,esh_version):
     return Response(\
         content=perform_search(get_esh_version(esh_version), tenant_id, '/$metadata', True)\
             , media_type='application/xml')
 
-@app.get('/sap/es/odata/{tenant_id:path}/{esh_version:path}/$metadata/{path:path}')
+@app.get('/v1/search/{tenant_id:path}/{esh_version:path}/$metadata/{path:path}')
 def get_search_metadata_entity_set(tenant_id, esh_version, path):
     return Response(\
         content=perform_search(get_esh_version(esh_version), tenant_id, '/$metadata/{}' + path, True)\
             , media_type='application/xml')
 
-@app.get('/sap/es/odata/{tenant_id:path}/{esh_version:path}/{path:path}')
+@app.get('/v1/search/{tenant_id:path}/{esh_version:path}/{path:path}')
 def get_search(tenant_id, esh_version, path, req: Request):
     request_args = dict(req.query_params)
     if '$top' not in request_args:
@@ -415,17 +413,17 @@ def get_search(tenant_id, esh_version, path, req: Request):
     esh_query_string = f'/{path}?' + '&'.join(f'{key}={value}' for key, value in request_args.items())
     return cleanse_output([perform_search(get_esh_version(esh_version), tenant_id, esh_query_string)])[0]
 
-def get_esh_version(version):
-    if version == 'latest' or version == '':
-        return glob.esh_apiversion
-    return version
-
-
-@app.post('/sap/es/odata/{tenant_id:path}/{esh_version:path}')
+@app.post('/v1/search/{tenant_id:path}/{esh_version:path}')
 #def post_search(root=Body(...), db: Session = Depends(get_db)):
 def post_search(tenant_id, esh_version, body=Body(...)):
     return perform_bulk_search(get_esh_version(esh_version), tenant_id, body)
 
+# v2 Search
+@app.post('/v2/search/{tenant_id}/{esh_version:path}')
+async def search_v2(tenant_id, esh_version, query=Body(...)):
+    validate_tenant_id(tenant_id)
+    esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
+    return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
 
 @app.get('/{path:path}')
 async def tile_request(path: str, response: Response):
@@ -481,4 +479,3 @@ if __name__ == '__main__':
     #ui_default_tenant = config['UIDefaultTenant']
     cs = config['server']
     uvicorn.run('server:app', host = cs['host'], port = cs['port'], log_level = cs['logLevel'], reload = cs['reload'])
-

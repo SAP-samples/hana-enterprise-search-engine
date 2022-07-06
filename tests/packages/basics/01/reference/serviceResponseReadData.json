@@ -1,0 +1,17 @@
+{
+    "statusCode": 200,
+    "body": {
+        "example.Person": [
+            {
+                "id": "********-****-****-****-************",
+                "firstName": "Max",
+                "lastName": "Mustermann"
+            },
+            {
+                "id": "********-****-****-****-************",
+                "firstName": "Maximilia",
+                "lastName": "Musterfrau"
+            }
+        ]
+    }
+}

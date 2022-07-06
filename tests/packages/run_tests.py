@@ -140,6 +140,7 @@ def process_service_response(package_name, test_name, requst_type: TestType, res
         json.dump(result, fw, indent=4)
     check(package_name, test_name, requst_type)
 
+
 current_path = sys.path[0]
 src_path = current_path + '\\..\\..\\src'
 
@@ -263,7 +264,7 @@ for package, tests in packages.items():
             if os.path.exists(query_fn):
                 with open(query_fn, encoding = 'utf-8') as f:
                     query_obj = json.load(f)
-                url = f'{base_url}/v1/search/{tenant_name}'
+                url = f'{base_url}/v2/search/{tenant_name}/latest'
                 r = requests.post(url, json=query_obj)
                 process_search_result(package, test\
                     , TestType.SEARCH_RESP_OPENAPI, r.json())
@@ -276,13 +277,13 @@ for package, tests in packages.items():
                 with open(query_fn, encoding = 'utf-8') as f:
                     query_obj = json.load(f)
                 # POST
-                url = f'{base_url}/sap/es/odata/{tenant_name}/latest'
+                url = f'{base_url}/v1/search/{tenant_name}/latest'
                 r = requests.post(url, json=query_obj)
                 process_search_result(package, test, TestType.SEARCH_RESP_ODATA_POST, r.json())
                 # GET
                 res_obj = []
                 for query_item in query_obj:
-                    r = requests.get(f'{base_url}/sap/es/odata/{tenant_name}/latest/{query_item}')
+                    r = requests.get(f'{base_url}/v1/search/{tenant_name}/latest/{query_item}')
                     res_obj.append(r.json())
                 process_search_result(package, test, TestType.SEARCH_RESP_ODATA_GET, res_obj)
             else:
@@ -296,6 +297,11 @@ for package, tests in packages.items():
         if args.service_tests and args.cleanup:
             r = requests.delete(f'{base_url}/v1/tenant/{tenant_name}')
             process_service_response(package, test, TestType.DELETE_TENANT, r)
+        elif data_exist:
+            with open(file_name(package, test, TestType.DATA), encoding='utf-8') as f:
+                data = json.load(f)
+            r = requests.post(f'{base_url}/v1/data/{tenant_name}', json=data)
+
 
 for msg_type, v1 in test_result.items():
     if len(v1) != 0:

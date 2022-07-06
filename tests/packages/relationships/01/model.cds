@@ -1,4 +1,4 @@
-using {sap.esh.Identifier} from './esh';
+using {sap.esh.Identifier} from '../../../../model/esh';
 
 entity Organization : Identifier {
     name  : String(4000);

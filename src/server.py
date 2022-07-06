@@ -360,25 +360,6 @@ def get_esh_version(version):
         return glob.esh_apiversion
     return version
 
-
-#    result = []
-#    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
-#        tenant_schema_name = get_tenant_schema_name(tenant_id)
-#        es_statements  = [f'/{glob.esh_apiversion}/{tenant_schema_name}' + \
-#            esh_search_escape(IESSearchOptions(w).to_statement()) for w in query]
-#        sql = f'''CALL ESH_SEARCH('{json.dumps(es_statements)}',?)'''
-#        _ = db.cur.execute(sql)
-#        for row in db.cur.fetchall():
-#            res = json.loads(row[0])
-#            if '@com.sap.vocabularies.Search.v1.SearchStatistics' in res \
-#                and 'ConnectorStatistics' in res['@com.sap.vocabularies.Search.v1.SearchStatistics']:
-#                for c in res['@com.sap.vocabularies.Search.v1.SearchStatistics']['ConnectorStatistics']:
-#                    del c['Schema']
-#                    del c['Name']
-#            result.append(res)
-#    return result
-
-
 '''
 @app.get('/',response_class=RedirectResponse, status_code=302)
 async def get_root():

@@ -6,7 +6,7 @@ This enterprise search engine example program shows how to utilize [SAP HANA Sea
 
 ![Architecture Overview](/images/hana-enterprise-search-engine.png)
 
-The enteprise search engine provides the following APIs:
+The enterprise search engine provides the following APIs:
 
 | Functionality | HTTP method | URL | URL parameters | Request Body | Response Body | API maturity |
 | :-------------: | :-----------: | :----:  | :----:  | :----:    | :----:    | :----:    |

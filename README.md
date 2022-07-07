@@ -98,8 +98,8 @@ A new tenant is created with this call. The tenant-id needs to be alphanumeric a
 
 Modelling is done with CAP tools which create a .cds file.
 #### Example CDS file
-This example shows a simple person object with two properties, firstName and lastName. The example shows already some search annotations which are used to control serach execution in a fine-granular way. More information about annotations can be found in the section "Annotations for sys.esh_config()" of the 
-[HANA search developer guide](https://help.sap.com/docs/SAP_HANA_PLATFORM/691cb949c1034198800afde3e5be6570)
+This example shows a simple person object with two properties, firstName and lastName. The example shows already some search annotations which are used to control search execution in a fine-granular way. More information about annotations can be found in the section
+[Annotations for sys.esh_config()](https://help.sap.com/docs/SAP_HANA_PLATFORM/691cb949c1034198800afde3e5be6570/2dd342f3ec984869ae619cbaf31e3aa1.html?locale=en-US&q=Annotations%20for%20sys.esh_config%28%29) of the HANA search developer guide.
 ```cds
 using {sap.esh.Identifier} from '../../../model/esh';
 namespace example;
@@ -322,12 +322,19 @@ The request body contains a list of objects per object type. The response body c
 }
 ```
 
+#### Example Response Body:
+```json
+null
+```
+
 ### Search (OData format)
 | Functionality | HTTP method | URL | URL parameters | Request Body | Response Body | API maturity |
 | :-------------: | :-----------: | :----:  | :----:  | :----:    | :----:    | :----:    |
 | Search (OData format) | GET | /v1/search/{tenant-id}/{esh-version} | query | - | - | \**** |
 
-More information about the search URL parameters can be found in the section "federated Full-Text Search with Built-In Procedure sys.esh_search()" of the [HANA search developer guide](https://help.sap.com/docs/SAP_HANA_PLATFORM/691cb949c1034198800afde3e5be6570)
+More information about the search URL parameters can be found in the section [federated Full-Text Search with Built-In Procedure sys.esh_search()](https://help.sap.com/docs/SAP_HANA_PLATFORM/691cb949c1034198800afde3e5be6570/bff7cffd72074c6e80d4c21279f5a521.html?locale=en-US) of the HANA search developer guide.
+
+
 
 #### Example Request URL:
 `GET /v1/search/testtenant01/latest/"$all?$top=10&$count=true&$apply=filter(Search.search(query='SCOPE:EXAMPLEPERSON AND Max AND Mustermann'))&whyfound=true&$select=FIRSTNAME,LASTNAME&$orderby=LASTNAME ASC&estimate=true&wherefound=true"`
@@ -377,6 +384,7 @@ More information about the search URL parameters can be found in the section "fe
 | :-------------: | :-----------: | :----:  | :----:  | :----:    | :----:    | :----:    |
 | Get metadata (OData format) | GET | /v1/search/{tenant-id}/{esh-version}/$metadata | - | - | metadata | \**** |
 
+This is the standard OData $metadata call to get the current metadata information in XML format.
 #### Example Request URL:
 `GET /v1/search/testtenant01/latest/$metadata`
 

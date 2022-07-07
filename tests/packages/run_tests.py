@@ -297,7 +297,7 @@ for package, tests in packages.items():
         if args.service_tests and args.cleanup:
             r = requests.delete(f'{base_url}/v1/tenant/{tenant_name}')
             process_service_response(package, test, TestType.DELETE_TENANT, r)
-        elif data_exist:
+        elif data_exist and args.service_tests:
             with open(file_name(package, test, TestType.DATA), encoding='utf-8') as f:
                 data = json.load(f)
             r = requests.post(f'{base_url}/v1/data/{tenant_name}', json=data)

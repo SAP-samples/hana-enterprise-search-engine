@@ -1,4 +1,5 @@
 """Mapping between external objects and internal tables using 'nodes' as internal runtime-format """
+from operator import le
 from uuid import uuid1
 from name_mapping import NameMapping
 import json
@@ -526,4 +527,10 @@ def objects_to_dml(nodes, objects, pk = DefaultPK):
             # ToDo: Handle references to objects which are not in one data package
             raise DataException('References to objects outside of one data package '
             f'is not yet supported. No object exists with source {json.dumps(dangling)}')
+    for v in inserts.values():
+        length = len(v['columns'])
+        for row in v['rows']:
+            if len(row) < length:
+                row.extend([None]*(length - len(row)))
+
     return {'inserts': inserts}

@@ -39,6 +39,8 @@ def get_sql_type(node_name_mapping, cson, cap_type, pk):
             sql_type['length'] = 36
         case 'cds.String':
             sql_type['type'] = 'NVARCHAR'
+            if not 'length' in cap_type:
+                sql_type['length'] = 5000
         case 'cds.Integer64':
             sql_type['type'] = 'BIGINT'
         case 'cds.Timestamp':
@@ -134,56 +136,59 @@ def add_key_columns_to_node(node, subnode_level, pk):
 
 
 
-def cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
-    node_name_mapping, cson, nodes, path, type_name, subnode_level, parent):
-    subnode = cson_entity_to_nodes(node_name_mapping, cson, nodes, path + [type_name],\
-        element_name_ext, element, subnode_level, False, parent = parent)
-    for column in subnode['properties'].values():
-        if 'external_path' in column:
-            property_name_int, _ =\
-                property_name_mapping.register([element_name_ext] + column['external_path'])
-        else:
-            property_name_int, _ = property_name_mapping.register([element_name_ext])
-        node['properties'][property_name_int] = column
-        node['properties'][property_name_int]['external_path'] =\
-            [element_name_ext] + column['external_path']
 
+def cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
+    node_name_mapping, cson, nodes, path, type_name, subnode_level, parent_table_name,
+    sur_node, sur_prop_name_mapping, sur_prop_path, ext_int):
+    _ = cson_entity_to_nodes(node_name_mapping, cson, nodes, path + [type_name],\
+        element_name_ext, element, subnode_level, False, parent_table_name = parent_table_name,
+        sur_node = sur_node, sur_prop_name_mapping = sur_prop_name_mapping, 
+        sur_prop_path = sur_prop_path, ext_int=ext_int)
 
 def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_definition,\
-    subnode_level = 0, is_table = True, has_pc = False, pk = DefaultPK, parent = None):
+    subnode_level = 0, is_table = True, has_pc = False, pk = DefaultPK, parent_table_name = None,
+    sur_node = None, sur_prop_name_mapping = None, sur_prop_path = [], ext_int = {}):
     ''' Transforms cson entity definition to model definition.
     The nodes links the external object-oriented-view with internal HANA-database-view.'''
     external_path = path + [type_name]
-    node = {'external_path':external_path, 'level': subnode_level}
-    if parent:
-        node['parent'] = parent
-    property_name_mapping = NameMapping()
-    if subnode_level == 0:
-        annotations = {k:v for k,v in type_definition.items() if k.startswith('@')}
-        if annotations:
-            node['annotations'] = annotations
-    if is_table:
+    if sur_node:
+        node = sur_node
+        property_name_mapping = sur_prop_name_mapping
+    else:
+        node = {'external_path':external_path, 'level': subnode_level}
+        property_name_mapping = NameMapping()
+        if parent_table_name:
+            node['parent'] = parent_table_name
         if subnode_level == 0:
-            pk_property_name, _ = property_name_mapping.register([type_definition['pk']])
-            node['pk'] = pk_property_name
-            table_name, node_map = node_name_mapping.register(external_path, ENTITY_PREFIX\
-                , definition = {'pk': pk_property_name})
-            node['properties'] = {}
-        else:
-            table_name, node_map = node_name_mapping.register(external_path)
-            add_key_columns_to_node(node, subnode_level, pk)
-        node['table_name'] = table_name
-        parent = table_name
+            annotations = {k:v for k,v in type_definition.items() if k.startswith('@')}
+            if annotations:
+                node['annotations'] = annotations
+        if is_table:
+            if subnode_level == 0:
+                pk_property_name, _ = property_name_mapping.register([type_definition['pk']])
+                ext_int['elements'][type_definition['pk']] = {'column_name': pk_property_name}
+                node['pk'] = pk_property_name
+                table_name, node_map = node_name_mapping.register(external_path, ENTITY_PREFIX\
+                    , definition = {'pk': pk_property_name})
+                ext_int['table_name'] = table_name
+                node['properties'] = {}
+            else:
+                table_name, node_map = node_name_mapping.register(external_path)
+                ext_int['table_name'] = table_name
+                add_key_columns_to_node(node, subnode_level, pk)
+            node['table_name'] = table_name
+            parent_table_name = table_name
         #if has_pc:
         #    node['properties'][PRIVACY_CATEGORY_COLUMN_DEFINITION[0]] = PRIVACY_CATEGORY_COLUMN_DEFINITION[1]
-    else:
-        node = {'properties': {}}
+    #else:
+    #    node = {'properties': {}}
     subnodes = []
     type_definition = find_definition(cson, type_definition) # ToDo: check, if needed
     if type_definition['kind'] == 'entity' or (path and 'elements' in type_definition):
         for element_name_ext, element in type_definition['elements'].items():
             is_virtual = '@sap.esh.isVirtual' in element and element['@sap.esh.isVirtual']
             is_association = 'type' in element and element['type'] == 'cds.Association'
+            ext_int['elements'][element_name_ext] = {}
             if is_virtual:
                 if not is_association:
                     raise ModelException(f'{element_name_ext}: '
@@ -198,13 +203,14 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
                     raise ModelException(f'{element_name_ext}: Annotation @sap.esh.isVirtual is only allowed if '
                     f'exactly one backward association exists from referred entity {referred_element}',)
                 element['isVirtual'] = True
-
             if is_association:
                 element['target_table_name'], _ = node_name_mapping.register([element['target']], ENTITY_PREFIX)
                 element['target_pk'] = cson['definitions'][element['target']]['pk']
-                element_name, _ = property_name_mapping.register([element_name_ext], definition=element)
+                element_name, _ = property_name_mapping.register(sur_prop_path + [element_name_ext], definition=element)
+                ext_int['elements'][element_name_ext]['definition'] = element
             else:
-                element_name, _ = property_name_mapping.register([element_name_ext])
+                element_name, _ = property_name_mapping.register(sur_prop_path + [element_name_ext])
+                
             element_needs_pc = PRIVACY_CATEGORY_ANNOTATION in element
             if 'items' in element or element_needs_pc: # collection (many keyword)
                 if 'items' in element and 'elements' in element['items']: # nested definition
@@ -219,32 +225,48 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
                     else:
                         sub_type = element
                         sub_type['kind'] = 'type'
+                ext_int['elements'][element_name_ext]['items'] = {'elements': {}}
                 subnode = cson_entity_to_nodes(node_name_mapping, cson, nodes, path +\
                     [type_name], element_name_ext, sub_type, subnode_level +  1, True\
-                    , element_needs_pc, parent = parent)
+                    , element_needs_pc, parent_table_name = parent_table_name
+                    , ext_int= ext_int['elements'][element_name_ext]['items'])
                 subnodes.append(subnode)
                 node['properties'][element_name] = {'rel': {'table_name':subnode['table_name'],\
-                    'type':'containment'}, 'external_path': [element_name_ext], 'isVirtual': True}
+                    'type':'containment'}, 'external_path': sur_prop_path + [element_name_ext], 'isVirtual': True}
             elif 'type' in element:
                 if element['type'] in cson['definitions']:
                     if 'elements' in cson['definitions'][element['type']]:
+                        ext_int['elements'][element_name_ext]['elements'] = {}
                         cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
-                            node_name_mapping, cson, nodes, path, type_name, subnode_level, parent = parent)
+                            node_name_mapping, cson, nodes, path, type_name, subnode_level, 
+                            parent_table_name = parent_table_name, sur_node=node, 
+                            sur_prop_name_mapping=property_name_mapping,
+                            sur_prop_path=sur_prop_path + [element_name_ext],
+                            ext_int=ext_int['elements'][element_name_ext])
                     else:
                         node['properties'][element_name] =\
                             get_sql_type(node_name_mapping, cson, cson['definitions'][element['type']], pk)
-                        node['properties'][element_name]['external_path'] = [element_name_ext]
+                        node['properties'][element_name]['external_path'] = sur_prop_path + [element_name_ext]
+                        ext_int['elements'][element_name_ext]['column_name'] = element_name
                 else:
                     node['properties'][element_name] = get_sql_type(node_name_mapping, cson, element, pk)
-                    node['properties'][element_name]['external_path'] = [element_name_ext]
+                    node['properties'][element_name]['external_path'] = sur_prop_path + [element_name_ext]
+                    ext_int['elements'][element_name_ext]['column_name'] = element_name
             elif 'elements' in element: # nested definition
                 element['kind'] = 'type'
+                ext_int['elements'][element_name_ext]['elements'] = {}
                 cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
-                    node_name_mapping, cson, nodes, path, type_name, subnode_level, parent=parent)
+                    node_name_mapping, cson, nodes, path, type_name, subnode_level, 
+                    parent_table_name=parent_table_name, sur_node=node, 
+                    sur_prop_name_mapping=property_name_mapping,
+                    sur_prop_path=sur_prop_path + [element_name_ext],
+                    ext_int=ext_int['elements'][element_name_ext])
+
             else:
                 raise NotImplementedError
-
     elif path and type_definition['kind'] == 'type': # single property for one node
+        ext_int['table_name'] = table_name
+        ext_int['column_name'] = '_VALUE'
         if not type_definition['type'] in cson['definitions']:
             node['properties']['_VALUE'] = get_sql_type(node_name_mapping, cson, type_definition, pk)
         #elif '@EnterpriseSearchIndex.type' in cson['definitions'][type_definition['type']] and\
@@ -284,12 +306,14 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
         nodes[table_name] = node
     return node
 
+
 def is_many_rel(property_rel):
     return 'cardinality' in property_rel\
         and 'max' in property_rel['cardinality'] and property_rel['cardinality']['max'] == '*'
 
 def cson_to_nodes(cson, pk = DefaultPK):
     nodes = {}
+    ext_int_def = {}
     node_name_mapping = NameMapping()
     for name, definition in cson['definitions'].items():
         if definition['kind'] == 'entity':
@@ -299,7 +323,9 @@ def cson_to_nodes(cson, pk = DefaultPK):
             definition['pk'] = keys[0]
     for name, definition in cson['definitions'].items():
         if definition['kind'] == 'entity':
-            cson_entity_to_nodes(node_name_mapping, cson, nodes, [], name, definition, pk = pk)
+            ext_int = {'elements':{}}
+            cson_entity_to_nodes(node_name_mapping, cson, nodes, [], name, definition, pk = pk, ext_int = ext_int)
+            ext_int_def[name] = ext_int
 
 
     for node_name, node in nodes.items():
@@ -355,7 +381,8 @@ def cson_to_nodes(cson, pk = DefaultPK):
 
         node['sql']['select'] = f'SELECT {", ".join(select_columns)} from {sql_table_joins} where {sql_condition}'
 
-    return {'nodes': nodes, 'index': node_name_mapping.ext_tree['contains']}
+    #return {'nodes': nodes, 'index': node_name_mapping.ext_tree['contains'], 'ext_int_def': ext_int_def}
+    return {'nodes': nodes, 'ext_int_def': ext_int_def}
 
 
 def get_parents(nodes, node, steps):
@@ -367,21 +394,8 @@ def get_parents(nodes, node, steps):
     else:
         return get_parents(nodes, nodes[parent], steps - 1) + [parent]
 
-
-def get_column_name(nodes_index, exp_path):
-    if len(exp_path) > 1:
-        if not 'contains' in nodes_index[exp_path[0]]:
-            raise DataException(f'Unknown property {exp_path[1]}')
-        next_nodes_index = nodes_index[exp_path[0]]['contains']
-        return get_column_name(next_nodes_index, exp_path[1:])
-    if not exp_path[0] in nodes_index:
-        raise DataException(f'Unknown property {exp_path[0]}')
-    return nodes_index[exp_path[0]]['int']
-
-
-
-def array_to_dml(inserts, nodes_index, objects, subnode_level, parent_object_id, pk):
-    full_table_name = nodes_index['int']
+def array_to_dml(inserts, objects, subnode_level, parent_object_id, pk, ext_int):
+    full_table_name = ext_int['table_name']
     if not full_table_name in inserts:
         _, _, key_columns = get_key_columns(subnode_level, pk)
         key_col_names = {k:idx for idx, k in enumerate(key_columns.keys())}
@@ -396,19 +410,23 @@ def array_to_dml(inserts, nodes_index, objects, subnode_level, parent_object_id,
         inserts[full_table_name]['rows'].append(row)
 
 
-def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level = 0, col_prefix = [],\
-    parent_object_id = None, propagated_row = None, propagated_object_id = None, pk = DefaultPK, properties = {}):
+def object_to_dml(nodes, inserts, objects, idmapping, subnode_level = 0, col_prefix = [],\
+    parent_object_id = None, propagated_row = None, propagated_object_id = None, pk = DefaultPK
+    , ext_int = {}, parent_table_name = ''):
+    if 'table_name' in ext_int:
+        full_table_name = ext_int['table_name']
+    else:
+        full_table_name = parent_table_name
     for obj in objects:
         if subnode_level == 0 and 'id' in obj:
             raise DataException('id is a reserved property name')
-        full_table_name = nodes_index['int']
         if propagated_row is None:
             row = []
             if parent_object_id:
                 row.append(parent_object_id)
             object_id = pk.get_pk(full_table_name, subnode_level)
             if subnode_level == 0:
-                if nodes_index['definition']['pk'] == 'ID':
+                if nodes['nodes'][full_table_name]['pk'] == 'ID':
                     obj['id'] = object_id
                 if 'source' in obj:
                     for source in obj['source']:
@@ -431,11 +449,15 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
             row = propagated_row
             object_id = propagated_object_id
 
-#        if nodes_index['properties']:
         for k, v in obj.items():
             value = None
-            if k in properties:
-                prop = properties[k]
+            if not 'elements' in ext_int:
+                pass
+            if k in ext_int['elements']:
+                #prop = properties[k]
+                #if prop != ext_int['elements'][k]:
+                #    pass
+                prop = ext_int['elements'][k]
                 if 'definition' in prop and 'type' in prop['definition']\
                     and prop['definition']['type'] == 'cds.Association':
                     if 'isVirtual' in prop['definition'] and prop['definition']['isVirtual']:
@@ -463,24 +485,22 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
             else:
                 raise DataException(f'Unknown property {k}')
             if value is None and isinstance(v, list):
-                if not k in nodes_index['contains']:
+                if not 'items' in ext_int['elements'][k]:
                     raise DataException(f'{k} is not an array property')
-                if nodes_index['contains'][k]['properties']:
-                    object_to_dml(nodes, inserts, nodes_index['contains'][k], v, idmapping, subnode_level + 1,\
-                        parent_object_id = object_id, pk = pk, properties=nodes_index['contains'][k]['properties'])
+                if ext_int['elements'][k]['items']['elements']:
+                    object_to_dml(nodes, inserts, v, idmapping, subnode_level + 1,\
+                        parent_object_id = object_id, pk = pk, 
+                        ext_int=ext_int['elements'][k]['items'], parent_table_name=full_table_name)
                 else:
-                    array_to_dml(inserts, nodes_index['contains'][k], v, subnode_level + 1, object_id, pk)
+                    array_to_dml(inserts, v, subnode_level + 1, object_id, pk
+                    , ext_int=ext_int['elements'][k]['items'])
             elif value is None and isinstance(v, dict):
-                if 'contains' in nodes_index and k in nodes_index['contains']:
-                    object_to_dml(nodes, inserts, nodes_index['contains'][k], [v], idmapping, subnode_level, col_prefix + [k],\
-                        propagated_row = row, propagated_object_id=object_id
-                        , pk = pk, properties = properties[k]['contains'])
-                else:
-                    object_to_dml(nodes, inserts, nodes_index, [v], idmapping, subnode_level, col_prefix + [k],\
-                        propagated_row = row, propagated_object_id=object_id
-                        , pk = pk, properties = properties[k]['contains'])
+                object_to_dml(nodes, inserts, [v], idmapping, subnode_level, col_prefix + [k],\
+                    propagated_row = row, propagated_object_id=object_id
+                    , pk = pk, 
+                    ext_int=ext_int['elements'][k], parent_table_name=full_table_name)
             else:
-                column_name = get_column_name(nodes_index['properties'], col_prefix + [k])
+                column_name = ext_int['elements'][k]['column_name']
                 if not value:
                     value = v
                 if not column_name in inserts[full_table_name]['columns']:
@@ -488,17 +508,18 @@ def object_to_dml(nodes, inserts, nodes_index, objects, idmapping, subnode_level
                     row.append(value)
                 else:
                     row[inserts[full_table_name]['columns'][column_name]] = value
-        if not propagated_row and full_table_name in inserts:
+        if row and not propagated_row and full_table_name in inserts:
             inserts[full_table_name]['rows'].append(row)
+
 
 def objects_to_dml(nodes, objects, pk = DefaultPK):
     inserts = {}
     idmapping = {}
     for object_type, objects in objects.items():
-        if not object_type in nodes['index']:
+        if not object_type in nodes['ext_int_def']:
             raise DataException(f'Unknown object type {object_type}')
-        ni = nodes['index'][object_type]
-        object_to_dml(nodes, inserts, ni, objects, idmapping, pk = pk, properties= ni['properties'])
+        object_to_dml(nodes, inserts, objects, idmapping, pk = pk,
+            ext_int=nodes['ext_int_def'][object_type])
     if idmapping:
         dangling = [json.loads(k) for k, v in idmapping.items() if not v['resolved']]
         if dangling:

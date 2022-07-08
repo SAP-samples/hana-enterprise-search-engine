@@ -18,7 +18,7 @@ class NameMapping():
         if not next_step_ext in ext_tree['contains']:
             internal = type_prefix + self.new_int_name(next_step_ext, depth, int_name_prefix, ext_path_prefix)
             ext_tree['contains'][next_step_ext] = {'int': internal}
-        if definition:
+        if definition and len(ext_path) == 1:
             ext_tree['contains'][next_step_ext]['definition'] = definition    
                 
         if len(ext_path) > 1:

@@ -183,15 +183,16 @@ async def post_data(tenant_id, objects=Body(...)):
             column_placeholders = ','.join(['?']*len(v['columns']))
             sql = f'insert into "{tenant_schema_name}"."{table_name}" ({column_names})\
                  values ({column_placeholders})'
+            print(sql)
             db.cur.executemany(sql, v['rows'])
         db.con.commit()
     response = {}
     for object_type, obj_list in objects.items():
         if not isinstance(obj_list, list):
             handle_error('provide list of objects per object type', 400)
-        if object_type not in nodes['index']:
+        if object_type not in nodes['ext_int_def']:
             handle_error(f'unknown object type {object_type}', 400)
-        root_node = nodes['nodes'][nodes['index'][object_type]['int']]
+        root_node = nodes['nodes'][nodes['ext_int_def'][object_type]['table_name']]
         key_property = root_node['properties'][root_node['pk']]['external_path'][0]
         for obj in obj_list:
             res = {}
@@ -219,9 +220,9 @@ async def read_data(tenant_id, objects=Body(...)):
         for object_type, obj_list  in objects.items():
             if not isinstance(obj_list, list):
                 handle_error('provide list of objects per object type', 400)
-            if object_type not in nodes['index']:
+            if object_type not in nodes['ext_int_def']:
                 handle_error(f'unknown object type {object_type}', 400)
-            root_node = nodes['nodes'][nodes['index'][object_type]['int']]
+            root_node = nodes['nodes'][nodes['ext_int_def'][object_type]['table_name']]
             ids = []
             primary_key_property_name = \
                 root_node['properties'][root_node['pk']]['external_path'][0]
@@ -293,9 +294,9 @@ async def delete_data(tenant_id, objects=Body(...)):
         for object_type, obj_list  in objects.items():
             if not isinstance(obj_list, list):
                 handle_error('provide list of objects per object type', 400)
-            if object_type not in nodes['index']:
+            if object_type not in nodes['ext_int_def']:
                 handle_error(f'unknown object type {object_type}', 400)
-            root_node = nodes['nodes'][nodes['index'][object_type]['int']]
+            root_node = nodes['nodes'][nodes['ext_int_def'][object_type]['table_name']]
             ids = []
             primary_key_property_name = \
                 root_node['properties'][root_node['pk']]['external_path'][0]

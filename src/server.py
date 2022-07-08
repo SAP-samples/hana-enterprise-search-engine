@@ -183,7 +183,6 @@ async def post_data(tenant_id, objects=Body(...)):
             column_placeholders = ','.join(['?']*len(v['columns']))
             sql = f'insert into "{tenant_schema_name}"."{table_name}" ({column_names})\
                  values ({column_placeholders})'
-            print(sql)
             db.cur.executemany(sql, v['rows'])
         db.con.commit()
     response = {}

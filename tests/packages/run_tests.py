@@ -149,7 +149,7 @@ parser.add_argument('-f', '--folder', nargs='?', help='test package folder', typ
 parser.add_argument('-p', '--package', nargs='?', help='test package name', type=str)
 parser.add_argument('-t', '--test', nargs='?', help='test name', type=str)
 parser.add_argument('--cds-compile', metavar='cds_compile'\
-    , action=argparse.BooleanOptionalAction, default=True\
+    , action=argparse.BooleanOptionalAction, default=False\
     , help='compiliation from cds to cson included')
 parser.add_argument('--cleanup'\
     , action=argparse.BooleanOptionalAction, default=True\

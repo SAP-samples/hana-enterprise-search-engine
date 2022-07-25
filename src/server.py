@@ -7,7 +7,7 @@ from starlette.responses import RedirectResponse
 import json
 import uuid
 from db_connection_pool import DBConnection, ConnectionPool, Credentials
-import mapping
+import convert
 import sqlcreate
 from esh_objects import IESSearchOptions
 import httpx
@@ -70,7 +70,7 @@ async def post_tenant(tenant_id):
                 handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
         try:
             db.cur.execute(\
-                f'create table "{tenant_schema_name}"."_MODEL" (CREATED_AT TIMESTAMP, CSON NCLOB, NODES NCLOB)')
+                f'create table "{tenant_schema_name}"."_MODEL" (CREATED_AT TIMESTAMP, CSON NCLOB, MAPPING NCLOB)')
         except HDBException as e:
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
         try:
@@ -111,6 +111,10 @@ async def delete_tenant(tenant_id: str):
 @app.get('/v1/tenant')
 async def get_tenants():
     """Get all tenants"""
+    return get_tenants_sync()
+
+
+def get_tenants_sync():
     with DBConnection(glob.connection_pools[DBUserType.ADMIN]) as db:
         try:
             sql = f'select schema_name, create_time from sys.schemas \
@@ -128,14 +132,14 @@ async def post_model(tenant_id: str, cson=Body(...)):
     tenant_schema_name = get_tenant_schema_name(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
         db.cur.execute(f'set schema "{tenant_schema_name}"')
-        db.cur.execute(f'select count(*) from "_MODEL"')
+        db.cur.execute('select count(*) from "_MODEL"')
         num_deployments = db.cur.fetchone()[0]
         if num_deployments == 0:
             created_at = datetime.now()
             try:
-                nodes = mapping.cson_to_nodes(cson)
-                ddl = sqlcreate.nodes_to_ddl(nodes, tenant_schema_name)
-            except mapping.ModelException as e:
+                mapping = convert.cson_to_mapping(cson)
+                ddl = sqlcreate.mapping_to_ddl(mapping, tenant_schema_name)
+            except convert.ModelException as e:
                 handle_error(str(e), 400)
             try:
                 for sql in ddl['tables']:
@@ -143,8 +147,8 @@ async def post_model(tenant_id: str, cson=Body(...)):
                 for sql in ddl['views']:
                     db.cur.execute(sql)
                 db.cur.execute(f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}',?)")
-                sql = 'insert into _MODEL (CREATED_AT, CSON, NODES) VALUES (?, ?, ?)'
-                db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(nodes)))
+                sql = 'insert into _MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
+                db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(mapping)))
                 db.con.commit()
             except HDBException as e:
                 handle_error(f'dbapi Error: {e.errorcode}, {e.errortext} for:\n\t{sql}')
@@ -152,11 +156,11 @@ async def post_model(tenant_id: str, cson=Body(...)):
         else:
             handle_error('Model already deployed', 422)
 
-def get_nodes(tenant_id):
+def get_mapping(tenant_id):
     tenant_schema_name = get_tenant_schema_name(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         db.cur.execute(f'set schema "{tenant_schema_name}"')
-        sql = f'select top 1 NODES from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
+        sql = f'select top 1 MAPPING from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
         db.cur.execute(sql)
         res = db.cur.fetchone()
         if not (res and len(res) == 1):
@@ -171,12 +175,12 @@ async def post_data(tenant_id, objects=Body(...)):
     if not isinstance(objects, dict):
         handle_error('provide dictionary of object types', 400)
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    nodes = get_nodes(tenant_id)
+    mapping = get_mapping(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.DATA_WRITE]) as db:
         db.cur.execute(f'set schema "{tenant_schema_name}"')
         try:
-            dml = mapping.objects_to_dml(nodes, objects)
-        except mapping.DataException as e:
+            dml = convert.objects_to_dml(mapping, objects)
+        except convert.DataException as e:
             handle_error(str(e), 400)
         for table_name, v in dml['inserts'].items():
             column_names = ','.join([f'"{k}"' for k in v['columns'].keys()])
@@ -189,10 +193,10 @@ async def post_data(tenant_id, objects=Body(...)):
     for object_type, obj_list in objects.items():
         if not isinstance(obj_list, list):
             handle_error('provide list of objects per object type', 400)
-        if object_type not in nodes['ext_int_def']:
+        if object_type not in mapping['entities']:
             handle_error(f'unknown object type {object_type}', 400)
-        root_node = nodes['nodes'][nodes['ext_int_def'][object_type]['table_name']]
-        key_property = root_node['properties'][root_node['pk']]['external_path'][0]
+        root_table = mapping['tables'][mapping['entities'][object_type]['table_name']]
+        key_property = root_table['columns'][root_table['pk']]['external_path'][0]
         for obj in obj_list:
             res = {}
             if key_property in obj:
@@ -212,21 +216,21 @@ async def read_data(tenant_id, objects=Body(...)):
     if not isinstance(objects, dict):
         handle_error('provide dictionary of object types', 400)
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    nodes = get_nodes(tenant_id)
+    mapping = get_mapping(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         db.cur.execute(f'set schema "{tenant_schema_name}"')
         response = {}
         for object_type, obj_list  in objects.items():
             if not isinstance(obj_list, list):
                 handle_error('provide list of objects per object type', 400)
-            if object_type not in nodes['ext_int_def']:
+            if object_type not in mapping['entities']:
                 handle_error(f'unknown object type {object_type}', 400)
-            root_node = nodes['nodes'][nodes['ext_int_def'][object_type]['table_name']]
+            root_table = mapping['tables'][mapping['entities'][object_type]['table_name']]
             ids = []
             primary_key_property_name = \
-                root_node['properties'][root_node['pk']]['external_path'][0]
-            node_sequence = []
-            get_node_sequence(nodes, node_sequence, root_node)
+                root_table['columns'][root_table['pk']]['external_path'][0]
+            table_sequence = []
+            get_table_sequence(mapping, table_sequence, root_table)
             for obj in obj_list:
                 if not primary_key_property_name in obj:
                     handle_error(f'primary key {primary_key_property_name} not found', 400)
@@ -234,27 +238,27 @@ async def read_data(tenant_id, objects=Body(...)):
             id_list = ', '.join([f"'{w}'" for w in ids])
             all_objects = {}
 
-            for node in node_sequence:
-                all_objects[node['table_name']] = {}
-                sql = node['sql']['select'].format(id_list = id_list)
+            for table in table_sequence:
+                all_objects[table['table_name']] = {}
+                sql = table['sql']['select'].format(id_list = id_list)
                 db.cur.execute(sql)
-                if '_VALUE' in node['properties']:
+                if '_VALUE' in table['columns']:
                     for row in db.cur:
-                        if row[0] in all_objects[node['table_name']]:
-                            all_objects[node['table_name']][row[0]].append(row[2])
+                        if row[0] in all_objects[table['table_name']]:
+                            all_objects[table['table_name']][row[0]].append(row[2])
                         else:
-                            all_objects[node['table_name']][row[0]] = [row[2]]
+                            all_objects[table['table_name']][row[0]] = [row[2]]
                 else:
                     for row in db.cur:
                         i = 0
                         res_obj = {}
-                        for prop_name, prop in node['properties'].items():
-                            if prop_name == node['pk']:
+                        for prop_name, prop in table['columns'].items():
+                            if prop_name == table['pk']:
                                 sub_obj_key = row[i]
-                                if node['level'] == 0:
+                                if table['level'] == 0:
                                     res_key = row[i]
                                     add_value(res_obj, prop['external_path'], row[i])
-                            elif node['level'] > 0 and prop_name == node['pkParent']:
+                            elif table['level'] > 0 and prop_name == table['pkParent']:
                                 res_key = row[i]
                             elif 'isVirtual' in prop and prop['isVirtual']:
                                 if prop['rel']['type'] == 'containment':
@@ -263,22 +267,22 @@ async def read_data(tenant_id, objects=Body(...)):
                                         add_value(res_obj, prop['external_path'], sub_obj)
                                 continue
                             elif 'rel' in prop and prop['rel']['type'] == 'association':
-                                rel_node = nodes['nodes'][prop['rel']['table_name']]
+                                rel_table = mapping['tables'][prop['rel']['table_name']]
                                 path = prop['external_path']\
-                                    + rel_node['properties'][rel_node['pk']]['external_path']
+                                    + rel_table['columns'][rel_table['pk']]['external_path']
                                 add_value(res_obj, path, row[i])
                             else:
                                 add_value(res_obj, prop['external_path'], row[i])
                             i += 1
-                        if node['level'] > 0:
-                            if not res_key in all_objects[node['table_name']]:
-                                all_objects[node['table_name']][res_key] = []
-                            all_objects[node['table_name']][res_key].append(res_obj)
+                        if table['level'] > 0:
+                            if not res_key in all_objects[table['table_name']]:
+                                all_objects[table['table_name']][res_key] = []
+                            all_objects[table['table_name']][res_key].append(res_obj)
                         else:
-                            all_objects[node['table_name']][res_key] = res_obj
+                            all_objects[table['table_name']][res_key] = res_obj
             response[object_type] = []
             for i in ids:
-                response[object_type].append(all_objects[root_node['table_name']][i])
+                response[object_type].append(all_objects[root_table['table_name']][i])
     return response
 
 @app.delete('/v1/data/{tenant_id}')
@@ -287,28 +291,28 @@ async def delete_data(tenant_id, objects=Body(...)):
     if not isinstance(objects, dict):
         handle_error('provide dictionary of object types', 400)
     tenant_schema_name = get_tenant_schema_name(tenant_id)
-    nodes = get_nodes(tenant_id)
+    mapping = get_mapping(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.DATA_WRITE]) as db:
         db.cur.execute(f'set schema "{tenant_schema_name}"')
         for object_type, obj_list  in objects.items():
             if not isinstance(obj_list, list):
                 handle_error('provide list of objects per object type', 400)
-            if object_type not in nodes['ext_int_def']:
+            if object_type not in mapping['entities']:
                 handle_error(f'unknown object type {object_type}', 400)
-            root_node = nodes['nodes'][nodes['ext_int_def'][object_type]['table_name']]
+            root_table = mapping['tables'][mapping['entities'][object_type]['table_name']]
             ids = []
             primary_key_property_name = \
-                root_node['properties'][root_node['pk']]['external_path'][0]
-            node_sequence = []
-            get_node_sequence(nodes, node_sequence, root_node)
+                root_table['columns'][root_table['pk']]['external_path'][0]
+            table_sequence = []
+            get_table_sequence(mapping, table_sequence, root_table)
             for obj in obj_list:
                 if not primary_key_property_name in obj:
                     handle_error(f'primary key {primary_key_property_name} not found', 400)
                 ids.append(obj[primary_key_property_name])
             id_list = ', '.join([f"'{w}'" for w in ids])
 
-            for node in node_sequence:
-                sql = node['sql']['delete'].format(id_list = id_list)
+            for table in table_sequence:
+                sql = table['sql']['delete'].format(id_list = id_list)
                 db.cur.execute(sql)
         db.con.commit()
 
@@ -322,12 +326,12 @@ def add_value(obj, path, value):
             obj[path[0]] = {}
         add_value(obj[path[0]], path[1:], value)
 
-def get_node_sequence(nodes, node_sequence, current_node):
-    for prop in current_node['properties'].values():
+def get_table_sequence(mapping, table_sequence, current_table):
+    for prop in current_table['columns'].values():
         if 'rel' in prop and prop['rel']['type'] == 'containment':
-            next_node = nodes['nodes'][prop['rel']['table_name']]
-            get_node_sequence(nodes, node_sequence, next_node)
-    node_sequence.append(current_node)
+            next_table = mapping['tables'][prop['rel']['table_name']]
+            get_table_sequence(mapping, table_sequence, next_table)
+    table_sequence.append(current_table)
 
 
 def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
@@ -359,12 +363,6 @@ def get_esh_version(version):
     if version == 'latest' or version == '':
         return glob.esh_apiversion
     return version
-
-'''
-@app.get('/',response_class=RedirectResponse, status_code=302)
-async def get_root():
-    return RedirectResponse('/v1/searchui/' + UI_TEST_TENANT)
-'''
 
 @app.get('/v1/searchui/{tenant_id:path}',response_class=RedirectResponse, status_code=302)
 async def get_search_by_tenant(tenant_id):
@@ -421,6 +419,16 @@ def reinstall_needed(l_versions, l_config):
         if k > l_config['version'] and 'reinstall' in v and v['reinstall']]
     return len(reinstall) > 0
 
+def reindex_needed(l_versions, l_config):
+    reinstall = [k for k, v in l_versions.items()\
+        if k > l_config['version'] and 'reindex' in v and v['reindex']]
+    return len(reinstall) > 0 and get_tenants_sync()
+
+def new_version(l_versions, l_config):
+    new_v = [k for k, v in l_versions.items() if k > l_config['version']]
+    return len(new_v) > 0
+
+
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
     with open('src/versions.json', encoding = 'utf-8') as fr:
@@ -432,7 +440,7 @@ if __name__ == '__main__':
         logging.error('Inconsistent or missing installation. src/.config.json not found.')
         exit(-1)
     if reinstall_needed(versions, config):
-        logging.error('Reset needed due to sofftware changes')
+        logging.error('Reset needed due to software changes')
         logging.error('Delete all tenants by running python src/config.py --action delete')
         logging.error('Install new version by running python src/config.py --action install')
         logging.error('Warning: System needs to be setup from scratch again!')
@@ -450,6 +458,18 @@ if __name__ == '__main__':
         with DBConnection(glob.connection_pools[user_type]) as db_main:
             db_main.cur.execute('select * from dummy')
 
+    if new_version(versions, config):
+        if reindex_needed(versions, config):
+            logging.error('Reset needed due to software changes')
+            logging.error('Delete all tenants by running python src/config.py --action delete')
+            logging.error('Install new version by running python src/config.py --action install')
+            logging.error('Warning: System needs to be setup from scratch again!')
+            sys.exit(-1)
+        else:
+            config['version'] = [k for k in versions.keys()][-1]
+            with open('src/.config.json', 'w', encoding = 'utf-8') as fr:
+                json.dump(config, fr, indent = 4)
+    
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db_read:
         r = [ { 'URI': [ '/$apiversion' ] } ]
         search_query = f'''CALL ESH_SEARCH('{json.dumps(r)}',?)'''

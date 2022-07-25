@@ -1,4 +1,4 @@
-"""Mapping between external objects and internal tables using 'nodes' as internal runtime-format """
+"""Mapping between external objects and internal tables using 'tables' as internal runtime-format """
 from operator import le
 from uuid import uuid1
 from name_mapping import NameMapping
@@ -312,7 +312,7 @@ def is_many_rel(property_rel):
     return 'cardinality' in property_rel\
         and 'max' in property_rel['cardinality'] and property_rel['cardinality']['max'] == '*'
 
-def cson_to_nodes(cson, pk = DefaultPK):
+def cson_to_mapping(cson, pk = DefaultPK):
     nodes = {}
     ext_int_def = {}
     node_name_mapping = NameMapping()
@@ -382,8 +382,8 @@ def cson_to_nodes(cson, pk = DefaultPK):
 
         node['sql']['select'] = f'SELECT {", ".join(select_columns)} from {sql_table_joins} where {sql_condition}'
 
-    #return {'nodes': nodes, 'index': node_name_mapping.ext_tree['contains'], 'ext_int_def': ext_int_def}
-    return {'nodes': nodes, 'ext_int_def': ext_int_def}
+    #return {'tables': nodes, 'index': node_name_mapping.ext_tree['contains'], 'entities': ext_int_def}
+    return {'tables': nodes, 'entities': ext_int_def}
 
 
 def get_parents(nodes, node, steps):
@@ -427,7 +427,7 @@ def object_to_dml(nodes, inserts, objects, idmapping, subnode_level = 0, col_pre
                 row.append(parent_object_id)
             object_id = pk.get_pk(full_table_name, subnode_level)
             if subnode_level == 0:
-                if nodes['nodes'][full_table_name]['pk'] == 'ID':
+                if nodes['tables'][full_table_name]['pk'] == 'ID':
                     obj['id'] = object_id
                 if 'source' in obj:
                     for source in obj['source']:
@@ -517,10 +517,10 @@ def objects_to_dml(nodes, objects, pk = DefaultPK):
     inserts = {}
     idmapping = {}
     for object_type, objects in objects.items():
-        if not object_type in nodes['ext_int_def']:
+        if not object_type in nodes['entities']:
             raise DataException(f'Unknown object type {object_type}')
         object_to_dml(nodes, inserts, objects, idmapping, pk = pk,
-            ext_int=nodes['ext_int_def'][object_type])
+            ext_int=nodes['entities'][object_type])
     if idmapping:
         dangling = [json.loads(k) for k, v in idmapping.items() if not v['resolved']]
         if dangling:

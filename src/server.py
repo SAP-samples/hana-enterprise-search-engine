@@ -50,7 +50,7 @@ def cleanse_output(res_in):
         if '@com.sap.vocabularies.Search.v1.SearchStatistics' in res \
             and 'ConnectorStatistics' in res['@com.sap.vocabularies.Search.v1.SearchStatistics']:
             for c in res['@com.sap.vocabularies.Search.v1.SearchStatistics']['ConnectorStatistics']:
-                del c['Schema']
+                del c['entities']
                 del c['Name']
         res_out.append(res)
     return res_out
@@ -179,8 +179,8 @@ async def post_data(tenant_id, objects=Body(...)):
         except convert.DataException as e:
             handle_error(str(e), 400)
         for table_name, v in dml['inserts'].items():
-            column_names = ','.join([f'"{k}"' for k in v['columns'].keys()])
-            column_placeholders = ','.join(['?']*len(v['columns']))
+            column_names = ','.join([f'"{k}"' for k in v['properties'].keys()])
+            column_placeholders = ','.join(['?']*len(v['properties']))
             sql = f'insert into "{tenant_schema_name}"."{table_name}" ({column_names})\
                  values ({column_placeholders})'
             db.cur.executemany(sql, v['rows'])
@@ -189,10 +189,10 @@ async def post_data(tenant_id, objects=Body(...)):
     for object_type, obj_list in objects.items():
         if not isinstance(obj_list, list):
             handle_error('provide list of objects per object type', 400)
-        if object_type not in mapping['schema']:
+        if object_type not in mapping['entities']:
             handle_error(f'unknown object type {object_type}', 400)
-        root_table = mapping['tables'][mapping['schema'][object_type]['table_name']]
-        key_property = root_table['columns'][root_table['pk']]['external_path'][0]
+        root_table = mapping['tables'][mapping['entities'][object_type]['table_name']]
+        key_property = root_table['properties'][root_table['pk']]['external_path'][0]
         for obj in obj_list:
             res = {}
             if key_property in obj:
@@ -219,12 +219,12 @@ async def read_data(tenant_id, objects=Body(...)):
         for object_type, obj_list  in objects.items():
             if not isinstance(obj_list, list):
                 handle_error('provide list of objects per object type', 400)
-            if object_type not in mapping['schema']:
+            if object_type not in mapping['entities']:
                 handle_error(f'unknown object type {object_type}', 400)
-            root_table = mapping['tables'][mapping['schema'][object_type]['table_name']]
+            root_table = mapping['tables'][mapping['entities'][object_type]['table_name']]
             ids = []
             primary_key_property_name = \
-                root_table['columns'][root_table['pk']]['external_path'][0]
+                root_table['properties'][root_table['pk']]['external_path'][0]
             table_sequence = []
             get_table_sequence(mapping, table_sequence, root_table)
             for obj in obj_list:
@@ -238,7 +238,7 @@ async def read_data(tenant_id, objects=Body(...)):
                 all_objects[table['table_name']] = {}
                 sql = table['sql']['select'].format(id_list = id_list)
                 db.cur.execute(sql)
-                if '_VALUE' in table['columns']:
+                if '_VALUE' in table['properties']:
                     for row in db.cur:
                         if row[0] in all_objects[table['table_name']]:
                             all_objects[table['table_name']][row[0]].append(row[2])
@@ -248,7 +248,7 @@ async def read_data(tenant_id, objects=Body(...)):
                     for row in db.cur:
                         i = 0
                         res_obj = {}
-                        for prop_name, prop in table['columns'].items():
+                        for prop_name, prop in table['properties'].items():
                             if prop_name == table['pk']:
                                 sub_obj_key = row[i]
                                 if table['level'] == 0:
@@ -265,7 +265,7 @@ async def read_data(tenant_id, objects=Body(...)):
                             elif 'rel' in prop and prop['rel']['type'] == 'association':
                                 rel_table = mapping['tables'][prop['rel']['table_name']]
                                 path = prop['external_path']\
-                                    + rel_table['columns'][rel_table['pk']]['external_path']
+                                    + rel_table['properties'][rel_table['pk']]['external_path']
                                 add_value(res_obj, path, row[i])
                             else:
                                 add_value(res_obj, prop['external_path'], row[i])
@@ -293,12 +293,12 @@ async def delete_data(tenant_id, objects=Body(...)):
         for object_type, obj_list  in objects.items():
             if not isinstance(obj_list, list):
                 handle_error('provide list of objects per object type', 400)
-            if object_type not in mapping['schema']:
+            if object_type not in mapping['entities']:
                 handle_error(f'unknown object type {object_type}', 400)
-            root_table = mapping['tables'][mapping['schema'][object_type]['table_name']]
+            root_table = mapping['tables'][mapping['entities'][object_type]['table_name']]
             ids = []
             primary_key_property_name = \
-                root_table['columns'][root_table['pk']]['external_path'][0]
+                root_table['properties'][root_table['pk']]['external_path'][0]
             table_sequence = []
             get_table_sequence(mapping, table_sequence, root_table)
             for obj in obj_list:
@@ -323,7 +323,7 @@ def add_value(obj, path, value):
         add_value(obj[path[0]], path[1:], value)
 
 def get_table_sequence(mapping, table_sequence, current_table):
-    for prop in current_table['columns'].values():
+    for prop in current_table['properties'].values():
         if 'rel' in prop and prop['rel']['type'] == 'containment':
             next_table = mapping['tables'][prop['rel']['table_name']]
             get_table_sequence(mapping, table_sequence, next_table)

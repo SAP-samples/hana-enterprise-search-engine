@@ -121,7 +121,7 @@ def nodes_to_ddl(nodes, schema_name):
     tables = []
     views = []
     esh_configs = []
-    for node in nodes['nodes'].values():
+    for node in nodes['tables'].values():
         create_statement = f'create table "{node[Constants.table_name]}" ( {", ".join(get_columns(node))} )'
         tables.append(create_statement)
         if node['level'] == 0:
@@ -180,7 +180,7 @@ def traverse_contains(cv: ColumnView, esh_config_properties, nodes, parent_node,
         if 'rel' in prop:
             if prop['rel']['type'] == 'containment':
                 child_node_name = prop['rel']['table_name']
-                child_node = nodes['nodes'][child_node_name]
+                child_node = nodes['tables'][child_node_name]
                 if join_path_id:
                     jp_id = join_path_id
                 else:

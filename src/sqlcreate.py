@@ -117,7 +117,7 @@ class ColumnView:
         v += "'LEGACY_MODE' = 'TRUE')"
         return v
 
-def nodes_to_ddl(nodes, schema_name):
+def mapping_to_ddl(nodes, schema_name):
     tables = []
     views = []
     esh_configs = []

@@ -2,7 +2,6 @@
 from enum import Enum
 from db_connection_pool import Credentials
 
-CURRENT_VERSION = '0.0.1'
 SCHEMA_PREFIX_MAX_LENGTH = 50
 TENANT_ID_MAX_LENGTH = 50
 CONFIG_FILE_NAME = '.config.json'

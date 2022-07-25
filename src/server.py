@@ -50,7 +50,7 @@ def cleanse_output(res_in):
         if '@com.sap.vocabularies.Search.v1.SearchStatistics' in res \
             and 'ConnectorStatistics' in res['@com.sap.vocabularies.Search.v1.SearchStatistics']:
             for c in res['@com.sap.vocabularies.Search.v1.SearchStatistics']['ConnectorStatistics']:
-                del c['entities']
+                del c['Schema']
                 del c['Name']
         res_out.append(res)
     return res_out
@@ -156,7 +156,7 @@ def get_mapping(tenant_id):
     tenant_schema_name = get_tenant_schema_name(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         db.cur.execute(f'set schema "{tenant_schema_name}"')
-        sql = f'select top 1 MODEL from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
+        sql = f'select top 1 MAPPING from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
         db.cur.execute(sql)
         res = db.cur.fetchone()
         if not (res and len(res) == 1):
@@ -179,8 +179,8 @@ async def post_data(tenant_id, objects=Body(...)):
         except convert.DataException as e:
             handle_error(str(e), 400)
         for table_name, v in dml['inserts'].items():
-            column_names = ','.join([f'"{k}"' for k in v['properties'].keys()])
-            column_placeholders = ','.join(['?']*len(v['properties']))
+            column_names = ','.join([f'"{k}"' for k in v['columns'].keys()])
+            column_placeholders = ','.join(['?']*len(v['columns']))
             sql = f'insert into "{tenant_schema_name}"."{table_name}" ({column_names})\
                  values ({column_placeholders})'
             db.cur.executemany(sql, v['rows'])
@@ -421,6 +421,16 @@ def reinstall_needed(l_versions, l_config):
         if k > l_config['version'] and 'reinstall' in v and v['reinstall']]
     return len(reinstall) > 0
 
+def reindex_needed(l_versions, l_config):
+    reinstall = [k for k, v in l_versions.items()\
+        if k > l_config['version'] and 'reindex' in v and v['reindex']]
+    return len(reinstall) > 0 and get_tenants()
+
+def new_version(l_versions, l_config):
+    new_v = [k for k, v in l_versions.items() if k > l_config['version']]
+    return len(new_v) > 0
+
+
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
     with open('src/versions.json', encoding = 'utf-8') as fr:
@@ -431,12 +441,23 @@ if __name__ == '__main__':
     except FileNotFoundError:
         logging.error('Inconsistent or missing installation. src/.config.json not found.')
         exit(-1)
-    if reinstall_needed(versions, config):
-        logging.error('Reset needed due to sofftware changes')
-        logging.error('Delete all tenants by running python src/config.py --action delete')
-        logging.error('Install new version by running python src/config.py --action install')
-        logging.error('Warning: System needs to be setup from scratch again!')
-        sys.exit(-1)
+    if new_version(versions, config):
+        if reinstall_needed(versions, config):
+            logging.error('Reset needed due to software changes')
+            logging.error('Delete all tenants by running python src/config.py --action delete')
+            logging.error('Install new version by running python src/config.py --action install')
+            logging.error('Warning: System needs to be setup from scratch again!')
+            sys.exit(-1)
+        if reindex_needed(versions, config):
+            logging.error('Reset needed due to software changes')
+            logging.error('Delete all tenants by running python src/config.py --action delete')
+            logging.error('Install new version by running python src/config.py --action install')
+            logging.error('Warning: System needs to be setup from scratch again!')
+            sys.exit(-1)
+        else:
+            config['version'] = [k for k in versions.keys()][-1]
+            with open('src/.config.json', 'w', encoding = 'utf-8') as fr:
+                json.dump(config, fr)
     db_host = config['db']['connection']['host']
     db_port = config['db']['connection']['port']
     glob.db_schema_prefix = config['deployment']['schemaPrefix']

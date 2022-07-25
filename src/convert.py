@@ -135,17 +135,6 @@ def add_key_columns_to_node(node, subnode_level, pk):
     node['pkParent'] = pk_parent_name
     node['properties'] = key_properties
 
-
-
-
-def cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
-    node_name_mapping, cson, nodes, path, type_name, subnode_level, parent_table_name,
-    sur_node, sur_prop_name_mapping, sur_prop_path, ext_int):
-    _ = cson_entity_to_nodes(node_name_mapping, cson, nodes, path + [type_name],\
-        element_name_ext, element, subnode_level, False, parent_table_name = parent_table_name,
-        sur_node = sur_node, sur_prop_name_mapping = sur_prop_name_mapping, 
-        sur_prop_path = sur_prop_path, ext_int=ext_int)
-
 def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_definition,\
     subnode_level = 0, is_table = True, has_pc = False, pk = DefaultPK, parent_table_name = None,
     sur_node = None, sur_prop_name_mapping = None, sur_prop_path = [], ext_int = {}):
@@ -238,10 +227,9 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
                 if element['type'] in cson['definitions']:
                     if 'elements' in cson['definitions'][element['type']]:
                         ext_int['elements'][element_name_ext]['elements'] = {}
-                        cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
-                            node_name_mapping, cson, nodes, path, type_name, subnode_level, 
-                            parent_table_name = parent_table_name, sur_node=node, 
-                            sur_prop_name_mapping=property_name_mapping,
+                        _ = cson_entity_to_nodes(node_name_mapping, cson, nodes, path + [type_name],\
+                            element_name_ext, element, subnode_level, False, parent_table_name = parent_table_name, 
+                            sur_node=node, sur_prop_name_mapping=property_name_mapping,
                             sur_prop_path=sur_prop_path + [element_name_ext],
                             ext_int=ext_int['elements'][element_name_ext])
                     else:
@@ -256,13 +244,12 @@ def cson_entity_to_nodes(node_name_mapping, cson, nodes, path, type_name, type_d
             elif 'elements' in element: # nested definition
                 element['kind'] = 'type'
                 ext_int['elements'][element_name_ext]['elements'] = {}
-                cson_entity_to_subnodes(element_name_ext, element, node, property_name_mapping,
-                    node_name_mapping, cson, nodes, path, type_name, subnode_level, 
-                    parent_table_name=parent_table_name, sur_node=node, 
+                _ = cson_entity_to_nodes(node_name_mapping, cson, nodes, path + [type_name],\
+                    element_name_ext, element, subnode_level, False, parent_table_name = parent_table_name,
+                    sur_node=node, 
                     sur_prop_name_mapping=property_name_mapping,
                     sur_prop_path=sur_prop_path + [element_name_ext],
                     ext_int=ext_int['elements'][element_name_ext])
-
             else:
                 raise NotImplementedError
     elif path and type_definition['kind'] == 'type': # single property for one node
@@ -452,12 +439,9 @@ def object_to_dml(nodes, inserts, objects, idmapping, subnode_level = 0, col_pre
 
         for k, v in obj.items():
             value = None
-            if not 'elements' in ext_int:
-                pass
+            #if not 'elements' in ext_int:
+            #    pass
             if k in ext_int['elements']:
-                #prop = properties[k]
-                #if prop != ext_int['elements'][k]:
-                #    pass
                 prop = ext_int['elements'][k]
                 if 'definition' in prop and 'type' in prop['definition']\
                     and prop['definition']['type'] == 'cds.Association':

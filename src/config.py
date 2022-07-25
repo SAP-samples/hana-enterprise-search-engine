@@ -1,7 +1,7 @@
 '''Setup and configuration'''
 from argparse import ArgumentParser
 from db_connection_pool import Credentials, ConnectionPool, DBConnection
-from constants import DBUserType, CURRENT_VERSION, SCHEMA_PREFIX_MAX_LENGTH, CONFIG_FILE_NAME
+from constants import DBUserType, SCHEMA_PREFIX_MAX_LENGTH, CONFIG_FILE_NAME
 from enum import Enum
 import logging
 import sys
@@ -52,6 +52,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     setup_action = SetupAction(args.action)
+
+    with open('src/versions.json', encoding = 'utf-8') as fr:
+        versions = json.load(fr)
+    current_version = [k for k in versions.keys()][-1]
     try:
         match setup_action:
             case SetupAction.INSTALL:
@@ -62,7 +66,7 @@ if __name__ == '__main__':
                     'Warning: this will delete all data of all tenants')
                     logging.error(msg)
                     sys.exit(-1)
-                config = {'version': CURRENT_VERSION}
+                config = {'version': current_version}
                 config['server'] = {}
                 config['server']['host'] = args.srv_host
                 config['server']['port'] = args.srv_port

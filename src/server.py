@@ -111,6 +111,10 @@ async def delete_tenant(tenant_id: str):
 @app.get('/v1/tenant')
 async def get_tenants():
     """Get all tenants"""
+    return get_tenants_sync()
+
+
+def get_tenants_sync():
     with DBConnection(glob.connection_pools[DBUserType.ADMIN]) as db:
         try:
             sql = f'select schema_name, create_time from sys.schemas \
@@ -128,7 +132,7 @@ async def post_model(tenant_id: str, cson=Body(...)):
     tenant_schema_name = get_tenant_schema_name(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
         db.cur.execute(f'set schema "{tenant_schema_name}"')
-        db.cur.execute(f'select count(*) from "_MODEL"')
+        db.cur.execute('select count(*) from "_MODEL"')
         num_deployments = db.cur.fetchone()[0]
         if num_deployments == 0:
             created_at = datetime.now()
@@ -192,7 +196,7 @@ async def post_data(tenant_id, objects=Body(...)):
         if object_type not in mapping['entities']:
             handle_error(f'unknown object type {object_type}', 400)
         root_table = mapping['tables'][mapping['entities'][object_type]['table_name']]
-        key_property = root_table['properties'][root_table['pk']]['external_path'][0]
+        key_property = root_table['columns'][root_table['pk']]['external_path'][0]
         for obj in obj_list:
             res = {}
             if key_property in obj:
@@ -224,7 +228,7 @@ async def read_data(tenant_id, objects=Body(...)):
             root_table = mapping['tables'][mapping['entities'][object_type]['table_name']]
             ids = []
             primary_key_property_name = \
-                root_table['properties'][root_table['pk']]['external_path'][0]
+                root_table['columns'][root_table['pk']]['external_path'][0]
             table_sequence = []
             get_table_sequence(mapping, table_sequence, root_table)
             for obj in obj_list:
@@ -238,7 +242,7 @@ async def read_data(tenant_id, objects=Body(...)):
                 all_objects[table['table_name']] = {}
                 sql = table['sql']['select'].format(id_list = id_list)
                 db.cur.execute(sql)
-                if '_VALUE' in table['properties']:
+                if '_VALUE' in table['columns']:
                     for row in db.cur:
                         if row[0] in all_objects[table['table_name']]:
                             all_objects[table['table_name']][row[0]].append(row[2])
@@ -248,7 +252,7 @@ async def read_data(tenant_id, objects=Body(...)):
                     for row in db.cur:
                         i = 0
                         res_obj = {}
-                        for prop_name, prop in table['properties'].items():
+                        for prop_name, prop in table['columns'].items():
                             if prop_name == table['pk']:
                                 sub_obj_key = row[i]
                                 if table['level'] == 0:
@@ -265,7 +269,7 @@ async def read_data(tenant_id, objects=Body(...)):
                             elif 'rel' in prop and prop['rel']['type'] == 'association':
                                 rel_table = mapping['tables'][prop['rel']['table_name']]
                                 path = prop['external_path']\
-                                    + rel_table['properties'][rel_table['pk']]['external_path']
+                                    + rel_table['columns'][rel_table['pk']]['external_path']
                                 add_value(res_obj, path, row[i])
                             else:
                                 add_value(res_obj, prop['external_path'], row[i])
@@ -298,7 +302,7 @@ async def delete_data(tenant_id, objects=Body(...)):
             root_table = mapping['tables'][mapping['entities'][object_type]['table_name']]
             ids = []
             primary_key_property_name = \
-                root_table['properties'][root_table['pk']]['external_path'][0]
+                root_table['columns'][root_table['pk']]['external_path'][0]
             table_sequence = []
             get_table_sequence(mapping, table_sequence, root_table)
             for obj in obj_list:
@@ -323,7 +327,7 @@ def add_value(obj, path, value):
         add_value(obj[path[0]], path[1:], value)
 
 def get_table_sequence(mapping, table_sequence, current_table):
-    for prop in current_table['properties'].values():
+    for prop in current_table['columns'].values():
         if 'rel' in prop and prop['rel']['type'] == 'containment':
             next_table = mapping['tables'][prop['rel']['table_name']]
             get_table_sequence(mapping, table_sequence, next_table)
@@ -359,12 +363,6 @@ def get_esh_version(version):
     if version == 'latest' or version == '':
         return glob.esh_apiversion
     return version
-
-'''
-@app.get('/',response_class=RedirectResponse, status_code=302)
-async def get_root():
-    return RedirectResponse('/v1/searchui/' + UI_TEST_TENANT)
-'''
 
 @app.get('/v1/searchui/{tenant_id:path}',response_class=RedirectResponse, status_code=302)
 async def get_search_by_tenant(tenant_id):
@@ -424,7 +422,7 @@ def reinstall_needed(l_versions, l_config):
 def reindex_needed(l_versions, l_config):
     reinstall = [k for k, v in l_versions.items()\
         if k > l_config['version'] and 'reindex' in v and v['reindex']]
-    return len(reinstall) > 0 and get_tenants()
+    return len(reinstall) > 0 and get_tenants_sync()
 
 def new_version(l_versions, l_config):
     new_v = [k for k, v in l_versions.items() if k > l_config['version']]
@@ -441,23 +439,12 @@ if __name__ == '__main__':
     except FileNotFoundError:
         logging.error('Inconsistent or missing installation. src/.config.json not found.')
         exit(-1)
-    if new_version(versions, config):
-        if reinstall_needed(versions, config):
-            logging.error('Reset needed due to software changes')
-            logging.error('Delete all tenants by running python src/config.py --action delete')
-            logging.error('Install new version by running python src/config.py --action install')
-            logging.error('Warning: System needs to be setup from scratch again!')
-            sys.exit(-1)
-        if reindex_needed(versions, config):
-            logging.error('Reset needed due to software changes')
-            logging.error('Delete all tenants by running python src/config.py --action delete')
-            logging.error('Install new version by running python src/config.py --action install')
-            logging.error('Warning: System needs to be setup from scratch again!')
-            sys.exit(-1)
-        else:
-            config['version'] = [k for k in versions.keys()][-1]
-            with open('src/.config.json', 'w', encoding = 'utf-8') as fr:
-                json.dump(config, fr)
+    if reinstall_needed(versions, config):
+        logging.error('Reset needed due to software changes')
+        logging.error('Delete all tenants by running python src/config.py --action delete')
+        logging.error('Install new version by running python src/config.py --action install')
+        logging.error('Warning: System needs to be setup from scratch again!')
+        sys.exit(-1)
     db_host = config['db']['connection']['host']
     db_port = config['db']['connection']['port']
     glob.db_schema_prefix = config['deployment']['schemaPrefix']
@@ -471,6 +458,18 @@ if __name__ == '__main__':
         with DBConnection(glob.connection_pools[user_type]) as db_main:
             db_main.cur.execute('select * from dummy')
 
+    if new_version(versions, config):
+        if reindex_needed(versions, config):
+            logging.error('Reset needed due to software changes')
+            logging.error('Delete all tenants by running python src/config.py --action delete')
+            logging.error('Install new version by running python src/config.py --action install')
+            logging.error('Warning: System needs to be setup from scratch again!')
+            sys.exit(-1)
+        else:
+            config['version'] = [k for k in versions.keys()][-1]
+            with open('src/.config.json', 'w', encoding = 'utf-8') as fr:
+                json.dump(config, fr, indent = 4)
+    
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db_read:
         r = [ { 'URI': [ '/$apiversion' ] } ]
         search_query = f'''CALL ESH_SEARCH('{json.dumps(r)}',?)'''

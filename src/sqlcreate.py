@@ -1,4 +1,4 @@
-'''Creates SQL commands from node'''
+'''Creates SQL commands from tables'''
 from copy import deepcopy
 import convert
 
@@ -25,15 +25,15 @@ ESH_CONFIG_TEMPLATE = {
 '''
 class Constants(object):
     table_name = 'table_name'
-    properties = 'properties'
+    columns = 'columns'
     type = 'type'
     length = 'length'
     precision = 'precision'
     scale = 'scale'
 
-def get_columns(node):
+def get_columns(table):
     columns = []
-    for prop_name, prop in node[Constants.properties].items():
+    for prop_name, prop in table[Constants.columns].items():
         if 'isVirtual' in prop and prop['isVirtual']:
             continue
         if Constants.length in prop:
@@ -42,7 +42,7 @@ def get_columns(node):
             column_type = f'{prop[Constants.type]}({prop[Constants.precision]},{prop[Constants.scale]})'
         else:
             column_type = prop[Constants.type]
-        if 'pk' in node and node['pk'] == prop_name:
+        if 'pk' in table and table['pk'] == prop_name:
             suffix = ' PRIMARY KEY'
         else:
             suffix = ''
@@ -117,33 +117,33 @@ class ColumnView:
         v += "'LEGACY_MODE' = 'TRUE')"
         return v
 
-def mapping_to_ddl(nodes, schema_name):
+def mapping_to_ddl(mapping, schema_name):
     tables = []
     views = []
     esh_configs = []
-    for node in nodes['tables'].values():
-        create_statement = f'create table "{node[Constants.table_name]}" ( {", ".join(get_columns(node))} )'
+    for table in mapping['tables'].values():
+        create_statement = f'create table "{table[Constants.table_name]}" ( {", ".join(get_columns(table))} )'
         tables.append(create_statement)
-        if node['level'] == 0:
-            esh_config_hana_identifier = node[Constants.table_name][len(convert.ENTITY_PREFIX):]
+        if table['level'] == 0:
+            esh_config_hana_identifier = table[Constants.table_name][len(convert.ENTITY_PREFIX):]
             view_name = convert.VIEW_PREFIX + esh_config_hana_identifier
-            cv = ColumnView(view_name, node['table_name'])
-            anchor_join_index = (node['table_name'], 0)
+            cv = ColumnView(view_name, table['table_name'])
+            anchor_join_index = (table['table_name'], 0)
             esh_config = deepcopy(ESH_CONFIG_TEMPLATE)
-            if 'annotations' in node:
-                esh_config['content']['EntityType'] |= node['annotations']
+            if 'annotations' in table:
+                esh_config['content']['EntityType'] |= table['annotations']
             # for UI5 enterprise search UI to work
-            if 'annotations' in node and '@EndUserText.Label' in node['annotations']\
-                and not '@SAP.Common.Label' in node['annotations']:
-                esh_config['content']['EntityType']['@SAP.Common.Label'] = node['annotations']['@EndUserText.Label']
+            if 'annotations' in table and '@EndUserText.Label' in table['annotations']\
+                and not '@SAP.Common.Label' in table['annotations']:
+                esh_config['content']['EntityType']['@SAP.Common.Label'] = table['annotations']['@EndUserText.Label']
 
             esh_config['content']['Fullname'] = f'{schema_name}/{view_name}'
             esh_config['content']['EntityType']['@EnterpriseSearchHana.identifier'] = esh_config_hana_identifier
             esh_config_properties = []
             #ui_position = 10
-            #for prop_name, prop in node['properties'].items():
+            #for prop_name, prop in table['properties'].items():
             #    if not 'rel' in prop:
-            #        #cv.view_attribute.append((prop_name, node[Constants.table_name], prop_name, ''))
+            #        #cv.view_attribute.append((prop_name, table[Constants.table_name], prop_name, ''))
             #        if prop_name != '_ID':
             #            col_conf = {'Name': prop_name}
             #            if 'annotations' in prop:
@@ -156,18 +156,18 @@ def mapping_to_ddl(nodes, schema_name):
             #            col_conf['@UI.identification'] = [{'position': ui_position}]
             #            ui_position += 10
             #            esh_config_properties.append(col_conf)
-            traverse_contains(cv, esh_config_properties, nodes, node, anchor_join_index)
+            traverse_contains(cv, esh_config_properties, mapping, table, anchor_join_index)
             views.append(cv.get_sql_statement())
             esh_config['content']['EntityType']['Properties'].extend(esh_config_properties)
             esh_configs.append(esh_config)
 
     return {'tables': tables, 'views': views, 'eshConfig':esh_configs}
 
-def traverse_contains(cv: ColumnView, esh_config_properties, nodes, parent_node, parent_join_index,\
-    join_path_id = None, view_columns_prefix = None, ignore_in_view = None, is_root_node = True):
+def traverse_contains(cv: ColumnView, esh_config_properties, mapping, parent_table, parent_join_index,\
+    join_path_id = None, view_columns_prefix = None, ignore_in_view = None, is_root_table = True):
     ui_position = 10
-    for prop_name, prop in parent_node['properties'].items():
-        is_enteprise_search_key = is_root_node and prop_name == parent_node['pk']
+    for prop_name, prop in parent_table['columns'].items():
+        is_enteprise_search_key = is_root_table and prop_name == parent_table['pk']
         if ignore_in_view and ignore_in_view == prop_name:
             continue
         #if 'rel' in prop:
@@ -179,24 +179,24 @@ def traverse_contains(cv: ColumnView, esh_config_properties, nodes, parent_node,
         view_column_name = view_column_name.replace('.', '_')
         if 'rel' in prop:
             if prop['rel']['type'] == 'containment':
-                child_node_name = prop['rel']['table_name']
-                child_node = nodes['tables'][child_node_name]
+                child_table_name = prop['rel']['table_name']
+                child_table = mapping['tables'][child_table_name]
                 if join_path_id:
                     jp_id = join_path_id
                 else:
                     jp_id = next(cv.join_path_id_gen)
-                child_join_index = cv.table(child_node['table_name'])
-                cv.add_join_condition(jp_id, parent_join_index, parent_node['pk']\
-                    , child_join_index, child_node['pkParent'])
-                traverse_contains(cv, esh_config_properties, nodes, child_node, child_join_index, jp_id,\
-                    view_column_name, parent_node['pk'], is_root_node = False)
+                child_join_index = cv.table(child_table['table_name'])
+                cv.add_join_condition(jp_id, parent_join_index, parent_table['pk']\
+                    , child_join_index, child_table['pkParent'])
+                traverse_contains(cv, esh_config_properties, mapping, child_table, child_join_index, jp_id,\
+                    view_column_name, parent_table['pk'], is_root_table = False)
         else:
             if 'isIdColumn' in prop and prop['isIdColumn']:
                 continue
             if join_path_id:
-                cv.view_attribute.append((view_column_name, parent_node[Constants.table_name], prop_name, join_path_id))
+                cv.view_attribute.append((view_column_name, parent_table[Constants.table_name], prop_name, join_path_id))
             else:
-                cv.view_attribute.append((view_column_name, parent_node[Constants.table_name], prop_name, ''))
+                cv.view_attribute.append((view_column_name, parent_table[Constants.table_name], prop_name, ''))
             # ESH config
             col_conf = {'Name': view_column_name}
             if 'annotations' in prop:
@@ -210,6 +210,6 @@ def traverse_contains(cv: ColumnView, esh_config_properties, nodes, parent_node,
             if 'annotations' in prop and '@EndUserText.Label' in prop['annotations']\
                 and not '@SAP.Common.Label' in prop['annotations']:
                 col_conf['@SAP.Common.Label'] = prop['annotations']['@EndUserText.Label']
-            if is_root_node and not is_enteprise_search_key:
+            if is_root_table and not is_enteprise_search_key:
                 col_conf['@UI.identification'] = [{'position': next(cv.ui_position_gen)}]
             esh_config_properties.append(col_conf)

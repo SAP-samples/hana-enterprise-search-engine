@@ -1,6 +1,6 @@
 '''Creates SQL commands from node'''
 from copy import deepcopy
-import mapping
+import convert
 
 
 ESH_CONFIG_TEMPLATE = {
@@ -125,8 +125,8 @@ def nodes_to_ddl(nodes, schema_name):
         create_statement = f'create table "{node[Constants.table_name]}" ( {", ".join(get_columns(node))} )'
         tables.append(create_statement)
         if node['level'] == 0:
-            esh_config_hana_identifier = node[Constants.table_name][len(mapping.ENTITY_PREFIX):]
-            view_name = mapping.VIEW_PREFIX + esh_config_hana_identifier
+            esh_config_hana_identifier = node[Constants.table_name][len(convert.ENTITY_PREFIX):]
+            view_name = convert.VIEW_PREFIX + esh_config_hana_identifier
             cv = ColumnView(view_name, node['table_name'])
             anchor_join_index = (node['table_name'], 0)
             esh_config = deepcopy(ESH_CONFIG_TEMPLATE)

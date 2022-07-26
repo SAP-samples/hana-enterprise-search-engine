@@ -469,7 +469,7 @@ if __name__ == '__main__':
             config['version'] = [k for k in versions.keys()][-1]
             with open('src/.config.json', 'w', encoding = 'utf-8') as fr:
                 json.dump(config, fr, indent = 4)
-    
+
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db_read:
         r = [ { 'URI': [ '/$apiversion' ] } ]
         search_query = f'''CALL ESH_SEARCH('{json.dumps(r)}',?)'''

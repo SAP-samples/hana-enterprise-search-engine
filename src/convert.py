@@ -1,5 +1,4 @@
 """Mapping between external objects and internal tables using 'tables' as internal runtime-format """
-from operator import le
 from uuid import uuid1
 from name_mapping import NameMapping
 import json
@@ -39,7 +38,19 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
             sql_type['type'] = 'NVARCHAR'
             sql_type['length'] = 36
         case 'cds.String':
-            sql_type['type'] = 'NVARCHAR'
+            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
+                sql_type['type'] = 'SHORTTEXT'
+            else:
+                sql_type['type'] = 'NVARCHAR'
+            if not 'length' in cap_type:
+                sql_type['length'] = 5000
+        case 'cds.LargeString':
+            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
+                sql_type['type'] = 'TEXT'
+            else:
+                sql_type['type'] = 'NCLOB'
+        case 'cds.Varchar':
+            sql_type['type'] = 'VARCHAR'
             if not 'length' in cap_type:
                 sql_type['length'] = 5000
         case 'cds.Integer64':
@@ -58,10 +69,50 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
                 sql_type['precision'] = cap_type['precision']
             if 'scale' in cap_type:
                 sql_type['scale'] = cap_type['scale']
+        case 'cds.Double':
+            sql_type['type'] = 'DOUBLE'
         case 'cds.Time':
             sql_type['type'] = 'TIME'
         case 'cds.DateTime':
-            sql_type['type'] = 'DATETIME'
+            sql_type['type'] = 'SECONDDATE'
+        case 'cds.Timestamp':
+            sql_type['type'] = 'TIMESTAMP'
+        case 'cds.Binary':
+            sql_type['type'] = 'VARBINARY'
+            if 'length' in cap_type:
+                sql_type['length'] = cap_type['length']
+            sql_type['base64convertion'] = True
+        case 'cds.LargeBinary':
+            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
+                sql_type['type'] = 'BINTEXT'
+            else:
+                sql_type['type'] = 'BLOB'
+            sql_type['base64convertion'] = True
+        case 'cds.hana.Binary':
+            sql_type['type'] = 'BINARY'
+            sql_type['base64convertion'] = True
+        case 'cds.hana.VARCHAR':
+            sql_type['type'] = 'VARCHAR'
+            if not 'length' in cap_type:
+                sql_type['length'] = 5000
+        case 'cds.hana.SMALLINT':
+            sql_type['type'] = 'SMALLINT'
+        case 'cds.hana.TINYINT':
+            sql_type['type'] = 'TINYINT'
+        case 'cds.hana.SMALLDECIMAL':
+            sql_type['type'] = 'SMALLDECIMAL'
+        case 'cds.hana.REAL':
+            sql_type['type'] = 'REAL'
+        case 'cds.hana.CLOB':
+            sql_type['type'] = 'CLOB'
+        case 'cds.hana.ST_POINT':
+            sql_type['type'] = 'ST_POINT'
+            if 'srid' in cap_type:
+                sql_type['srid'] = cap_type['srid']
+        case 'cds.hana.ST_GEOMETRY':
+            sql_type['type'] = 'ST_GEOMETRY'
+            if 'srid' in cap_type:
+                sql_type['srid'] = cap_type['srid']
         case 'cds.Association':
             target_key_column = \
                 cson['definitions'][cap_type['target']]['elements'][cson['definitions'][cap_type['target']]['pk']]
@@ -74,13 +125,9 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
                 rel['cardinality'] = cap_type['cardinality']
             sql_type['rel'] = rel
         case _:
-            print(cap_type['type'])
             if cap_type['type'].startswith(cson['namespace']):
                 rep_type = find_definition(cson, cap_type)
-                print(rep_type)
                 sql_type['type'] = get_sql_type(table_name_mapping, cson, cson['definitions'][rep_type['type']], pk)
-            else:
-                None #pylint: disable=pointless-statement
             t = cap_type['type']
             print(f'Unexpected type: {t}')
             raise ModelException(f'Unexpected cds type {t}')

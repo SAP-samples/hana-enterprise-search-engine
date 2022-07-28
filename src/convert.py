@@ -544,8 +544,8 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
                 else:
                     array_to_dml(mapping, inserts, v, subtable_level + 1, object_id, pk
                     , ext_int['elements'][k]['items'])
-            elif value is None and isinstance(v, dict) and not \
-                mapping['tables'][full_table_name]['columns'][ext_int['elements'][k]['column_name']]['type'] in TYPES_SPATIAL:
+            elif value is None and isinstance(v, dict) and (not 'column_name' in ext_int['elements'][k] or not \
+                mapping['tables'][full_table_name]['columns'][ext_int['elements'][k]['column_name']]['type'] in TYPES_SPATIAL):
                 object_to_dml(mapping, inserts, [v], idmapping, subtable_level, col_prefix + [k],\
                     propagated_row = row, propagated_object_id=object_id, pk = pk, 
                     ext_int=ext_int['elements'][k], parent_table_name=full_table_name)

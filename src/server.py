@@ -187,15 +187,21 @@ async def post_data(tenant_id, objects=Body(...)):
         try:
             for table_name, v in dml['inserts'].items():
                 column_names = ','.join([f'"{k}"' for k in v['columns'].keys()])
-                column_placeholders = ','.join(['?']*len(v['columns']))
-                sql = f'insert into "{tenant_schema_name}"."{table_name}" ({column_names})\
-                     values ({column_placeholders})'
+                cp = []
+                table = mapping['tables'][table_name]
+                for column_name in v['columns'].keys():
+                    if table['columns'][column_name]['type'] in TYPES_SPATIAL:
+                        srid = table['columns'][column_name]['srid']
+                        cp.append(f'ST_GeomFromGeoJSON(?, {srid})')
+                    else:
+                        cp.append('?')
+                column_placeholders = ','.join(cp)
+                sql = f'insert into "{table_name}" ({column_names}) values ({column_placeholders})'
                 db.cur.executemany(sql, v['rows'])
             db.con.commit()
         except DataError as e:
             db.con.rollback()
             handle_error(f'Data Error: {e.errortext}', 400)
-
 
     response = {}
     for object_type, obj_list in objects.items():

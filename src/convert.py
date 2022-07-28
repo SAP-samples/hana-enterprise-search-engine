@@ -3,8 +3,7 @@ from uuid import uuid1
 from name_mapping import NameMapping
 import json
 import base64
-from constants import TYPES_B64_DECODE, TYPES_SPATIAL
-import hana
+from constants import TYPES_B64_DECODE, TYPES_SPATIAL, SPATIAL_DEFAULT_SRID
 
 ENTITY_PREFIX = 'ENTITY/'
 VIEW_PREFIX = 'VIEW/'
@@ -112,6 +111,8 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
             sql_type['type'] = 'ST_POINT'
             if 'srid' in cap_type:
                 sql_type['srid'] = cap_type['srid']
+            else:
+                sql_type['srid'] = SPATIAL_DEFAULT_SRID
         case 'cds.hana.ST_GEOMETRY':
             sql_type['type'] = 'ST_GEOMETRY'
             if 'srid' in cap_type:
@@ -440,7 +441,7 @@ def value_ext_to_int(typ, value):
     if typ in TYPES_B64_DECODE:
         return base64.decodebytes(value.encode('utf-8'))
     elif typ in TYPES_SPATIAL:
-        return hana.geojson_to_bin(value)
+        return json.dumps(value)
     return value
 
 

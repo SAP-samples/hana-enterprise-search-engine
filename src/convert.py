@@ -2,6 +2,9 @@
 from uuid import uuid1
 from name_mapping import NameMapping
 import json
+import base64
+from constants import TYPES_B64_DECODE, TYPES_SPATIAL
+import hana
 
 ENTITY_PREFIX = 'ENTITY/'
 VIEW_PREFIX = 'VIEW/'
@@ -81,16 +84,16 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
             sql_type['type'] = 'VARBINARY'
             if 'length' in cap_type:
                 sql_type['length'] = cap_type['length']
-            sql_type['base64convertion'] = True
+            #sql_type['isBinary'] = True
         case 'cds.LargeBinary':
             if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
                 sql_type['type'] = 'BINTEXT'
             else:
                 sql_type['type'] = 'BLOB'
-            sql_type['base64convertion'] = True
-        case 'cds.hana.Binary':
+            #sql_type['isBinary'] = True
+        case 'cds.hana.BINARY':
             sql_type['type'] = 'BINARY'
-            sql_type['base64convertion'] = True
+            #sql_type['isBinary'] = True
         case 'cds.hana.VARCHAR':
             sql_type['type'] = 'VARCHAR'
             if not 'length' in cap_type:
@@ -125,9 +128,6 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
                 rel['cardinality'] = cap_type['cardinality']
             sql_type['rel'] = rel
         case _:
-            if cap_type['type'].startswith(cson['namespace']):
-                rep_type = find_definition(cson, cap_type)
-                sql_type['type'] = get_sql_type(table_name_mapping, cson, cson['definitions'][rep_type['type']], pk)
             t = cap_type['type']
             print(f'Unexpected type: {t}')
             raise ModelException(f'Unexpected cds type {t}')
@@ -386,17 +386,25 @@ def cson_to_mapping(cson, pk = DefaultPK):
         table['sql'] = {}
         #table_name = table['table_name']
         nl = table['level']
+        select_columns = []
+        for k, v in table['columns'].items():
+            if ('isVirtual' in v and v['isVirtual']):
+                continue
+            prefix = f'L{nl}.' if nl > 1 else ''
+            suffix = '.ST_AsGeoJSON()' if v['type'] in TYPES_SPATIAL else ''
+            select_columns.append(f'{prefix}"{k}"{suffix}')
+
         if nl <= 1:
             if nl == 0:
                 key_column = table['pk']
             else:
                 key_column = table['pkParent']
-            select_columns = [f'"{k}"' for k, v in table['columns'].items() if not ('isVirtual' in v and v['isVirtual'])]
+            #select_columns = [f'"{k}"' for k, v in table['columns'].items() if not ('isVirtual' in v and v['isVirtual'])]
             sql_table_joins = f'"{table_name}"'
             sql_condition = f'"{key_column}" in ({{id_list}})'
             table['sql']['delete'] = f'DELETE from {sql_table_joins} where {sql_condition}'
         else:
-            select_columns = [f'L{nl}."{k}"' for k, v in table['columns'].items() if not ('isVirtual' in v and v['isVirtual'])]
+            #select_columns = [f'L{nl}."{k}"' for k, v in table['columns'].items() if not ('isVirtual' in v and v['isVirtual'])]
             joins = []
             del_subselect = []
             parents = get_parents(tables, table, table['level'] - 1)
@@ -428,7 +436,15 @@ def get_parents(tables, table, steps):
     else:
         return get_parents(tables, tables[parent], steps - 1) + [parent]
 
-def array_to_dml(inserts, objects, subtable_level, parent_object_id, pk, ext_int):
+def value_ext_to_int(typ, value):
+    if typ in TYPES_B64_DECODE:
+        return base64.decodebytes(value.encode('utf-8'))
+    elif typ in TYPES_SPATIAL:
+        return hana.geojson_to_bin(value)
+    return value
+
+
+def array_to_dml(mapping, inserts, objects, subtable_level, parent_object_id, pk, ext_int):
     full_table_name = ext_int['table_name']
     if not full_table_name in inserts:
         _, _, key_columns = get_key_columns(subtable_level, pk)
@@ -440,8 +456,10 @@ def array_to_dml(inserts, objects, subtable_level, parent_object_id, pk, ext_int
         row.append(parent_object_id)
         object_id = pk.get_pk(full_table_name, subtable_level)
         row.append(object_id)
-        row.append(obj)
+        row.append(value_ext_to_int(\
+            mapping['tables'][full_table_name]['columns']['_VALUE']['type'], obj))
         inserts[full_table_name]['rows'].append(row)
+
 
 
 def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_prefix = [],\
@@ -485,8 +503,6 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
 
         for k, v in obj.items():
             value = None
-            #if not 'elements' in ext_int:
-            #    pass
             if k in ext_int['elements']:
                 prop = ext_int['elements'][k]
                 if 'definition' in prop and 'type' in prop['definition']\
@@ -515,6 +531,8 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
                         raise DataException(f'Association property {k} has no source property')
             else:
                 raise DataException(f'Unknown property {k}')
+            
+            
             if value is None and isinstance(v, list):
                 if not 'items' in ext_int['elements'][k]:
                     raise DataException(f'{k} is not an array property')
@@ -523,17 +541,18 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
                         parent_object_id = object_id, pk = pk, 
                         ext_int=ext_int['elements'][k]['items'], parent_table_name=full_table_name)
                 else:
-                    array_to_dml(inserts, v, subtable_level + 1, object_id, pk
-                    , ext_int=ext_int['elements'][k]['items'])
-            elif value is None and isinstance(v, dict):
+                    array_to_dml(mapping, inserts, v, subtable_level + 1, object_id, pk
+                    , ext_int['elements'][k]['items'])
+            elif value is None and isinstance(v, dict) and not \
+                mapping['tables'][full_table_name]['columns'][ext_int['elements'][k]['column_name']]['type'] in TYPES_SPATIAL:
                 object_to_dml(mapping, inserts, [v], idmapping, subtable_level, col_prefix + [k],\
-                    propagated_row = row, propagated_object_id=object_id
-                    , pk = pk, 
+                    propagated_row = row, propagated_object_id=object_id, pk = pk, 
                     ext_int=ext_int['elements'][k], parent_table_name=full_table_name)
             else:
                 column_name = ext_int['elements'][k]['column_name']
                 if not value:
-                    value = v
+                    value = value_ext_to_int(\
+                        mapping['tables'][full_table_name]['columns'][column_name]['type'], v)
                 if not column_name in inserts[full_table_name]['columns']:
                     inserts[full_table_name]['columns'][column_name] = len(inserts[full_table_name]['columns'])
                     row.append(value)

@@ -7,6 +7,11 @@ TENANT_ID_MAX_LENGTH = 50
 CONFIG_FILE_NAME = '.config.json'
 TENANT_PREFIX = '_TENANT_'
 
+TYPES_B64_DECODE = set(['VARBINARY', 'BINTEXT', 'BLOB', 'BINARY'])
+TYPES_B64_ENCODE = set(['VARBINARY', 'BLOB', 'BINARY'])
+TYPES_SPATIAL = set(['ST_POINT', 'ST_GEOMETRY'])
+
+
 class DBUserType(Enum):
     ADMIN = 'admin'
     SCHEMA_MODIFY = 'schema_modify'

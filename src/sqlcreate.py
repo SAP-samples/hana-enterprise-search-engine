@@ -30,6 +30,7 @@ class Constants(object):
     length = 'length'
     precision = 'precision'
     scale = 'scale'
+    srid = 'srid'
 
 def get_columns(table):
     columns = []
@@ -38,6 +39,8 @@ def get_columns(table):
             continue
         if Constants.length in prop:
             column_type = f'{prop[Constants.type]}({prop[Constants.length]})'
+        elif Constants.srid in prop:
+            column_type = f'{prop[Constants.type]}({prop[Constants.srid]})'
         elif Constants.precision in prop and Constants.scale in prop:
             column_type = f'{prop[Constants.type]}({prop[Constants.precision]},{prop[Constants.scale]})'
         else:

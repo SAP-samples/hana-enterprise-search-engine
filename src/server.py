@@ -13,12 +13,14 @@ from esh_objects import IESSearchOptions
 import httpx
 import uvicorn
 from hdbcli.dbapi import Error as HDBException
+from hdbcli.dbapi import DataError
 import logging
-from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH
+from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH, TYPES_B64_ENCODE, TYPES_SPATIAL
 from config import get_user_name
 import sys
 #import logging
 import server_globals as glob
+import base64
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
@@ -182,13 +184,25 @@ async def post_data(tenant_id, objects=Body(...)):
             dml = convert.objects_to_dml(mapping, objects)
         except convert.DataException as e:
             handle_error(str(e), 400)
-        for table_name, v in dml['inserts'].items():
-            column_names = ','.join([f'"{k}"' for k in v['columns'].keys()])
-            column_placeholders = ','.join(['?']*len(v['columns']))
-            sql = f'insert into "{tenant_schema_name}"."{table_name}" ({column_names})\
-                 values ({column_placeholders})'
-            db.cur.executemany(sql, v['rows'])
-        db.con.commit()
+        try:
+            for table_name, v in dml['inserts'].items():
+                column_names = ','.join([f'"{k}"' for k in v['columns'].keys()])
+                cp = []
+                table = mapping['tables'][table_name]
+                for column_name in v['columns'].keys():
+                    if table['columns'][column_name]['type'] in TYPES_SPATIAL:
+                        srid = table['columns'][column_name]['srid']
+                        cp.append(f'ST_GeomFromGeoJSON(?, {srid})')
+                    else:
+                        cp.append('?')
+                column_placeholders = ','.join(cp)
+                sql = f'insert into "{table_name}" ({column_names}) values ({column_placeholders})'
+                db.cur.executemany(sql, v['rows'])
+            db.con.commit()
+        except DataError as e:
+            db.con.rollback()
+            handle_error(f'Data Error: {e.errortext}', 400)
+
     response = {}
     for object_type, obj_list in objects.items():
         if not isinstance(obj_list, list):
@@ -208,6 +222,15 @@ async def post_data(tenant_id, objects=Body(...)):
                     response[object_type] = []
                 response[object_type].append(res)
     return response
+
+
+def value_int_to_ext(typ, value):
+    if typ in TYPES_B64_ENCODE:
+        return base64.encodebytes(value).decode('utf-8')
+    elif typ in TYPES_SPATIAL:
+        return json.loads(value)
+    return value
+
 
 
 @app.post('/v1/read/{tenant_id}')
@@ -244,10 +267,12 @@ async def read_data(tenant_id, objects=Body(...)):
                 db.cur.execute(sql)
                 if '_VALUE' in table['columns']:
                     for row in db.cur:
-                        if row[0] in all_objects[table['table_name']]:
-                            all_objects[table['table_name']][row[0]].append(row[2])
+                        key, _ , val_int = row
+                        value = value_int_to_ext(table['columns']['_VALUE']['type'], val_int)
+                        if key in all_objects[table['table_name']]:
+                            all_objects[table['table_name']][key].append(value)
                         else:
-                            all_objects[table['table_name']][row[0]] = [row[2]]
+                            all_objects[table['table_name']][key] = [value]
                 else:
                     for row in db.cur:
                         i = 0
@@ -257,22 +282,22 @@ async def read_data(tenant_id, objects=Body(...)):
                                 sub_obj_key = row[i]
                                 if table['level'] == 0:
                                     res_key = row[i]
-                                    add_value(res_obj, prop['external_path'], row[i])
+                                    add_value(prop, res_obj, prop['external_path'], row[i])
                             elif table['level'] > 0 and prop_name == table['pkParent']:
                                 res_key = row[i]
                             elif 'isVirtual' in prop and prop['isVirtual']:
                                 if prop['rel']['type'] == 'containment':
                                     if sub_obj_key in all_objects[prop['rel']['table_name']]:
                                         sub_obj = all_objects[prop['rel']['table_name']][sub_obj_key]
-                                        add_value(res_obj, prop['external_path'], sub_obj)
+                                        add_value(prop, res_obj, prop['external_path'], sub_obj)
                                 continue
                             elif 'rel' in prop and prop['rel']['type'] == 'association':
                                 rel_table = mapping['tables'][prop['rel']['table_name']]
                                 path = prop['external_path']\
                                     + rel_table['columns'][rel_table['pk']]['external_path']
-                                add_value(res_obj, path, row[i])
+                                add_value(prop, res_obj, path, row[i])
                             else:
-                                add_value(res_obj, prop['external_path'], row[i])
+                                add_value(prop, res_obj, prop['external_path'], row[i])
                             i += 1
                         if table['level'] > 0:
                             if not res_key in all_objects[table['table_name']]:
@@ -316,15 +341,18 @@ async def delete_data(tenant_id, objects=Body(...)):
                 db.cur.execute(sql)
         db.con.commit()
 
-def add_value(obj, path, value):
+def add_value(column, obj, path, value):
     if value is None:
         return
     if len(path) == 1:
-        obj[path[0]] = value
+        if 'type' in column:
+            obj[path[0]] = value_int_to_ext(column['type'], value)
+        else:
+            obj[path[0]] = value
     else:
         if not path[0] in obj:
             obj[path[0]] = {}
-        add_value(obj[path[0]], path[1:], value)
+        add_value(column, obj[path[0]], path[1:], value)
 
 def get_table_sequence(mapping, table_sequence, current_table):
     for prop in current_table['columns'].values():
@@ -469,7 +497,7 @@ if __name__ == '__main__':
             config['version'] = [k for k in versions.keys()][-1]
             with open('src/.config.json', 'w', encoding = 'utf-8') as fr:
                 json.dump(config, fr, indent = 4)
-    
+
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db_read:
         r = [ { 'URI': [ '/$apiversion' ] } ]
         search_query = f'''CALL ESH_SEARCH('{json.dumps(r)}',?)'''

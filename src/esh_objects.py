@@ -66,50 +66,56 @@ def serialize_geometry_collection(collection):
 
 def deserialize_objects(item):
     # print(item)
-    if item[Constants.type] == StringValue.__name__:
-        return StringValue(item)
-    elif item[Constants.type] == Property.__name__:
-        return Property(item)
-    elif item[Constants.type] == Term.__name__:
-        return Term(item)
-    elif item[Constants.type] == Phrase.__name__:
-        return Phrase(item)
-    elif item[Constants.type] == NumberValue.__name__:
-        return NumberValue(item)
-    elif item[Constants.type] == BooleanValue.__name__:
-        return BooleanValue(item)
-    elif item[Constants.type] == Comparison.__name__:
-        return Comparison(item)
-    elif item[Constants.type] == ScopeComparison.__name__:
-        return ScopeComparison(item)
-    elif item[Constants.type] == Expression.__name__:
-        return Expression(item)
-    elif item[Constants.type] == CoveredByOperator.__name__:
-        return CoveredByOperator(item)
-    elif item[Constants.type] == IntersectsOperator.__name__:
-        return IntersectsOperator(item)
-    elif item[Constants.type] == Path.__name__:
-        return Path(item)
-    elif item[Constants.type] == MultiValues.__name__:
-        return MultiValues({Constants.items: list(map(lambda item: deserialize_objects(item), item[Constants.items]))})
-    elif item[Constants.type] == Point.__name__:
-        return Point(item)
-    elif item[Constants.type] == LineString.__name__:
-        return LineString(item)
-    elif item[Constants.type] == Polygon.__name__:
-        return Polygon(item)
-    elif item[Constants.type] == MultiPoint.__name__:
-        return MultiPoint(item)
-    elif item[Constants.type] == MultiLineString.__name__:
-        return MultiLineString(item)
-    elif item[Constants.type] == MultiPolygon.__name__:
-        return MultiPolygon(item)
-    elif item[Constants.type] == CircularString.__name__:
-        return CircularString(item)
-    elif item[Constants.type] == GeometryCollection.__name__:
-        return GeometryCollection({Constants.geometries: list(map(lambda geometry: deserialize_objects(geometry), item[Constants.geometries]))})
+    if type(item) is dict:
+        if Constants.type in item.keys():
+            if item[Constants.type] == StringValue.__name__:
+                return StringValue(item)
+            elif item[Constants.type] == Property.__name__:
+                return Property(item)
+            elif item[Constants.type] == Term.__name__:
+                return Term(item)
+            elif item[Constants.type] == Phrase.__name__:
+                return Phrase(item)
+            elif item[Constants.type] == NumberValue.__name__:
+                return NumberValue(item)
+            elif item[Constants.type] == BooleanValue.__name__:
+                return BooleanValue(item)
+            elif item[Constants.type] == Comparison.__name__:
+                return Comparison(item)
+            elif item[Constants.type] == ScopeComparison.__name__:
+                return ScopeComparison(item)
+            elif item[Constants.type] == Expression.__name__:
+                return Expression(item)
+            elif item[Constants.type] == CoveredByOperator.__name__:
+                return CoveredByOperator(item)
+            elif item[Constants.type] == IntersectsOperator.__name__:
+                return IntersectsOperator(item)
+            elif item[Constants.type] == Path.__name__:
+                return Path(item)
+            elif item[Constants.type] == MultiValues.__name__:
+                return MultiValues({Constants.items: list(map(lambda item: deserialize_objects(item), item[Constants.items]))})
+            elif item[Constants.type] == Point.__name__:
+                return Point(item)
+            elif item[Constants.type] == LineString.__name__:
+                return LineString(item)
+            elif item[Constants.type] == Polygon.__name__:
+                return Polygon(item)
+            elif item[Constants.type] == MultiPoint.__name__:
+                return MultiPoint(item)
+            elif item[Constants.type] == MultiLineString.__name__:
+                return MultiLineString(item)
+            elif item[Constants.type] == MultiPolygon.__name__:
+                return MultiPolygon(item)
+            elif item[Constants.type] == CircularString.__name__:
+                return CircularString(item)
+            elif item[Constants.type] == GeometryCollection.__name__:
+                return GeometryCollection({Constants.geometries: list(map(lambda geometry: deserialize_objects(geometry), item[Constants.geometries]))})
+            else:
+                raise Exception('unknown item type: ' + item[Constants.type])
+        else:
+            raise Exception('missing mandatory property type: ' + json.dumps(item))
     else:
-        raise Exception('unknown item type: ' + item[Constants.type])
+        return item
 
 def escapeQuery(query: str) -> str:
     escapedQuery = query if query.strip() else ''
@@ -265,22 +271,32 @@ class ScopeComparison(IToStatement):
             scope_values = ' OR '.join(self.values)
             return f'SCOPE:({scope_values})'
 
+
+            
 class Expression(IToStatement):
 
     def __init__(self, item: dict ):
         super().__init__()
         self.items = list(map(deserialize_objects, item[Constants.items])) if 'items' in item else []
         self.operator = item[Constants.operator] if Constants.operator in item.keys() else ''
+    
+    def get_expression_statement(self, expression_item):
+        if isinstance(expression_item, Expression): 
+            return f'({expression_item.to_statement()})'
+        else:
+            try:
+                return expression_item.to_statement()
+            except: 
+                return f'{expression_item}'
 
     def to_statement(self):
         if self.operator != '':
             connect_operator = f' {self.operator} '
         else:
             connect_operator = ' '
-
-        lst = list(map(lambda x: f'({x.to_statement()})' if isinstance(x, Expression) else x.to_statement(),\
-            self.items))
-        return connect_operator.join(lst)
+        
+        statements = list(map(lambda item: self.get_expression_statement(item), self.items))
+        return connect_operator.join(statements)
 
     def to_dict(self):
         return {
@@ -300,7 +316,18 @@ class Comparison(IToStatement):
 
 
     def to_statement(self):
-        return f'{self.property.to_statement()}{self.operator}{self.value.to_statement()}'
+        property_to_statement = getattr(self.property, "to_statement", None)
+        if callable(property_to_statement):
+            property = self.property.to_statement()
+        else:
+            property = self.property
+        value_to_statement = getattr(self.value, "to_statement", None)
+        if callable(value_to_statement):
+            value = self.value.to_statement()
+        else:
+            value = self.value
+        return f'{property}{self.operator}{value}'
+        
 
     def to_dict(self):
         return {

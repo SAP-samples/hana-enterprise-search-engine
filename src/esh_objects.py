@@ -707,7 +707,34 @@ if __name__ == '__main__':
     assert deserialized_object_multi_values.items[1].type == "StringValue"
     # print(multiValues.to_statement())
     # print(json.dumps(StringValue({'value':'vv'}).to_dict()))
+    json_property = '''
+        {
+            "type": "Property",
+            "property": "city"
+        }
+    '''
+    deserialized_object_property = deserialize_objects(json.loads(json_property))
+    assert deserialized_object_property.type == Property.__name__
+    print(json.dumps(deserialized_object_property.to_dict()))
+
+    json_comparison = '''
+            {
+                "type": "Comparison",
+                "property": {
+                    "type": "Property",
+                    "property": "city"
+                },
+                "operator": ":",
+                "value": {
+                    "type": "StringValue",
+                    "value": "Mannheim"
+                }
+            }
+        '''
+    deserialized_object_comparison = deserialize_objects(json.loads(json_comparison))
+    assert deserialized_object_comparison.type == Comparison.__name__
     
+    print(json.dumps(deserialized_object_comparison.to_dict()))
 
     json_multi_values = '''
         {

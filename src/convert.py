@@ -6,7 +6,7 @@ import base64
 from constants import TYPES_B64_DECODE, TYPES_SPATIAL, SPATIAL_DEFAULT_SRID
 
 ENTITY_PREFIX = 'ENTITY/'
-VIEW_PREFIX = 'VIEW/'
+VIEW_PREFIX = 'VIEW_'
 PRIVACY_CATEGORY_COLUMN_DEFINITION = ('_PRIVACY_CATEGORY', {'type':'TINY'})
 PRIVACY_CATEGORY_ANNOTATION = '@EnterpriseSearchIndex.privacyCategory'
 
@@ -394,7 +394,6 @@ def cson_to_mapping(cson, pk = DefaultPK):
             prefix = f'L{nl}.' if nl > 1 else ''
             suffix = '.ST_AsGeoJSON()' if v['type'] in TYPES_SPATIAL else ''
             select_columns.append(f'{prefix}"{k}"{suffix}')
-
         if nl <= 1:
             if nl == 0:
                 key_column = table['pk']
@@ -425,7 +424,35 @@ def cson_to_mapping(cson, pk = DefaultPK):
 
         table['sql']['select'] = f'SELECT {", ".join(select_columns)} from {sql_table_joins} where {sql_condition}'
 
-    return {'tables': tables, 'entities': entities}
+        default_views = {}
+        name_mapping = NameMapping()
+        for entity_name, entity in entities.items():
+            view_columns = {}
+            view_elements = get_view_columns(tables, view_columns, name_mapping, entity, [])
+            view_name = VIEW_PREFIX + entity['table_name'][len(ENTITY_PREFIX):]
+            default_views[entity_name] = {'view_name': view_name, 'entity_name': entity_name,\
+                'columns': view_columns, 'elements': view_elements['elements']}
+    return {'tables': tables, 'entities': entities, 'views': default_views}
+
+
+def get_view_columns(tables, view_columns, name_mapping, element, path, table_name = None):
+    if 'table_name' in element:
+        table_name = element['table_name']
+    if 'elements' in element:
+        view_element = {}
+        for k, v in element['elements'].items():
+            view_element[k] = get_view_columns(tables, view_columns, name_mapping, v, path + [k], table_name)
+        return {'elements': view_element}
+    if 'items' in element:
+        return {'items': \
+            get_view_columns(tables, view_columns, name_mapping, element['items'], path, table_name)}
+    column_name, _ = name_mapping.register(path)
+    view_columns[column_name] = {'path': path, 'table_name': table_name, \
+        'table_column_name': element['column_name']}
+    if 'annotations' in tables[table_name]['columns'][element['column_name']]:
+        view_columns[column_name]['annotations'] = tables[table_name]['columns'][element['column_name']]['annotations']
+    return {'view_column_name': column_name}
+        
 
 
 def get_parents(tables, table, steps):

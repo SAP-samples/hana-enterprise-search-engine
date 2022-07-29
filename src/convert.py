@@ -185,7 +185,7 @@ def add_key_columns_to_table(table, subtable_level, pk):
 
 def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, type_definition,\
     subtable_level = 0, is_table = True, has_pc = False, pk = DefaultPK, parent_table_name = None,
-    sur_table = None, sur_prop_name_mapping = None, sur_prop_path = [], ext_int = {}):
+    sur_table = None, sur_prop_name_mapping = None, sur_prop_path = [], entity = {}):
     ''' Transforms cson entity definition to model definition.
     The tables links the external object-oriented-view with internal HANA-database-view.'''
     external_path = path + [type_name]
@@ -204,15 +204,15 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
         if is_table:
             if subtable_level == 0:
                 pk_column_name, _ = column_name_mapping.register([type_definition['pk']])
-                ext_int['elements'][type_definition['pk']] = {'column_name': pk_column_name}
+                entity['elements'][type_definition['pk']] = {'column_name': pk_column_name}
                 table['pk'] = pk_column_name
                 table_name, table_map = table_name_mapping.register(external_path, ENTITY_PREFIX\
                     , definition = {'pk': pk_column_name})
-                ext_int['table_name'] = table_name
+                entity['table_name'] = table_name
                 table['columns'] = {}
             else:
                 table_name, table_map = table_name_mapping.register(external_path)
-                ext_int['table_name'] = table_name
+                entity['table_name'] = table_name
                 add_key_columns_to_table(table, subtable_level, pk)
             table['table_name'] = table_name
             parent_table_name = table_name
@@ -226,7 +226,7 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
         for element_name_ext, element in type_definition['elements'].items():
             is_virtual = '@sap.esh.isVirtual' in element and element['@sap.esh.isVirtual']
             is_association = 'type' in element and element['type'] == 'cds.Association'
-            ext_int['elements'][element_name_ext] = {}
+            entity['elements'][element_name_ext] = {}
             if is_virtual:
                 if not is_association:
                     raise ModelException(f'{element_name_ext}: '
@@ -245,7 +245,7 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                 element['target_table_name'], _ = table_name_mapping.register([element['target']], ENTITY_PREFIX)
                 element['target_pk'] = cson['definitions'][element['target']]['pk']
                 element_name, _ = column_name_mapping.register(sur_prop_path + [element_name_ext], definition=element)
-                ext_int['elements'][element_name_ext]['definition'] = element
+                entity['elements'][element_name_ext]['definition'] = element
             else:
                 element_name, _ = column_name_mapping.register(sur_prop_path + [element_name_ext])
                 
@@ -263,46 +263,46 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                     else:
                         sub_type = element
                         sub_type['kind'] = 'type'
-                ext_int['elements'][element_name_ext]['items'] = {'elements': {}}
+                entity['elements'][element_name_ext]['items'] = {'elements': {}}
                 subtable = cson_entity_to_tables(table_name_mapping, cson, tables, path +\
                     [type_name], element_name_ext, sub_type, subtable_level +  1, True\
                     , element_needs_pc, parent_table_name = parent_table_name
-                    , ext_int= ext_int['elements'][element_name_ext]['items'])
+                    , entity= entity['elements'][element_name_ext]['items'])
                 subtables.append(subtable)
                 table['columns'][element_name] = {'rel': {'table_name':subtable['table_name'],\
                     'type':'containment'}, 'external_path': sur_prop_path + [element_name_ext], 'isVirtual': True}
             elif 'type' in element:
                 if element['type'] in cson['definitions']:
                     if 'elements' in cson['definitions'][element['type']]:
-                        ext_int['elements'][element_name_ext]['elements'] = {}
+                        entity['elements'][element_name_ext]['elements'] = {}
                         _ = cson_entity_to_tables(table_name_mapping, cson, tables, path + [type_name],\
                             element_name_ext, element, subtable_level, False, parent_table_name = parent_table_name, 
                             sur_table=table, sur_prop_name_mapping=column_name_mapping,
                             sur_prop_path=sur_prop_path + [element_name_ext],
-                            ext_int=ext_int['elements'][element_name_ext])
+                            entity=entity['elements'][element_name_ext])
                     else:
                         table['columns'][element_name] =\
                             get_sql_type(table_name_mapping, cson, cson['definitions'][element['type']], pk)
                         table['columns'][element_name]['external_path'] = sur_prop_path + [element_name_ext]
-                        ext_int['elements'][element_name_ext]['column_name'] = element_name
+                        entity['elements'][element_name_ext]['column_name'] = element_name
                 else:
                     table['columns'][element_name] = get_sql_type(table_name_mapping, cson, element, pk)
                     table['columns'][element_name]['external_path'] = sur_prop_path + [element_name_ext]
-                    ext_int['elements'][element_name_ext]['column_name'] = element_name
+                    entity['elements'][element_name_ext]['column_name'] = element_name
             elif 'elements' in element: # nested definition
                 element['kind'] = 'type'
-                ext_int['elements'][element_name_ext]['elements'] = {}
+                entity['elements'][element_name_ext]['elements'] = {}
                 _ = cson_entity_to_tables(table_name_mapping, cson, tables, path + [type_name],\
                     element_name_ext, element, subtable_level, False, parent_table_name = parent_table_name,
                     sur_table=table, 
                     sur_prop_name_mapping=column_name_mapping,
                     sur_prop_path=sur_prop_path + [element_name_ext],
-                    ext_int=ext_int['elements'][element_name_ext])
+                    entity=entity['elements'][element_name_ext])
             else:
                 raise NotImplementedError
     elif path and type_definition['kind'] == 'type': # single column for one table
-        ext_int['table_name'] = table_name
-        ext_int['column_name'] = '_VALUE'
+        entity['table_name'] = table_name
+        entity['column_name'] = '_VALUE'
         if not type_definition['type'] in cson['definitions']:
             table['columns']['_VALUE'] = get_sql_type(table_name_mapping, cson, type_definition, pk)
         #elif '@EnterpriseSearchIndex.type' in cson['definitions'][type_definition['type']] and\
@@ -360,7 +360,7 @@ def cson_to_mapping(cson, pk = DefaultPK):
     for cson_def_name, cson_def in cson['definitions'].items():
         if cson_def['kind'] == 'entity':
             entity = {'elements':{}}
-            cson_entity_to_tables(table_name_mapping, cson, tables, [], cson_def_name, cson_def, pk = pk, ext_int = entity)
+            cson_entity_to_tables(table_name_mapping, cson, tables, [], cson_def_name, cson_def, pk = pk, entity = entity)
             entities[cson_def_name] = entity
 
 
@@ -445,8 +445,8 @@ def value_ext_to_int(typ, value):
     return value
 
 
-def array_to_dml(mapping, inserts, objects, subtable_level, parent_object_id, pk, ext_int):
-    full_table_name = ext_int['table_name']
+def array_to_dml(mapping, inserts, objects, subtable_level, parent_object_id, pk, entity):
+    full_table_name = entity['table_name']
     if not full_table_name in inserts:
         _, _, key_columns = get_key_columns(subtable_level, pk)
         key_col_names = {k:idx for idx, k in enumerate(key_columns.keys())}
@@ -465,9 +465,9 @@ def array_to_dml(mapping, inserts, objects, subtable_level, parent_object_id, pk
 
 def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_prefix = [],\
     parent_object_id = None, propagated_row = None, propagated_object_id = None, pk = DefaultPK
-    , ext_int = {}, parent_table_name = ''):
-    if 'table_name' in ext_int:
-        full_table_name = ext_int['table_name']
+    , entity = {}, parent_table_name = ''):
+    if 'table_name' in entity:
+        full_table_name = entity['table_name']
     else:
         full_table_name = parent_table_name
     for obj in objects:
@@ -504,8 +504,8 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
 
         for k, v in obj.items():
             value = None
-            if k in ext_int['elements']:
-                prop = ext_int['elements'][k]
+            if k in entity['elements']:
+                prop = entity['elements'][k]
                 if 'definition' in prop and 'type' in prop['definition']\
                     and prop['definition']['type'] == 'cds.Association':
                     if 'isVirtual' in prop['definition'] and prop['definition']['isVirtual']:
@@ -535,22 +535,22 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
             
             
             if value is None and isinstance(v, list):
-                if not 'items' in ext_int['elements'][k]:
+                if not 'items' in entity['elements'][k]:
                     raise DataException(f'{k} is not an array property')
-                if ext_int['elements'][k]['items']['elements']:
+                if entity['elements'][k]['items']['elements']:
                     object_to_dml(mapping, inserts, v, idmapping, subtable_level + 1,\
                         parent_object_id = object_id, pk = pk, 
-                        ext_int=ext_int['elements'][k]['items'], parent_table_name=full_table_name)
+                        entity=entity['elements'][k]['items'], parent_table_name=full_table_name)
                 else:
                     array_to_dml(mapping, inserts, v, subtable_level + 1, object_id, pk
-                    , ext_int['elements'][k]['items'])
-            elif value is None and isinstance(v, dict) and (not 'column_name' in ext_int['elements'][k] or not \
-                mapping['tables'][full_table_name]['columns'][ext_int['elements'][k]['column_name']]['type'] in TYPES_SPATIAL):
+                    , entity['elements'][k]['items'])
+            elif value is None and isinstance(v, dict) and (not 'column_name' in entity['elements'][k] or not \
+                mapping['tables'][full_table_name]['columns'][entity['elements'][k]['column_name']]['type'] in TYPES_SPATIAL):
                 object_to_dml(mapping, inserts, [v], idmapping, subtable_level, col_prefix + [k],\
                     propagated_row = row, propagated_object_id=object_id, pk = pk, 
-                    ext_int=ext_int['elements'][k], parent_table_name=full_table_name)
+                    entity=entity['elements'][k], parent_table_name=full_table_name)
             else:
-                column_name = ext_int['elements'][k]['column_name']
+                column_name = entity['elements'][k]['column_name']
                 if not value:
                     value = value_ext_to_int(\
                         mapping['tables'][full_table_name]['columns'][column_name]['type'], v)
@@ -570,7 +570,7 @@ def objects_to_dml(mapping, objects, pk = DefaultPK):
         if not object_type in mapping['entities']:
             raise DataException(f'Unknown object type {object_type}')
         object_to_dml(mapping, inserts, objects, idmapping, pk = pk,
-            ext_int=mapping['entities'][object_type])
+            entity=mapping['entities'][object_type])
     if idmapping:
         dangling = [json.loads(k) for k, v in idmapping.items() if not v['resolved']]
         if dangling:

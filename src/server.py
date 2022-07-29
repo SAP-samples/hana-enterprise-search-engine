@@ -3,6 +3,7 @@ Provides HTTP(S) interfaces
 '''
 from datetime import datetime
 from fastapi import FastAPI, Request, Body, HTTPException, Response
+from fastapi.staticfiles import StaticFiles
 from starlette.responses import RedirectResponse
 import json
 import uuid
@@ -24,6 +25,7 @@ import base64
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 def handle_error(msg: str = '', status_code: int = -1):
     if status_code == -1:
@@ -391,6 +393,13 @@ def get_esh_version(version):
     if version == 'latest' or version == '':
         return glob.esh_apiversion
     return version
+
+@app.get('/',response_class=RedirectResponse, status_code=302)
+async def get_static_index():
+    redirect_url = (
+        '/static/index.html'
+    )
+    return RedirectResponse(redirect_url)
 
 @app.get('/v1/searchui/{tenant_id:path}',response_class=RedirectResponse, status_code=302)
 async def get_search_by_tenant(tenant_id):

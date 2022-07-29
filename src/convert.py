@@ -6,7 +6,7 @@ import base64
 from constants import TYPES_B64_DECODE, TYPES_SPATIAL, SPATIAL_DEFAULT_SRID
 
 ENTITY_PREFIX = 'ENTITY/'
-VIEW_PREFIX = 'VIEW_'
+VIEW_PREFIX = 'VIEW/'
 PRIVACY_CATEGORY_COLUMN_DEFINITION = ('_PRIVACY_CATEGORY', {'type':'TINY'})
 PRIVACY_CATEGORY_ANNOTATION = '@EnterpriseSearchIndex.privacyCategory'
 
@@ -429,9 +429,10 @@ def cson_to_mapping(cson, pk = DefaultPK):
         for entity_name, entity in entities.items():
             view_columns = {}
             view_elements = get_view_columns(tables, view_columns, name_mapping, entity, [])
-            view_name = VIEW_PREFIX + entity['table_name'][len(ENTITY_PREFIX):]
-            default_views[entity_name] = {'view_name': view_name, 'entity_name': entity_name,\
-                'columns': view_columns, 'elements': view_elements['elements']}
+            odata_name = entity['table_name'][len(ENTITY_PREFIX):]
+            view_name = VIEW_PREFIX + odata_name
+            default_views[entity_name] = {'view_name': view_name, 'odata_name': odata_name,\
+                'entity_name': entity_name, 'columns': view_columns, 'elements': view_elements['elements']}
     return {'tables': tables, 'entities': entities, 'views': default_views}
 
 

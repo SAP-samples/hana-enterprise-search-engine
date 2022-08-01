@@ -22,6 +22,7 @@ import sys
 #import logging
 import server_globals as glob
 import base64
+from request_mapping import map_request
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
@@ -440,6 +441,29 @@ async def search_v2(tenant_id, esh_version, query=Body(...)):
     validate_tenant_id(tenant_id)
     esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
     return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
+
+# v2.1 Search
+@app.post('/v2.1/search/{tenant_id}/{esh_version:path}')
+async def search_v2(tenant_id, esh_version, query=Body(...)):
+    try:
+        validate_tenant_id(tenant_id)
+        
+        tenant_schema_name = get_tenant_schema_name(tenant_id)
+        with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+            db.cur.execute(f'set schema "{tenant_schema_name}"')
+            sql = f'select top 1 MAPPING from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
+            db.cur.execute(sql)
+            res = db.cur.fetchone()
+            if not (res and len(res) == 1):
+                logging.error('Tenant %s has no entries in the _MODEL table', tenant_id)
+                handle_error('Configuration inconsistent', 500)
+        esh_mapped_queries = map_request(json.loads(res[0]), query)
+        esh_query = [IESSearchOptions(w).to_statement()[1:] for w in esh_mapped_queries]
+        
+        # esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
+        return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
+    except Exception as e:
+        return {'error': f'{e}'}
 
 @app.get('/{path:path}')
 async def tile_request(path: str, response: Response):

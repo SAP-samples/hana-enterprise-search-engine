@@ -442,19 +442,25 @@ def get_view_columns(tables, view_columns, name_mapping, element, path, table_na
     if 'elements' in element:
         view_element = {}
         for k, v in element['elements'].items():
-            view_element[k] = get_view_columns(tables, view_columns, name_mapping, v, path + [k], table_name)
+            ve = get_view_columns(tables, view_columns, name_mapping, v, path + [k], table_name)
+            if ve:
+                view_element[k] = ve
         return {'elements': view_element}
     if 'items' in element:
-        return {'items': \
-            get_view_columns(tables, view_columns, name_mapping, element['items'], path, table_name)}
+        ve = get_view_columns(tables, view_columns, name_mapping, element['items'], path, table_name)
+        if ve:
+            return {'items': ve}
     column_name, _ = name_mapping.register(path)
-    view_columns[column_name] = {'path': path, 'table_name': table_name, \
-        'table_column_name': element['column_name']}
-    if 'annotations' in tables[table_name]['columns'][element['column_name']]:
-        view_columns[column_name]['annotations'] = tables[table_name]['columns'][element['column_name']]['annotations']
+    #view_columns[column_name] = {'path': path, 'table_name': table_name, \
+    #    'table_column_name': element['column_name']}
+    view_column = {'path': path}
+    table_column = tables[table_name]['columns'][element['column_name']]
+    if 'annotations' in table_column:
+        if '@sap.esh.isVirtual' in table_column['annotations']:
+            return {}
+        view_column['annotations'] = table_column['annotations']
+    view_columns[column_name] = view_column
     return {'view_column_name': column_name}
-        
-
 
 def get_parents(tables, table, steps):
     if not 'parent' in table:

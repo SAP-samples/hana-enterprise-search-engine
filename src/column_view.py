@@ -1,0 +1,173 @@
+from copy import deepcopy
+from name_mapping import NameMapping
+
+ESH_CONFIG_TEMPLATE = {
+    'uri': '~/$metadata/EntitySets',
+    'method': 'PUT',
+    'content': {
+        'Fullname': '',
+        'EntityType': {
+            '@EnterpriseSearch.enabled': True,
+            '@Search.searchable': True,
+            '@EnterpriseSearchHana.identifier': 'VORGANG_MODEL',
+            '@EnterpriseSearchHana.passThroughAllAnnotations': True,
+            'Properties': []}}}
+
+def sequence(i = 0, prefix = '', fill = 3):
+    while True:
+        if prefix:
+            yield f'{prefix}{str(i).zfill(fill)}'
+        else:
+            yield i
+        i += 1
+
+def sequenceInt(i = 10, step = 10):
+    while True:
+        yield i
+        i += step
+
+class ColumnView:
+    """Column view definition"""
+    def __init__(self, model, anchor_entity_name, schema_name, view_name, odata_name, selector) -> None:
+        self.model = model
+        self.anchor_entity_name = anchor_entity_name
+        self.schema_name = schema_name
+        self.view_name = view_name
+        self.odata_name = odata_name
+        self.selector = selector
+        self.esh_config = deepcopy(ESH_CONFIG_TEMPLATE)
+        self.column_name_mapping = NameMapping()
+        self.join_index = {}
+        self.view_attribute = []
+        self.join_conditions = []
+        self.join_path = {}
+        self.join_path_id_gen = sequence(1, 'JP', 3)
+        self.join_condition_id_gen = sequence(1, 'JC', 3)
+        self.ui_position_gen = sequenceInt()
+
+    @staticmethod
+    def _get_join_index_name(join_index):
+        table_name, index = join_index
+        if index == 0:
+            return table_name
+        else:
+            return f'{table_name}.temp{str(index).zfill(2)}'
+
+    def _table(self, table_name):
+        if not table_name in self.join_index:
+            self.join_index[table_name] = 0
+        else:
+            self.join_index[table_name] += 1
+        return (table_name, self.join_index[table_name])
+
+    def _add_join_condition(self, join_path_id, join_index_from, column_name_from, join_index_to, column_name_to):
+        join_condition_id = next(self.join_condition_id_gen)
+        self.join_conditions.append((join_condition_id, self.get_join_index_name(join_index_from),\
+            column_name_from, self.get_join_index_name(join_index_to), column_name_to))
+        if join_path_id in self.join_path:
+            self.join_path[join_path_id].add(join_condition_id)
+        else:
+            self.join_path[join_path_id] = set([join_condition_id])
+
+    def _get_sql_statement(self):
+        v  = f'create or replace column view "{self.view_name}" with parameters (indexType=6,\n'
+        for join_index in self.join_index:
+            v += f'joinIndex="{join_index}",joinIndexType=0,joinIndexEstimation=0,\n'
+        for jc in self.join_conditions:
+            v += f'joinCondition=(\'{jc[0]}\',"{jc[1]}","{jc[2]}","{jc[3]}","{jc[4]}",\'\',81,0),\n'
+        for jp_name, jp_conditions in self.join_path.items():
+            v += f"joinPath=('{jp_name}','{','.join(sorted(list(jp_conditions)))}'),\n"
+        for view_prop_name, table_name, table_prop_name, join_path_id in self.view_attribute:
+            v += f"viewAttribute=('{view_prop_name}',\"{table_name}\",\"{table_prop_name}\",'{join_path_id}'"\
+                +",'default','attribute'),\n"
+        v += f"view=('default',\"{self.anchor_table_name}\"),\n"
+        v += "defaultView='default',\n"
+        v += 'OPTIMIZEMETAMODEL=0,\n'
+        v += "'LEGACY_MODE' = 'TRUE')"
+        return v
+
+    def _add_view_column(self, table_name, join_index, join_path_id,\
+        name_path, table_column_name, annotations):
+        view_column_name, _ = self.column_name_mapping.register(name_path)
+        self.view_attribute.append((view_column_name, \
+            self._get_join_index_name(join_index), table_column_name, join_path_id))
+        # ESH config
+        col_conf = {'Name': view_column_name}
+        if annotations:
+            col_conf |= annotations
+        elif 'annotations' in self.mapping['tables'][table_name]['columns'][table_column_name]:
+            col_conf |= self.mapping['tables'][table_name]['columns'][table_column_name]['annotations']
+        # for UI5 enterprise search UI to work
+        is_enteprise_search_key = \
+            not join_path_id and table_column_name == self.mapping['tables'][table_name]['pk']
+        if is_enteprise_search_key:
+            col_conf['@EnterpriseSearch.key'] = True
+            col_conf['@UI.hidden'] = True
+        else:
+            col_conf['@Search.defaultSearchElement'] = True
+        if annotations and '@EndUserText.Label' in annotations and '@SAP.Common.Label' not in annotations:
+            col_conf['@SAP.Common.Label'] = annotations['@EndUserText.Label']
+        if not join_path_id and not is_enteprise_search_key:
+            col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]
+        self.esh_config['content']['EntityType']['Properties'].append(col_conf)
+
+    def _add_join(self, join_path_id, source_join_index, target_entity_pos):
+        if join_path_id:
+            jp_id = join_path_id
+        else:
+            jp_id = next(self.join_path_id_gen)
+        target_table_name = target_entity_pos['table_name']
+        target_join_index = self._table(target_table_name)
+        source_key = self.mapping['tables'][source_join_index[0]]['pk']
+        target_key = self.mapping['tables'][target_table_name]['pkParent']
+        self._add_join_condition(jp_id, source_join_index, source_key\
+            , target_join_index, target_key)
+        return target_join_index, jp_id
+
+    def _add_column(self, entity_pos, table_name, join_index, join_path_id,\
+                name_path):
+        if 'items' in entity_pos:
+            ep = entity_pos['items']
+            self._add_join(join_path_id, join_index, ep)
+        else:
+            ep = entity_pos
+        annotations = ep['annotations'] if 'annotations' in ep else {}
+        self._add_view_column(table_name, join_index, join_path_id,\
+            name_path, ep['column_name'], annotations)
+
+
+    def _traverse(self, selector_pos, entity_pos, name_path, join_index, join_path_id = ''):
+        table_name = join_index[0]
+        if 'elements' in selector_pos:
+            for selected_property_name, selected_property in selector_pos['elements'].items():
+                name_path.append(selected_property_name)
+                # ToDo: Error handling
+                entity_property = entity_pos['elements'][selected_property_name]
+                if 'elements' in selected_property:
+                    if 'elements' in entity_property:
+                        self._traverse(selected_property, entity_property, name_path, join_index, join_path_id)
+                    elif 'items' in entity_property and 'elements' in entity_property['items']:
+                        target_join_index, jp_id = \
+                            self._add_join(join_path_id, join_index, entity_property['items'])
+                        self._traverse(selected_property, entity_property['items'], name_path, target_join_index, jp_id)
+                    else:
+                        raise NotImplementedError
+                else:
+                    self._add_column(entity_property, table_name, join_index, join_path_id, name_path)
+        else:
+            self._add_column(entity_pos, table_name, join_index, join_path_id, name_path)
+
+    def data_definition(self, schema_name):
+        anchor_entity = self.mapping['entities'][self.anchor_entity_name]
+        anchor_table_name = anchor_entity['table_name']
+        if 'annotations' in self.mapping['tables'][anchor_table_name]:
+            annotations = self.mapping['tables'][anchor_table_name]['annotations']
+            self.esh_config['content']['EntityType'] |= annotations
+            # for UI5 enterprise search UI to work
+            if '@EndUserText.Label' in annotations and not '@SAP.Common.Label' in annotations:
+                self.esh_config['content']['EntityType']['@SAP.Common.Label'] = annotations['@EndUserText.Label']
+        self.esh_config['content']['Fullname'] = f'{schema_name}/{self.view_name}'
+        self.esh_config['content']['EntityType']['@EnterpriseSearchHana.identifier'] = self.odata_name
+        self._traverse(self.selector, anchor_entity, [], self._table(anchor_table_name))
+
+        return self._get_sql_statement(), self.esh_config

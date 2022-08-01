@@ -151,156 +151,65 @@ def search_dd(schema_name, mapping, views):
 
     return {'views': views_dd, 'eshConfig':esh_configs}
 
+
+def add_view_column(cv, esh_config_properties, mapping, table_name, join_index, join_path_id,\
+    view_column_name, table_column_name, annotations):
+    cv.view_attribute.append((view_column_name, \
+        cv.get_join_index_name(join_index), table_column_name, join_path_id))
+    # ESH config
+    col_conf = {'Name': view_column_name}
+    if annotations:
+        col_conf |= annotations
+    elif 'annotations' in mapping['tables'][table_name]['columns'][table_column_name]:
+        col_conf |= mapping['tables'][table_name]['columns'][table_column_name]['annotations']
+    # for UI5 enterprise search UI to work
+    is_enteprise_search_key = \
+        not join_path_id and table_column_name == mapping['tables'][table_name]['pk']
+    if is_enteprise_search_key:
+        col_conf['@EnterpriseSearch.key'] = True
+        col_conf['@UI.hidden'] = True
+    else:
+        col_conf['@Search.defaultSearchElement'] = True
+    if annotations and '@EndUserText.Label' in annotations and '@SAP.Common.Label' not in annotations:
+        col_conf['@SAP.Common.Label'] = annotations['@EndUserText.Label']
+    if not join_path_id and not is_enteprise_search_key:
+        col_conf['@UI.identification'] = [{'position': next(cv.ui_position_gen)}]
+    esh_config_properties.append(col_conf)
+
 def traverse_view_elements(cv: ColumnView, esh_config_properties, mapping, view_pos, entity_pos, \
     join_index, join_path_id = ''):
     table_name = join_index[0]
-    for prop_name, prop in view_pos['elements'].items():
-        entity_prop = entity_pos['elements'][prop_name]
-        if 'items' in prop:
-            next_entity_pos = entity_prop['items']
-            next_view_pos = prop['items']
-            if join_path_id:
-                jp_id = join_path_id
+    if 'elements' in view_pos:
+        for prop_name, prop in view_pos['elements'].items():
+            entity_prop = entity_pos['elements'][prop_name]
+            if 'items' in prop:
+                next_entity_pos = entity_prop['items']
+                next_view_pos = prop['items']
+                if join_path_id:
+                    jp_id = join_path_id
+                else:
+                    jp_id = next(cv.join_path_id_gen)
+                target_table_name = next_entity_pos['table_name']
+                target_join_index = cv.table(target_table_name)
+                source_key = mapping['tables'][table_name]['pk']
+                target_key = mapping['tables'][target_table_name]['pkParent']
+                cv.add_join_condition(jp_id, join_index, source_key\
+                    , target_join_index, target_key )
+                traverse_view_elements(cv, esh_config_properties, mapping,\
+                    next_view_pos, next_entity_pos, target_join_index, jp_id)
+            elif 'elements' in prop:
+                traverse_view_elements(cv, esh_config_properties, mapping,\
+                    prop, entity_prop, join_index, join_path_id)
             else:
-                jp_id = next(cv.join_path_id_gen)
-            target_table_name = next_entity_pos['table_name']
-            target_join_index = cv.table(target_table_name)
-            source_key = mapping['tables'][table_name]['pk']
-            target_key = mapping['tables'][target_table_name]['pkParent']
-            cv.add_join_condition(jp_id, join_index, source_key\
-                , target_join_index, target_key )
-            traverse_view_elements(cv, esh_config_properties, mapping,\
-                next_view_pos, next_entity_pos, target_join_index, jp_id)
-        elif 'elements' in prop:
-            traverse_view_elements(cv, esh_config_properties, mapping,\
-                prop, entity_prop, join_index, join_path_id)
-        else:
-            cv.view_attribute.append((prop['view_column_name'], \
-                cv.get_join_index_name(join_index), entity_prop['column_name'], join_path_id))
-            # ESH config
-            col_conf = {'Name': prop['view_column_name']}
-            annotations = {}
-            if 'annotations' in prop:
-                annotations = prop['annotations']
-            elif 'annotations' in mapping['tables'][table_name]['columns'][entity_prop['column_name']]:
-                annotations = mapping['tables'][table_name]['columns'][entity_prop['column_name']]['annotations']
-            if annotations:
-                col_conf |= annotations
-            # for UI5 enterprise search UI to work
-            is_enteprise_search_key = \
-                not join_path_id and entity_prop['column_name'] == mapping['tables'][table_name]['pk']
-            if is_enteprise_search_key:
-                col_conf['@EnterpriseSearch.key'] = True
-                col_conf['@UI.hidden'] = True
-            else:
-                col_conf['@Search.defaultSearchElement'] = True
-            if annotations and '@EndUserText.Label' in annotations and '@SAP.Common.Label' not in annotations:
-                col_conf['@SAP.Common.Label'] = annotations['@EndUserText.Label']
-            if not join_path_id and not is_enteprise_search_key:
-                col_conf['@UI.identification'] = [{'position': next(cv.ui_position_gen)}]
-            esh_config_properties.append(col_conf)
-
+                annotations = prop['annotations'] if 'annotations' in prop else {}
+                add_view_column(cv, esh_config_properties, mapping, table_name, join_index, join_path_id,\
+                    prop['view_column_name'], entity_prop['column_name'], annotations)            
+    else:
+        annotations = view_pos['annotations'] if 'annotations' in view_pos else {}
+        add_view_column(cv, esh_config_properties, mapping, table_name, join_index, join_path_id,\
+            view_pos['view_column_name'], '_VALUE', annotations)            
 
 def mapping_to_ddl(mapping, schema_name):
     tables = tables_dd(mapping['tables'])
     sdd = search_dd(schema_name, mapping, [v for v in mapping['views'].values()])
     return {'tables': tables, 'views': sdd['views'], 'eshConfig':sdd['eshConfig']}
-
-'''
-def mapping_to_ddl(mapping, schema_name):
-    tables = []
-    views = []
-    esh_configs = []
-    for table in mapping['tables'].values():
-        create_statement = f'create table "{table[Constants.table_name]}" ( {", ".join(get_columns(table))} )'
-        tables.append(create_statement)
-        if table['level'] == 0:
-            esh_config_hana_identifier = table[Constants.table_name][len(convert.ENTITY_PREFIX):]
-            view_name = convert.VIEW_PREFIX + esh_config_hana_identifier
-            cv = ColumnView(view_name, table['table_name'])
-            anchor_join_index = (table['table_name'], 0)
-            esh_config = deepcopy(ESH_CONFIG_TEMPLATE)
-            if 'annotations' in table:
-                esh_config['content']['EntityType'] |= table['annotations']
-            # for UI5 enterprise search UI to work
-            if 'annotations' in table and '@EndUserText.Label' in table['annotations']\
-                and not '@SAP.Common.Label' in table['annotations']:
-                esh_config['content']['EntityType']['@SAP.Common.Label'] = table['annotations']['@EndUserText.Label']
-
-            esh_config['content']['Fullname'] = f'{schema_name}/{view_name}'
-            esh_config['content']['EntityType']['@EnterpriseSearchHana.identifier'] = esh_config_hana_identifier
-            esh_config_properties = []
-            #ui_position = 10
-            #for prop_name, prop in table['properties'].items():
-            #    if not 'rel' in prop:
-            #        #cv.view_attribute.append((prop_name, table[Constants.table_name], prop_name, ''))
-            #        if prop_name != '_ID':
-            #            col_conf = {'Name': prop_name}
-            #            if 'annotations' in prop:
-            #                col_conf |= prop['annotations']
-            #            # for UI5 enterprise search UI to work
-            #            if 'annotations' in prop and '@EndUserText.Label' in prop['annotations']\
-            #                and not '@SAP.Common.Label' in prop['annotations']:
-            #                col_conf['@SAP.Common.Label'] = prop['annotations']['@EndUserText.Label']
-            #            col_conf['@Search.defaultSearchElement'] = True
-            #            col_conf['@UI.identification'] = [{'position': ui_position}]
-            #            ui_position += 10
-            #            esh_config_properties.append(col_conf)
-            traverse_contains(cv, esh_config_properties, mapping, table, anchor_join_index)
-            views.append(cv.get_sql_statement())
-            esh_config['content']['EntityType']['Properties'].extend(esh_config_properties)
-            esh_configs.append(esh_config)
-
-    return {'tables': tables, 'views': views, 'eshConfig':esh_configs}
-
-def traverse_contains(cv: ColumnView, esh_config_properties, mapping, parent_table, parent_join_index,\
-    join_path_id = None, view_columns_prefix = None, ignore_in_view = None, is_root_table = True):
-    ui_position = 10
-    for prop_name, prop in parent_table['columns'].items():
-        is_enteprise_search_key = is_root_table and prop_name == parent_table['pk']
-        if ignore_in_view and ignore_in_view == prop_name:
-            continue
-        #if 'rel' in prop:
-        #    continue
-        if view_columns_prefix:
-            view_column_name = '.'.join([view_columns_prefix, prop_name])
-        else:
-            view_column_name = prop_name
-        view_column_name = view_column_name.replace('.', '_')
-        if 'rel' in prop:
-            if prop['rel']['type'] == 'containment':
-                child_table_name = prop['rel']['table_name']
-                child_table = mapping['tables'][child_table_name]
-                if join_path_id:
-                    jp_id = join_path_id
-                else:
-                    jp_id = next(cv.join_path_id_gen)
-                child_join_index = cv.table(child_table['table_name'])
-                cv.add_join_condition(jp_id, parent_join_index, parent_table['pk']\
-                    , child_join_index, child_table['pkParent'])
-                traverse_contains(cv, esh_config_properties, mapping, child_table, child_join_index, jp_id,\
-                    view_column_name, parent_table['pk'], is_root_table = False)
-        else:
-            if 'isIdColumn' in prop and prop['isIdColumn']:
-                continue
-            if join_path_id:
-                cv.view_attribute.append((view_column_name, parent_table[Constants.table_name], prop_name, join_path_id))
-            else:
-                cv.view_attribute.append((view_column_name, parent_table[Constants.table_name], prop_name, ''))
-            # ESH config
-            col_conf = {'Name': view_column_name}
-            if 'annotations' in prop:
-                col_conf |= prop['annotations']
-            # for UI5 enterprise search UI to work
-            if is_enteprise_search_key:
-                col_conf['@EnterpriseSearch.key'] = True
-                col_conf['@UI.hidden'] = True
-            else:
-                col_conf['@Search.defaultSearchElement'] = True
-            if 'annotations' in prop and '@EndUserText.Label' in prop['annotations']\
-                and not '@SAP.Common.Label' in prop['annotations']:
-                col_conf['@SAP.Common.Label'] = prop['annotations']['@EndUserText.Label']
-            if is_root_table and not is_enteprise_search_key:
-                col_conf['@UI.identification'] = [{'position': next(cv.ui_position_gen)}]
-            esh_config_properties.append(col_conf)
-'''

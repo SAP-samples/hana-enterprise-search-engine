@@ -439,7 +439,7 @@ def cson_to_mapping(cson, pk = DefaultPK):
 def get_view_columns(tables, view_columns, name_mapping, element, path, table_name = None):
     if 'table_name' in element:
         table_name = element['table_name']
-    if 'elements' in element:
+    if 'elements' in element and element['elements']:
         view_element = {}
         for k, v in element['elements'].items():
             ve = get_view_columns(tables, view_columns, name_mapping, v, path + [k], table_name)

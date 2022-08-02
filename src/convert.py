@@ -3,10 +3,9 @@ from uuid import uuid1
 from name_mapping import NameMapping
 import json
 import base64
-from constants import TYPES_B64_DECODE, TYPES_SPATIAL, SPATIAL_DEFAULT_SRID
+from constants import TYPES_B64_DECODE, TYPES_SPATIAL, SPATIAL_DEFAULT_SRID, ENTITY_PREFIX, VIEW_PREFIX
 
-ENTITY_PREFIX = 'ENTITY/'
-VIEW_PREFIX = 'VIEW/'
+
 PRIVACY_CATEGORY_COLUMN_DEFINITION = ('_PRIVACY_CATEGORY', {'type':'TINY'})
 PRIVACY_CATEGORY_ANNOTATION = '@EnterpriseSearchIndex.privacyCategory'
 

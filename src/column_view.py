@@ -90,8 +90,9 @@ class ColumnView:
         v += "'LEGACY_MODE' = 'TRUE')"
         return v
 
-    def _add_view_column(self, table_name, join_index, join_path_id,\
+    def _add_view_column(self, join_index, join_path_id,\
         name_path, table_column_name, annotations):
+        table_name = join_index[0]
         view_column_name, _ = self.column_name_mapping.register(name_path)
         self.view_attribute.append((view_column_name, \
             self._get_join_index_name(join_index), table_column_name, join_path_id))
@@ -128,38 +129,39 @@ class ColumnView:
             , target_join_index, target_key)
         return target_join_index, jp_id
 
-    def _add_column(self, entity_pos, table_name, join_index, join_path_id,\
+    def _add_column(self, entity_pos, join_index, join_path_id,\
                 name_path):
         if 'items' in entity_pos:
             ep = entity_pos['items']
-            self._add_join(join_path_id, join_index, ep)
+            join_index, join_path_id = self._add_join(join_path_id, join_index, ep)
         else:
             ep = entity_pos
         annotations = ep['annotations'] if 'annotations' in ep else {}
-        self._add_view_column(table_name, join_index, join_path_id,\
+        self._add_view_column(join_index, join_path_id,\
             name_path, ep['column_name'], annotations)
 
 
     def _traverse(self, selector_pos, entity_pos, name_path, join_index, join_path_id = ''):
-        table_name = join_index[0]
         if 'elements' in selector_pos:
             for selected_property_name, selected_property in selector_pos['elements'].items():
-                name_path.append(selected_property_name)
                 # ToDo: Error handling
                 entity_property = entity_pos['elements'][selected_property_name]
                 if 'elements' in selected_property:
                     if 'elements' in entity_property:
-                        self._traverse(selected_property, entity_property, name_path, join_index, join_path_id)
+                        self._traverse(selected_property, entity_property\
+                            , name_path + [selected_property_name], join_index, join_path_id)
                     elif 'items' in entity_property and 'elements' in entity_property['items']:
                         target_join_index, jp_id = \
                             self._add_join(join_path_id, join_index, entity_property['items'])
-                        self._traverse(selected_property, entity_property['items'], name_path, target_join_index, jp_id)
+                        self._traverse(selected_property, entity_property['items']\
+                            , name_path + [selected_property_name], target_join_index, jp_id)
                     else:
                         raise NotImplementedError
                 else:
-                    self._add_column(entity_property, table_name, join_index, join_path_id, name_path)
+                    self._add_column(entity_property, join_index, join_path_id\
+                        , name_path + [selected_property_name])
         else:
-            self._add_column(entity_pos, table_name, join_index, join_path_id, name_path)
+            self._add_column(entity_pos, join_index, join_path_id, name_path)
 
     def _make_default_selector(self, element, path, table_name):
         if 'table_name' in element:
@@ -167,14 +169,10 @@ class ColumnView:
         if 'elements' in element and element['elements']:
             view_element = {}
             for k, v in element['elements'].items():
-                ve = self._make_default_selector(v, path + [k], table_name)
-                if ve:
-                    view_element[k] = ve
+                view_element[k] = self._make_default_selector(v, path + [k], table_name)
             return {'elements': view_element}
         if 'items' in element:
-            ve = self._make_default_selector(element['items'], path, table_name)
-            if ve:
-                return ve
+            return self._make_default_selector(element['items'], path, table_name)
         return {}
 
     def _selector_from_path(self, path, selector_pos):
@@ -197,7 +195,6 @@ class ColumnView:
         self.view_name = VIEW_PREFIX + self.odata_name
 
     def data_definition(self):
-        #anchor_entity = self.mapping['entities'][self.anchor_entity_name]
         anchor_table_name = self.anchor_entity['table_name']
         if 'annotations' in self.mapping['tables'][anchor_table_name]:
             annotations = self.mapping['tables'][anchor_table_name]['annotations']

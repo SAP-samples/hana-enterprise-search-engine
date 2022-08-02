@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+		<meta charset="utf-8">
+
+		<title>SAP HANA Enterprise Search</title>
+
+		<script id='sap-ui-bootstrap'
+			src='/resources/sap-ui-core.js'
+			data-sap-ui-theme='sap_fiori_3'
+			data-sap-ui-libs='sap.m'
+			data-sap-ui-compatVersion='edge'></script>
+
+
+		<!-- define a new (simple) XML view
+		 - using data binding for the Button text
+		 - binding a controller method to the Button's "press" event
+		 note: typically this would be a standalone file -->
+
+		<script id="myXml" type="text/xmldata">
+			<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" xmlns:core="sap.ui.core" controllerName="myController" displayBlock="true">
+				<App>
+					<Page>
+                        <content>
+                            <Label text="{/labelText}"
+                                labelFor="selectTenant"
+                                class="sapUiTinyMarginEnd sapUiTinyMarginTop"/>
+                            <Select  id="selectTenant"
+									 selectedKey="{/selectedTenant}"
+									 showSecondaryValues="true"
+									 forceSelection="true" 
+                                     visible="{=${/selectedTenant}!==''}"
+									 items="{path:'/tenants'}"
+									 >
+							<core:ListItem key="{name}" text="{name}" additionalText="{createdAt}"/>
+						</Select>
+                            <Button text="{/buttonText}" press= "onSearch" visible="{=${/selectedTenant}!==''}"/>
+                        </content>
+						
+					</Page>
+				</App>
+			</mvc:View>
+		</script>
+
+		<script>
+			sap.ui.controller("myController", {
+				onInit: function() {
+                    const basicModel = {
+                        labelText: "Select tenant",
+						buttonText: "Open Search UI",
+                        tenants: [{name: "testtenant01", createdAt: "2022"}],
+                        selectedTenant: "tenant01"
+					}
+                    $.ajax({
+					    	url : "/v1/tenant",
+							async: false,
+							success : function(data, textStatus, jqXHR) {
+                                if (data.length > 0) {
+                                    basicModel.tenants = data;
+                                    basicModel.selectedTenant = data[0].name;
+                                    basicModel.labelText = "Select tenant:";	
+                                } else {
+                                    basicModel.tenants = [];
+                                    basicModel.selectedTenant = '';
+                                    basicModel.labelText = "No tenants found.";	
+                                    // alert("No tenants found.");
+                                }
+                                		
+                            },
+                            error: function(xhr, status)
+                            {
+                                alert(JSON.stringify(xhr.responseJSON, null, 2));
+                            },
+					});
+					this.getView().setModel( new sap.ui.model.json.JSONModel(basicModel));
+				},
+				onSearch: function() {
+					const oModel = this.getView().getModel();
+                    this.goTo("/v1/searchui/" + oModel.getProperty("/selectedTenant"));
+				},
+                goTo: function (destination) {
+                    location = destination;
+                }
+			});
+			sap.ui.xmlview({ viewContent: jQuery('#myXml').html() }).placeAt("content");
+		</script>
+
+	</head>
+	<body id='content' class='sapUiBody'>
+	</body>
+</html>

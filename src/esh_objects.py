@@ -1,5 +1,7 @@
 """Classes to define a query"""
+from enum import Enum
 import json
+from typing import Literal
 
 reservedCharacters = ['\\', '-', '(', ')', '~', '^', '?', '\'', ':', "'", '[', ']']
 reservedWords = ['AND', 'OR', 'NOT']
@@ -18,17 +20,16 @@ class Constants(object):
     orderby = 'orderby'
     term = 'term'
     select = 'select'
-    search_options = 'search_options'
+    searchOptions = 'searchOptions'
     fuzzySearchOptions = 'fuzzySearchOptions'
-    is_quoted = 'is_quoted'
-    do_esh_escaping = 'do_esh_escaping'
+    isQuoted = 'isQuoted'
+    doEshEscaping = 'doEshEscaping'
     weight = 'weight'
     fuzzinessThreshold = 'fuzzinessThreshold'
-    fuzzySearchOptions = 'fuzzySearchOptions'
     type = 'type'
     phrase = 'phrase'
-    without_enclosing = 'without_enclosing'
-    is_single_quoted = 'is_single_quoted'
+    withoutEnclosing = 'withoutEnclosing'
+    isSingleQuoted = 'isSingleQuoted'
     value = 'value'
     property = 'property'
     operator = 'operator'
@@ -49,49 +50,72 @@ class Constants(object):
     point = 'point'
     points = 'points'
     geometryCollection = 'geometryCollection'
+    namespace = 'namespace'
+    coordinates = 'coordinates'
+    geometries = 'geometries'
+    entity = 'entity'
+    attribute = 'attribute'
+    alias = 'alias'
+
+def serialize_geometry_collection(collection):
+    try:
+        collection[0]
+        return f"({','.join(list(map(lambda i: serialize_geometry_collection(i), collection)))})"
+    except TypeError:
+        return f"{' '.join(list(map(lambda i: str(i), collection)))}"
 
 def deserialize_objects(item):
     # print(item)
-    if item[Constants.type] == StringValue.type:
-        return StringValue(item)
-    elif item[Constants.type] == Property.type:
-        return Property(item)
-    elif item[Constants.type] == Term.type:
-        return Term(item)
-    elif item[Constants.type] == Phrase.type:
-        return Phrase(item)
-    elif item[Constants.type] == NumberValue.type:
-        return NumberValue(item)
-    elif item[Constants.type] == BooleanValue.type:
-        return BooleanValue(item)
-    elif item[Constants.type] == Comparison.type:
-        return Comparison(item)
-    elif item[Constants.type] == ScopeComparison.type:
-        return ScopeComparison(item)
-    elif item[Constants.type] == Expression.type:
-        return Expression(item)
-    elif item[Constants.type] == PointValues.type:
-        return PointValues(item)
-    elif item[Constants.type] == MultiPointValues.type:
-        return MultiPointValues(item)
-    elif item[Constants.type] == LineStringValues.type:
-        return LineStringValues(item)
-    elif item[Constants.type] == CircularStringValues.type:
-        return CircularStringValues(item)
-    elif item[Constants.type] == MultiLineStringValues.type:
-        return MultiLineStringValues(item)
-    elif item[Constants.type] == PolygonValues.type:
-        return PolygonValues(item)
-    elif item[Constants.type] == MultiPolygonValues.type:
-        return MultiPolygonValues(item)
-    elif item[Constants.type] == GeometryCollectionValues.type:
-        return GeometryCollectionValues(item)
-    elif item[Constants.type] == CoveredByOperator.type:
-        return CoveredByOperator(item)
-    elif item[Constants.type] == IntersectsOperator.type:
-        return IntersectsOperator(item)
+    if type(item) is dict:
+        if Constants.type in item.keys():
+            if item[Constants.type] == StringValue.__name__:
+                return StringValue(item)
+            elif item[Constants.type] == Property.__name__:
+                return Property(item)
+            elif item[Constants.type] == Term.__name__:
+                return Term(item)
+            elif item[Constants.type] == Phrase.__name__:
+                return Phrase(item)
+            elif item[Constants.type] == NumberValue.__name__:
+                return NumberValue(item)
+            elif item[Constants.type] == BooleanValue.__name__:
+                return BooleanValue(item)
+            elif item[Constants.type] == Comparison.__name__:
+                return Comparison(item)
+            elif item[Constants.type] == ScopeComparison.__name__:
+                return ScopeComparison(item)
+            elif item[Constants.type] == Expression.__name__:
+                return Expression(item)
+            elif item[Constants.type] == CoveredByOperator.__name__:
+                return CoveredByOperator(item)
+            elif item[Constants.type] == IntersectsOperator.__name__:
+                return IntersectsOperator(item)
+            elif item[Constants.type] == Path.__name__:
+                return Path(item)
+            elif item[Constants.type] == MultiValues.__name__:
+                return MultiValues({Constants.items: list(map(lambda item: deserialize_objects(item), item[Constants.items]))})
+            elif item[Constants.type] == Point.__name__:
+                return Point(item)
+            elif item[Constants.type] == LineString.__name__:
+                return LineString(item)
+            elif item[Constants.type] == Polygon.__name__:
+                return Polygon(item)
+            elif item[Constants.type] == MultiPoint.__name__:
+                return MultiPoint(item)
+            elif item[Constants.type] == MultiLineString.__name__:
+                return MultiLineString(item)
+            elif item[Constants.type] == MultiPolygon.__name__:
+                return MultiPolygon(item)
+            elif item[Constants.type] == CircularString.__name__:
+                return CircularString(item)
+            elif item[Constants.type] == GeometryCollection.__name__:
+                return GeometryCollection({Constants.geometries: list(map(lambda geometry: deserialize_objects(geometry), item[Constants.geometries]))})
+            else:
+                raise Exception('unknown item type: ' + item[Constants.type])
+        else:
+            raise Exception('missing mandatory property type: ' + json.dumps(item))
     else:
-        raise Exception('unknown item type: ' + item[Constants.type])
+        return item
 
 def escapeQuery(query: str) -> str:
     escapedQuery = query if query.strip() else ''
@@ -140,100 +164,105 @@ def addFuzzySearchOptions(item: str, searchOptions: dict) -> str:
     return returnStatement
 
 class IToStatement:
+    def __init__(self):
+        self.type = self.__class__.__name__
+
     def to_statement(self):
         raise NotImplementedError
 
     def to_dict(self):
-        return {'type': self.type, **self.__dict__}
+        return {Constants.type: self.type, **self.__dict__}
 
 class Property(IToStatement):
-    type = 'Property'
-
     def __init__(self, item: dict):
+        super().__init__()
         self.property = item[Constants.property]
         self.prefixOperator = item[Constants.prefixOperator] if Constants.prefixOperator in item.keys() else None
 
     def to_statement(self):
+        property_value = self.property if not type(self.property) is list else ".".join(self.property)
         if self.prefixOperator:
-            return self.prefixOperator + ' ' + self.property
+            return self.prefixOperator + ' ' + property_value
         else:
-            return self.property
+            return property_value
 
 class Term(IToStatement):
-    type = 'Term'
+
     def __init__(self, item):
+        super().__init__()
         keys = item.keys()
         self.term = item[Constants.term]
-        self.is_quoted = item[Constants.is_quoted] if Constants.is_quoted in keys else False
-        self.do_esh_escaping = item[Constants.do_esh_escaping] if Constants.do_esh_escaping in keys else False
-        self.search_options = item[Constants.search_options] if Constants.search_options in keys else None
+        self.isQuoted = item[Constants.isQuoted] if Constants.isQuoted in keys else False
+        self.doEshEscaping = item[Constants.doEshEscaping] if Constants.doEshEscaping in keys else False
+        self.searchOptions = item[Constants.searchOptions] if Constants.searchOptions in keys else None
 
     def to_statement(self):
-        if self.do_esh_escaping:
-            final_term = f'"{escapePhrase(self.term)}"'if self.is_quoted else escapeQuery(self.term)
+        if self.doEshEscaping:
+            final_term = f'"{escapePhrase(self.term)}"'if self.isQuoted else escapeQuery(self.term)
         else:
-            final_term = f'"{self.term}"' if self.is_quoted else self.term
-        return addFuzzySearchOptions(final_term, self.search_options)
+            final_term = f'"{self.term}"' if self.isQuoted else self.term
+        return addFuzzySearchOptions(final_term, self.searchOptions)
 
 class Phrase(IToStatement):
-    type = 'Phrase'
 
     def __init__(self, item: dict):
+        super().__init__()
         keys = item.keys()
         self.phrase = item['phrase']
-        self.search_options = item[Constants.search_options] if Constants.search_options in keys else None
-        self.do_esh_escaping = item[Constants.do_esh_escaping] if Constants.do_esh_escaping in keys else True
+        self.searchOptions = item[Constants.searchOptions] if Constants.searchOptions in keys else None
+        self.doEshEscaping = item[Constants.doEshEscaping] if Constants.doEshEscaping in keys else True
 
     def to_statement(self):
-        if self.do_esh_escaping:
+        if self.doEshEscaping:
             final_phrase = escapePhrase(self.phrase)
         else:
             final_phrase = self.phrase
-        return addFuzzySearchOptions('\"' + final_phrase + '\"', self.search_options)
+        return addFuzzySearchOptions('\"' + final_phrase + '\"', self.searchOptions)
 
 
 class StringValue(IToStatement):
-    type = 'StringValue'
+
     def __init__(self, item: dict):
+        super().__init__()
         keys = item.keys()
         self.value = item['value']
-        self.is_quoted = item[Constants.is_quoted] if Constants.is_quoted in keys else False
-        self.is_single_quoted = item[Constants.is_single_quoted] if Constants.is_single_quoted in keys else False
-        self.without_enclosing = item[Constants.without_enclosing] if Constants.without_enclosing in keys else False
+        self.isQuoted = item[Constants.isQuoted] if Constants.isQuoted in keys else False
+        self.isSingleQuoted = item[Constants.isSingleQuoted] if Constants.isSingleQuoted in keys else False
+        self.withoutEnclosing = item[Constants.withoutEnclosing] if Constants.withoutEnclosing in keys else False
 
     def to_statement(self):
-        #if self.without_enclosing:
+        #if self.withoutEnclosing:
         #    return String(Number.parseFloat(this.value));
-        if self.is_quoted:
+        if self.isQuoted:
             return f'"{escapeDoubleQuoteAndBackslash(self.value)}"'
-        if self.is_single_quoted:
+        if self.isSingleQuoted:
             return f"'{escapeSingleQuote(self.value)}'"
         return self.value
 
 
 
 class NumberValue(IToStatement):
-    type = 'NumberValue'
 
     def __init__(self, item: dict):
+        super().__init__()
         self.value = item[Constants.value]
 
     def to_statement(self):
         return f'{self.value}'
 
 class BooleanValue(IToStatement):
-    type = 'BooleanValue'
 
     def __init__(self, item: dict):
+        super().__init__()
         self.value = item[Constants.value]
 
     def to_statement(self):
         return json.dumps(self.value)
 
 class ScopeComparison(IToStatement):
-    type = 'ScopeComparison'
 
     def __init__(self, item: dict):
+        super().__init__()
         self.values = item[Constants.values]
 
     def to_statement(self):
@@ -243,23 +272,33 @@ class ScopeComparison(IToStatement):
             scope_values = ' OR '.join(self.values)
             return f'SCOPE:({scope_values})'
 
-class Expression:
-    type = 'Expression'
+
+            
+class Expression(IToStatement):
 
     def __init__(self, item: dict ):
+        super().__init__()
         self.items = list(map(deserialize_objects, item[Constants.items])) if 'items' in item else []
         self.operator = item[Constants.operator] if Constants.operator in item.keys() else ''
+    
+    def get_expression_statement(self, expression_item):
+        if isinstance(expression_item, Expression): 
+            return f'({expression_item.to_statement()})'
+        else:
+            try:
+                return expression_item.to_statement()
+            except: 
+                return f'{expression_item}'
 
     def to_statement(self):
         if self.operator != '':
             connect_operator = f' {self.operator} '
         else:
             connect_operator = ' '
-        # print(list(map(lambda x: x.to_statement(), self.items)))
-        lst = list(map(lambda x: f'({x.to_statement()})' if isinstance(x, Expression) else x.to_statement(),\
-            self.items))
-        return connect_operator.join(lst)
-        #return connect_operator.join(list(map(lambda x: x.to_statement(), self.items)))
+        statements = list(map(lambda item: self.get_expression_statement(item), self.items))
+        if len(self.items) > 1 and not isinstance(self.items[0], Expression) and not isinstance(self.items[0], ScopeComparison):
+            return f"({connect_operator.join(statements)})"
+        return connect_operator.join(statements)
 
     def to_dict(self):
         return {
@@ -269,9 +308,9 @@ class Expression:
         }
 
 class Comparison(IToStatement):
-    type = 'Comparison'
 
     def __init__(self, item: dict):
+        super().__init__()
         keys = item.keys()
         self.property = deserialize_objects(item[Constants.property])
         self.operator = item[Constants.operator]
@@ -279,7 +318,18 @@ class Comparison(IToStatement):
 
 
     def to_statement(self):
-        return f'{self.property.to_statement()}{self.operator}{self.value.to_statement()}'
+        property_to_statement = getattr(self.property, "to_statement", None)
+        if callable(property_to_statement):
+            property = self.property.to_statement()
+        else:
+            property = self.property
+        value_to_statement = getattr(self.value, "to_statement", None)
+        if callable(value_to_statement):
+            value = self.value.to_statement()
+        else:
+            value = self.value
+        return f'{property}{self.operator}{value}'
+        
 
     def to_dict(self):
         return {
@@ -290,9 +340,9 @@ class Comparison(IToStatement):
         }
 
 class SpatialReferenceSystemsOperator(IToStatement):
-    type = 'SpatialReferenceSystemsOperator'
 
     def __init__(self, item: dict):
+        super().__init__()
         self.id = item[Constants.id] if Constants.id in item.keys() else None
 
     def to_statement(self):
@@ -314,7 +364,6 @@ class SpatialReferenceSystemsOperatorBase(IToStatement):
             return f':{self.functionName}:'
 
 class WithinOperator(SpatialReferenceSystemsOperatorBase):
-    type = 'WithinOperator'
     def __init__(self, item: dict):
         if Constants.id in item.keys():
             super().__init__('WITHIN', item[Constants.id])
@@ -323,7 +372,6 @@ class WithinOperator(SpatialReferenceSystemsOperatorBase):
 
 
 class CoveredByOperator(SpatialReferenceSystemsOperatorBase):
-    type = 'CoveredByOperator'
     def __init__(self, item: dict):
         if Constants.id in item.keys():
             super().__init__('COVERED_BY', item[Constants.id])
@@ -331,103 +379,91 @@ class CoveredByOperator(SpatialReferenceSystemsOperatorBase):
             super().__init__('COVERED_BY')
 
 class IntersectsOperator(SpatialReferenceSystemsOperatorBase):
-    type = 'IntersectsOperator'
     def __init__(self, item: dict):
         if Constants.id in item.keys():
             super().__init__('INTERSECTS', item[Constants.id])
         else:
             super().__init__('INTERSECTS')
 
-def pointCoordinates(item: dict) -> str:
-    return f'{item[Constants.x]} {item[Constants.y]}'
-
-class PointValues(IToStatement):
-    type = 'PointValues'
-
-    def __init__(self, item: dict):
-        self.point = item[Constants.point]
-        self.search_options = item[Constants.search_options] if Constants.search_options in item.keys() else None
+class GeometryBase(IToStatement):
+    def __init__(self, type: str, coordinates: list, searchOptions: dict | None):
+        self.type = type
+        self.coordinates = coordinates
+        self.searchOptions = searchOptions
 
     def to_statement(self):
-        return addFuzzySearchOptions(f'POINT({pointCoordinates(self.point)})', self.search_options)
+        try:
+            self.coordinates[0][0]
+            return addFuzzySearchOptions(f'{self.__class__.__name__.upper()}{serialize_geometry_collection(self.coordinates)}', self.searchOptions)
+        except TypeError:
+            #return f"{' '.join(list(map(lambda i: str(i), collection)))}"
+            return addFuzzySearchOptions(f'{self.__class__.__name__.upper()}({serialize_geometry_collection(self.coordinates)})', self.searchOptions)
 
-class MultiPointValues(IToStatement):
-    type = 'MultiPointValues'
-
+class Point(GeometryBase):
     def __init__(self, item: dict):
-        self.points = item[Constants.points]
+        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+
+class LineString(GeometryBase):
+    def __init__(self, item: dict):
+        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+
+class CircularString(GeometryBase):
+    def __init__(self, item: dict):
+        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+
+class Polygon(GeometryBase):
+    def __init__(self, item: dict):
+        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+
+class MultiPoint(GeometryBase):
+    def __init__(self, item: dict):
+        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+
+class MultiLineString(GeometryBase):
+    def __init__(self, item: dict):
+        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+
+class MultiPolygon(GeometryBase):
+    def __init__(self, item: dict):
+        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+
+class GeometryCollection(IToStatement):
+    def __init__(self, item: dict):
+        super().__init__()
+        self.geometries = item[Constants.geometries]
+
+    def to_statement(self):
+        return f"{self.__class__.__name__.upper()}({','.join(list(map(lambda i: i.to_statement(), self.geometries)))})" 
+
+    def to_dict(self):
+        return {Constants.type: self.type, Constants.geometries: list(map(lambda geometry: geometry.to_dict(), self.geometries))}
+
+
+class Path(IToStatement):
+    def __init__(self, item: dict):
+        super().__init__()
+        keys = item.keys()
+        self.entity = item[Constants.entity] if Constants.entity in keys else None
+        self.namespace = item[Constants.namespace] if Constants.namespace in keys else None
+        self.alias = item[Constants.alias] if Constants.alias in keys else None
+        self.attribute = item[Constants.attribute] if Constants.attribute in keys else None
 
     def to_statement(self) -> str:
-        multipoint_value = (',').join(list(map(lambda point: '(' + pointCoordinates(point) + ')', self.points)))
-        return f'MULTIPOINT({multipoint_value})'
+        return f'Path({self.namespace},{self.entity},{self.alias},{self.attribute})'
 
-def toLineStringArray(points: list) -> str:
-    line_string_array_value = ', '.join(list(map(pointCoordinates, points)))
-    return f'({line_string_array_value})'
-
-def toPolygonStringArray(polygon: list) -> str:
-    polygon_string_value = ', '.join(list(map(toLineStringArray, polygon)))
-    return f'({polygon_string_value})'
-class LineStringValuesBase(IToStatement):
-    def __init__(self, valuesType: str, item: dict):
-        self.valuesType = valuesType
-        self.points = item[Constants.points]
-
-    def to_statement(self):
-        return f'{self.valuesType}{toLineStringArray(self.points)}'
-
-class LineStringValues(LineStringValuesBase):
-    type = 'LineStringValues'
-
+class MultiValues(IToStatement):
     def __init__(self, item: dict):
-        super().__init__('LINESTRING', item)
+        super().__init__()
+        self.items = item[Constants.items]
 
-class CircularStringValues(LineStringValuesBase):
-    type = 'CircularStringValues'
-
-    def __init__(self, item: dict):
-        super().__init__('CIRCULARSTRING', item)
-
-class MultiLineStringValues(LineStringValuesBase):
-    type = 'MultiLineStringValues'
-
-    def __init__(self, item: dict):
-        super().__init__('MULTILINESTRING', item)
-
-class PolygonValuesBase(IToStatement):
-    def __init__(self, valuesType: str, item: dict):
-        self.valuesType = valuesType
-        self.points = item[Constants.points]
-
-    def to_statement(self):
-        return f'{self.valuesType}{toPolygonStringArray(self.points)}'
-
-class PolygonValues(PolygonValuesBase):
-    type = 'PolygonValues'
-
-    def __init__(self, item: dict):
-        super().__init__('POLYGON', item)
-
-class MultiPolygonValues(PolygonValuesBase):
-    type = 'MultiPolygonValues'
-
-    def __init__(self, item: dict):
-        super().__init__('MULTIPOLYGON', item)
-
-class GeometryCollectionValues(IToStatement):
-    type = 'GeometryCollectionValues'
-
-    def __init__(self, item: list):
-        self.geometryCollection = \
-            list(map(deserialize_objects, item[Constants.geometryCollection]))
+    def to_dict(self) -> dict:
+       return {Constants.type: self.type, Constants.items: list(map(lambda item: item.to_dict(), self.items)) }
 
     def to_statement(self) -> str:
-        geometry_collection_values = ', '.join(list(map(lambda geometry: geometry.to_statement(),\
-            self.geometryCollection)))
-        return f'GEOMETRYCOLLECTION({geometry_collection_values})'
+        return json.dumps(self.to_dict())
 
 class IESSearchOptions(IToStatement):
-    def __init__(self, item: dict):
+    def __init__(self, item: dict = {}):
         keys = item.keys()
         self.top = item[Constants.top] if Constants.top in keys else 10
         self.skip = item[Constants.skip] if Constants.skip in keys else None
@@ -540,19 +576,19 @@ if __name__ == '__main__':
     aa.top=23
     aa.searchQueryFilter=deserialize_objects({Constants.type: 'Expression', 'items' : [{'type': 'StringValue', \
         'value': 'aaa'},{'type': 'StringValue', 'value': 'bbb'}], 'operator': 'AND'})
-    assert aa.to_statement() == "/$all?$top=23&$apply=filter(Search.search(query='aaa AND bbb'))"
+    assert aa.to_statement() == "/$all?$top=23&$apply=filter(Search.search(query='(aaa AND bbb)'))"
 
 
 
     exp1 = Expression({'items': [{Constants.type: 'StringValue', 'value': 'MMMM'},\
         {Constants.type: 'StringValue', 'value': 'KKK'}], 'operator': 'OR'})
-    assert exp1.to_statement() == 'MMMM OR KKK'
+    assert exp1.to_statement() == '(MMMM OR KKK)'
 
     exp2 = Expression({})
     exp2.operator = 'AND'
     exp2.items.append(StringValue({'value':'mannheim'}))
     exp2.items.append(StringValue({'value':'heidelberg'}))
-    assert exp2.to_statement() == 'mannheim AND heidelberg'
+    assert exp2.to_statement() == '(mannheim AND heidelberg)'
 
 
     json_body={
@@ -590,7 +626,7 @@ if __name__ == '__main__':
                 'property':  {Constants.type:'Property', 'property':'flag'}, \
                 'operator': ' eq ', \
                 'value': { Constants.type: 'StringValue', \
-                    'value': 'ACTIVE','is_single_quoted': True}}], 'operator': ''}
+                    'value': 'ACTIVE','isSingleQuoted': True}}], 'operator': ''}
         }
 
 
@@ -599,14 +635,14 @@ if __name__ == '__main__':
     #print(json.dumps(es_objects.searchQueryFilter.to_dict(), indent=4))
     print(json.dumps(es_objects.to_dict(), indent=4))
     expected_statement = '/$all?$top=10&$count=true&$apply=filter(' \
-        'Search.search(query=\'SCOPE:S1 AND (test OR function)' \
+        'Search.search(query=\'SCOPE:S1 AND ((test OR function))' \
         ' AND aaa AND bbb\')) and flag eq \'ACTIVE\'&whyfound=true&$select=id,name&$orderby=city ASC,language DESC,' \
         'land&estimate=true&wherefound=true&facetlimit=4&facets=city,land&filteredgroupby=false'
     assert es_objects.to_statement() == expected_statement
 
     string_value_dict={
         'value': 'sss',
-        Constants.is_quoted: True
+        Constants.isQuoted: True
     }
     sv = StringValue(string_value_dict)
     # print(sv.__dict__)
@@ -621,8 +657,8 @@ if __name__ == '__main__':
     esc_query = 'n AND a OR c'
     #print(escapeQuery(esc_query))
 
-    term_definition = {Constants.term: 'mannh"eim', Constants.do_esh_escaping: True,\
-        Constants.search_options: { \
+    term_definition = {Constants.term: 'mannh"eim', Constants.doEshEscaping: True,\
+        Constants.searchOptions: { \
             Constants.fuzzinessThreshold:0.5,\
             Constants.weight:0.9,\
             Constants.fuzzySearchOptions:'search=typeahead'}}
@@ -632,7 +668,7 @@ if __name__ == '__main__':
 
 
     phrase_definition = {'phrase': 'heidelberg', \
-        Constants.search_options: {\
+        Constants.searchOptions: {\
             Constants.fuzzinessThreshold:0.5,\
             Constants.weight:0.9,\
             Constants.fuzzySearchOptions:'search=typeahead'}}
@@ -667,50 +703,6 @@ if __name__ == '__main__':
     assert IntersectsOperator({}).to_statement() == ':INTERSECTS:'
     assert IntersectsOperator({'id':6}).to_statement() == ':INTERSECTS(6):'
 
-    assert pointCoordinates({'x': 3.4, 'y': 4.25}) == '3.4 4.25'
-
-
-    assert PointValues({'point': {'x': 3.4, 'y': 4.25}}).to_statement() == 'POINT(3.4 4.25)'
-    assert PointValues({'point': {'x': 3.4, 'y': 4.25}, 'search_options': {'weight': 3.2}})\
-        .to_statement() == 'POINT(3.4 4.25)^3.2'
-
-
-    assert MultiPointValues({'points':[{'x': 3.4, 'y': 4.25},{'x': 3.6, 'y': 4.28}]})\
-        .to_statement() == 'MULTIPOINT((3.4 4.25),(3.6 4.28))'
-
-    assert toLineStringArray([{'x': 3.4, 'y': 4.25},{'x': 3.6, 'y': 4.28}]) == '(3.4 4.25, 3.6 4.28)'
-    assert LineStringValues({'points':[{'x': 3.4, 'y': 4.25},{'x': 3.6, 'y': 4.28}]})\
-        .to_statement() == 'LINESTRING(3.4 4.25, 3.6 4.28)'
-    assert CircularStringValues({'points':[{'x': 3.4, 'y': 4.25},{'x': 3.6, 'y': 4.28},{'x': 3.7, 'y': 4.78},\
-        {'x': 3.4, 'y': 4.25}]}).to_statement() == 'CIRCULARSTRING(3.4 4.25, 3.6 4.28, 3.7 4.78, 3.4 4.25)'
-    assert MultiLineStringValues({'points':[{'x': 3.4, 'y': 4.25},{'x': 3.6, 'y': 4.28},{'x': 3.7, 'y': 4.78},\
-        {'x': 3.4, 'y': 4.25}]}).to_statement() == 'MULTILINESTRING(3.4 4.25, 3.6 4.28, 3.7 4.78, 3.4 4.25)'
-
-
-    assert toPolygonStringArray([
-        [{'x': 3.4, 'y': 4.25},{'x': 3.6, 'y': 4.28},{'x': 3.7, 'y': 4.78}],
-        [{'x': 1.4, 'y': 2.25},{'x': 1.6, 'y': 5.28},{'x': 2.7, 'y': 6.78}]
-        ]) == '((3.4 4.25, 3.6 4.28, 3.7 4.78), (1.4 2.25, 1.6 5.28, 2.7 6.78))'
-    assert PolygonValues({'points':[
-        [{'x': 3.4, 'y': 4.25},{'x': 3.6, 'y': 4.28},{'x': 3.7, 'y': 4.78}],
-        [{'x': 1.4, 'y': 2.25},{'x': 1.6, 'y': 5.28},{'x': 2.7, 'y': 6.78}]
-        ]}).to_statement() == 'POLYGON((3.4 4.25, 3.6 4.28, 3.7 4.78), (1.4 2.25, 1.6 5.28, 2.7 6.78))'
-
-    assert GeometryCollectionValues({'geometryCollection': [
-        {'type': 'LineStringValues','points':[{'x': 3.4, 'y': 4.25},{'x': 3.6, 'y': 4.28}]},
-        {'type': 'PolygonValues','points':[
-        [{'x': 3.4, 'y': 4.25},{'x': 3.6, 'y': 4.28},{'x': 3.7, 'y': 4.78}],
-        [{'x': 1.4, 'y': 2.25},{'x': 1.6, 'y': 5.28},{'x': 2.7, 'y': 6.78}]
-        ]}
-        ]} ).to_statement() == 'GEOMETRYCOLLECTION(LINESTRING(3.4 4.25, 3.6 4.28), ' \
-            'POLYGON((3.4 4.25, 3.6 4.28, 3.7 4.78), (1.4 2.25, 1.6 5.28, 2.7 6.78)))'
-    # deserialization
-    json_circular_string = {'type': 'CircularStringValues', 'points':[{'x': 3.4, 'y': 4.25},\
-        {'x': 3.6, 'y': 4.28},{'x': 3.7, 'y': 4.78},{'x': 3.4, 'y': 4.25}]}
-    assert deserialize_objects(json_circular_string).to_statement() == \
-        'CIRCULARSTRING(3.4 4.25, 3.6 4.28, 3.7 4.78, 3.4 4.25)'
-
-
     print(StringValue({'value':'aaa'}).to_dict())
     print(NumberValue({'value':3.2}).to_dict())
     print(BooleanValue({'value':True}).to_dict())
@@ -726,4 +718,294 @@ if __name__ == '__main__':
 
     assert escapePhrase('aaa?bbb') == 'aaa\\?bbb'
 
+    person = Path({'entity': "Person"})
+    print(person.to_statement())
+    # json_path_person = {'type': 'Path', 'value':{'type': 'StringValue', 'value': 'mannheim'}}
+    json_path_person = {'type': 'Path', 'entity': 'Person','attribute':['m1','m2']}
+    print(deserialize_objects(json_path_person).to_statement())
+    print(json.dumps(deserialize_objects(json_path_person).to_dict()))
+    assert deserialize_objects(json_path_person).to_statement() == "Path(None,Person,None,['m1', 'm2'])"
+    multiValuesA = MultiValues({'items':[person,deserialize_objects(json_path_person)]})
+    print(multiValuesA.to_statement())
+
+    multi_values = MultiValues({'items': [StringValue({"value":"one"}),StringValue({"value":"two"})]})
+    # multi_values_json = json.dumps(multi_values.to_dict())
+    deserialized_object_multi_values = deserialize_objects(multi_values.to_dict())
+    assert deserialized_object_multi_values.type == "MultiValues"
+    assert deserialized_object_multi_values.items[0].type == "StringValue"
+    assert deserialized_object_multi_values.items[1].type == "StringValue"
+    # print(multiValues.to_statement())
+    # print(json.dumps(StringValue({'value':'vv'}).to_dict()))
+    json_expression = '''
+        {
+            "type": "Expression",
+            "items": [
+                {
+                    "type": "Property",
+                    "property": "city"
+                },{
+                    "type": "Property",
+                    "property": "country"
+                }
+            ]
+        }
+    '''
+    deserialized_object_expression = deserialize_objects(json.loads(json_expression))
+    assert deserialized_object_expression.type == Expression.__name__
+    print(json.dumps(deserialized_object_expression.to_dict()))
+    print(deserialized_object_expression.to_statement())
+
+    json_property = '''
+        {
+            "type": "Property",
+            "property": "city"
+        }
+    '''
+    deserialized_object_property = deserialize_objects(json.loads(json_property))
+    assert deserialized_object_property.type == Property.__name__
+    print(json.dumps(deserialized_object_property.to_dict()))
+
+    json_property_with_array = '''
+        {
+            "type": "Property",
+            "property": ["city", "ok"]
+        }
+    '''
+    deserialized_object_property_with_array = deserialize_objects(json.loads(json_property_with_array))
+    assert deserialized_object_property_with_array.type == Property.__name__
+    print(json.dumps(deserialized_object_property_with_array.to_dict()))
+
+    json_comparison = '''
+            {
+                "type": "Comparison",
+                "property": {
+                    "type": "Property",
+                    "property": "city"
+                },
+                "operator": ":",
+                "value": {
+                    "type": "StringValue",
+                    "value": "Mannheim"
+                }
+            }
+        '''
+    deserialized_object_comparison = deserialize_objects(json.loads(json_comparison))
+    assert deserialized_object_comparison.type == Comparison.__name__
+    
+    print(json.dumps(deserialized_object_comparison.to_dict()))
+
+    json_multi_values = '''
+        {
+            "type": "MultiValues",
+            "items":[
+                {
+                    "type": "StringValue", 
+                    "value": "one", 
+                    "isQuoted": false, 
+                    "isSingleQuoted": false, 
+                    "withoutEnclosing": false
+                }, 
+                {
+                    "type": "StringValue", 
+                    "value": "two", 
+                    "isQuoted": false, 
+                    "isSingleQuoted": false, 
+                    "withoutEnclosing": false
+                }
+            ]
+        }
+    '''
+    des_obj = deserialize_objects(json.loads(json_multi_values))
+    assert des_obj.type == "MultiValues"
+    print(json.dumps(des_obj.to_dict()))
+
+
+    pathEntity1 = Path({'namespace':'N1','entity':'E1','path_index': 1,'attribute':'a1'})
+    pathEntity2 = Path({'namespace':'N1','entity':'E2','path_index': 2,'attribute':['a1','a2']})
+
+    print(json.dumps(pathEntity1.to_dict()))
+    print(json.dumps(pathEntity2.to_dict()))
+    multiValuesPath = MultiValues({'items': [pathEntity1, pathEntity2]})
+    print(multiValuesPath.to_statement())
+
+    point_json = '''
+        {
+            "type": "Point",
+            "coordinates": [
+                1.1, 2.2
+            ],
+            "searchOptions": {"weight": 3.2}
+        }
+    '''
+    deserialized_object_point = deserialize_objects(json.loads(point_json))
+    assert deserialized_object_point.type == "Point"
+    print(deserialized_object_point.to_statement())
+    print(json.dumps(deserialized_object_point.to_dict()))
+
+    circular_string_json = '''
+        {
+            "type": "CircularString", 
+            "coordinates": [
+                [33.3, 11.1], [11.1, 33.3], [44.4, 44.4]
+            ]
+        }
+    '''
+    deserialized_object_circular_string = deserialize_objects(json.loads(circular_string_json))
+    assert deserialized_object_circular_string.type == "CircularString"
+    print(deserialized_object_circular_string.to_statement())
+    print(json.dumps(deserialized_object_circular_string.to_dict()))
+
+    linestring_json = '''
+        {
+            "type": "LineString", 
+            "coordinates": [
+                [33.3, 11.1], [11.1, 33.3], [44.4, 44.4]
+            ]
+        }
+    '''
+    deserialized_object_linestring = deserialize_objects(json.loads(linestring_json))
+    assert deserialized_object_linestring.type == "LineString"
+    print(deserialized_object_linestring.to_statement())
+    print(json.dumps(deserialized_object_linestring.to_dict()))
+
+    polygon_json = '''
+        {
+            "type": "Polygon", 
+            "coordinates": [
+                [
+                    [30.3, 10.1], 
+                    [40.4, 40.4], 
+                    [10.1, 30.3], 
+                    [30.3, 10.1]
+                ]
+            ]
+        }
+    '''
+    deserialized_object_polygon = deserialize_objects(json.loads(polygon_json))
+    assert deserialized_object_polygon.type == Polygon.__name__
+    print(deserialized_object_polygon.to_statement())
+    print(json.dumps(deserialized_object_polygon.to_dict()))
+
+    multipoint_json = '''
+        {
+            "type": "MultiPoint", 
+            "coordinates": [
+                [11.1, 44.4], [44.4, 33.3], [22.2, 22.2], [33.3, 11.1]
+            ]
+        }
+    '''
+    deserialized_object_multipoint = deserialize_objects(json.loads(multipoint_json))
+    assert deserialized_object_multipoint.type == "MultiPoint"
+    print(deserialized_object_multipoint.to_statement())
+    print(json.dumps(deserialized_object_multipoint.to_dict()))
+
+    multilinestring_json = '''
+        {
+            "type": "MultiLineString", 
+            "coordinates": [
+                [[11.1, 11.1], [22.2, 22.2], [11.1, 44.4]], 
+                [[44.4, 44.4], [33.3, 33.3], [44.4, 22.2], [33.3, 11.1]]
+            ]
+        }
+    '''
+    deserialized_object_multilinestring = deserialize_objects(json.loads(multilinestring_json))
+    assert deserialized_object_multilinestring.type == "MultiLineString"
+    print(deserialized_object_multilinestring.to_statement())
+    print(json.dumps(deserialized_object_multilinestring.to_dict()))
+
+    multipolygon_json = '''
+        {
+            "type": "MultiPolygon", 
+            "coordinates": [
+                [
+                    [[33.3, 22.2], [45.4, 44.4], [11.1, 44.4], [33.3, 22.2]]
+                ], 
+                [
+                    [[15.4, 5.4], [44.4, 11.1], [11.1, 22.2], [5.4, 11.1], [15.4, 5.4]]
+                ]
+            ]
+        }
+    '''
+    deserialized_object_multipolygon = deserialize_objects(json.loads(multipolygon_json))
+    assert deserialized_object_multipolygon.type == "MultiPolygon"
+    print(deserialized_object_multipolygon.to_statement())
+    print(json.dumps(deserialized_object_multipolygon.to_dict()))
+
+    multipolygon2_json = '''
+        {
+            "type": "MultiPolygon", 
+            "coordinates": [
+                [
+                    [[44.4, 44.4], [22.2, 45.4], [45.4, 33.3], [44.4, 44.4]]
+                ], 
+                [
+                    [[22.2, 35.4], [11.1, 33.3], [11.1, 11.1], [33.3, 5.4], [45.4, 22.2], [22.2, 35.4]], 
+                    [[33.3, 22.2], [22.2, 15.4], [22.2, 25.4], [33.3, 22.2]]
+                ]
+            ]
+        }
+    '''
+    deserialized_object_multipolygon2 = deserialize_objects(json.loads(multipolygon2_json))
+    assert deserialized_object_multipolygon2.type == "MultiPolygon"
+    print(deserialized_object_multipolygon2.to_statement())
+    print(json.dumps(deserialized_object_multipolygon2.to_dict()))
+
+    multigeometry_collection_json = '''
+        {
+            "type": "GeometryCollection",
+            "geometries": [
+                {
+                    "type": "Point",
+                    "coordinates": [44.4, 11.1]
+                },
+                {
+                    "type": "LineString",
+                    "coordinates": [
+                        [11.1, 11.1], [22.2, 22.2], [11.1, 44.4]
+                    ]
+                },
+                {
+                    "type": "Polygon",
+                    "coordinates":  [[[30.3, 10.1], [40.4, 40.4], [10.1, 30.3], [30.3, 10.1]]]
+                }
+            ]
+        }
+    '''
+    deserialized_object_multigeometry_collection = deserialize_objects(json.loads(multigeometry_collection_json))
+    assert deserialized_object_multigeometry_collection.type == "GeometryCollection"
+    assert deserialized_object_multigeometry_collection.geometries[0].type == "Point"
+    assert deserialized_object_multigeometry_collection.geometries[1].type == "LineString"
+    assert deserialized_object_multigeometry_collection.geometries[2].type == "Polygon"
+    print(deserialized_object_multigeometry_collection.to_statement())
+    print(json.dumps(deserialized_object_multigeometry_collection.to_dict()))
+
+
+    print(deserialized_object_point.to_statement())
+
+
+    print(serialize_geometry_collection([1.1,2.2]))
+    print(serialize_geometry_collection([[1.1,2.2],[3.3,4.4]]))
+    print(serialize_geometry_collection([[[1.1,2.2],[3.3,4.4]],[[5.5,6.6],[7.7,8.8]]]))
+
+    #print(deserialized_object_point.to_statement())
+    #print(deserialized_object_linestring.to_statement())
+    #print(deserialized_object_circular_string.to_statement())
+    #print(deserialized_object_polygon.to_statement())
+    #print(deserialized_object_multipoint.to_statement())
+    #print(deserialized_object_multilinestring.to_statement())
+    #print(deserialized_object_multipolygon.to_statement())
+    #print(deserialized_object_multigeometry_collection.to_statement())
+    for i in [  deserialized_object_point, 
+                deserialized_object_linestring,
+                deserialized_object_circular_string,
+                deserialized_object_polygon,
+                deserialized_object_multipoint,
+                deserialized_object_multilinestring,
+                deserialized_object_multipolygon,
+                deserialized_object_multigeometry_collection]:
+        print(i.to_statement())
+        print(json.dumps(i.to_dict()))
+    print(deserialized_object_expression.to_statement())
+    print(json.dumps(deserialized_object_property_with_array.to_dict()))
+    print(deserialized_object_property_with_array.to_statement())
     print(' -----> everything fine <----- ')

@@ -177,6 +177,18 @@ class ColumnView:
                 return ve
         return {}
 
+    def _selector_from_path(self, path, selector_pos):
+        if path[0] not in selector_pos['elements']:
+            selector_pos['elements'][path[0]] = {}
+        if len(path) > 1:
+            if 'elements' not in selector_pos['elements'][path[0]]:
+                selector_pos['elements'][path[0]]['elements'] = {}
+            self._selector_from_path(path[1:], selector_pos['elements'])
+
+    def by_path_list(self, path_list):
+        self.selector = {'elements':{}}
+        for path in path_list:
+            self._selector_from_path(path, self.selector)
 
     def by_default(self):
         self.view_columns = {}

@@ -117,15 +117,21 @@ class ColumnView:
             col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]
         self.esh_config['content']['EntityType']['Properties'].append(col_conf)
 
-    def _add_join(self, join_path_id, source_join_index, target_entity_pos):
+    def _add_join(self, join_path_id, source_join_index, target_entity_pos\
+        , association_source_column = False):
         if join_path_id:
             jp_id = join_path_id
         else:
             jp_id = next(self.join_path_id_gen)
         target_table_name = target_entity_pos['table_name']
         target_join_index = self._table(target_table_name)
-        source_key = self.mapping['tables'][source_join_index[0]]['pk']
-        target_key = self.mapping['tables'][target_table_name]['pkParent']
+        
+        if association_source_column:
+            source_key = association_source_column
+            target_key = self.mapping['tables'][target_table_name]['pk']
+        else:
+            source_key = self.mapping['tables'][source_join_index[0]]['pk']
+            target_key = self.mapping['tables'][target_table_name]['pkParent']
         self._add_join_condition(jp_id, source_join_index, source_key\
             , target_join_index, target_key)
         return target_join_index, jp_id
@@ -154,6 +160,13 @@ class ColumnView:
                         target_join_index, jp_id = \
                             self._add_join(join_path_id, join_index, entity_property['items'])
                         self._traverse(selected_property, entity_property['items']\
+                            , name_path + [selected_property_name], target_join_index, jp_id)
+                    elif 'definition' in entity_property and 'type' in entity_property['definition']\
+                        and entity_property['definition']['type'] == 'cds.Association':
+                        target_entity = self.mapping['entities'][entity_property['definition']['target']]
+                        target_join_index, jp_id = \
+                            self._add_join(join_path_id, join_index, target_entity, entity_property['column_name'])
+                        self._traverse(selected_property, target_entity\
                             , name_path + [selected_property_name], target_join_index, jp_id)
                     else:
                         raise NotImplementedError
@@ -209,4 +222,3 @@ class ColumnView:
         self._traverse(self.selector, self.anchor_entity, [], self._table(anchor_table_name))
 
         return self._get_sql_statement(), self.esh_config
-

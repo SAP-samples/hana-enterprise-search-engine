@@ -11,7 +11,7 @@ def map_search_query_filter_comparison(incoming_request_index, model_views, item
         raise Exception(f"Unexpected item: {item}. It should be Comparison")
     if 'type' in item['property']:
         if item['property']['type'] == esh_objects.Property.__name__:
-            property_name = item['property']['property']
+            property_name = item['property']['property'] if not type(item['property']['property']) is list else ".".join(item['property']['property'])
             found_property = False
             try:
                 for column_name, column_definition in model_views[main_scope]['columns'].items():
@@ -23,7 +23,7 @@ def map_search_query_filter_comparison(incoming_request_index, model_views, item
                 raise Exception(f"Incoming requests [{incoming_request_index}]: Unknown property: {property_name} for scope: {main_scope}")
             if not found_property:
                 raise Exception(f"Incoming requests [{incoming_request_index}]: Unknown property: {property_name} for scope: {main_scope}")
-        else:
+        elif item['property']['type'] == esh_objects.Expression.__name__:
             map_search_query_filter_expression(incoming_request_index, model_views, item['property'], main_scope)
             # raise Exception(f"Incoming requests [{incoming_request_index}]: searchQueryFilter not implemented Comparison -> Property: {item['property']['type']}")
     else:
@@ -72,7 +72,7 @@ def map_search_query_filter(model_views, search_query_filter):
 def map_request(mapping: dict, incoming_requests: list):
     for i in range(0, len(incoming_requests)):
         incoming_request = incoming_requests[i]
-        main_scope = None
+        incoming_request['select'] = ['ID']
         for key in incoming_request.keys():
             if key == esh_objects.Constants.searchQueryFilter:
                 if not incoming_request[esh_objects.Constants.searchQueryFilter]:

@@ -180,10 +180,11 @@ class Property(IToStatement):
         self.prefixOperator = item[Constants.prefixOperator] if Constants.prefixOperator in item.keys() else None
 
     def to_statement(self):
+        property_value = self.property if not type(self.property) is list else ".".join(self.property)
         if self.prefixOperator:
-            return self.prefixOperator + ' ' + self.property
+            return self.prefixOperator + ' ' + property_value
         else:
-            return self.property
+            return property_value
 
 class Term(IToStatement):
 
@@ -764,6 +765,16 @@ if __name__ == '__main__':
     assert deserialized_object_property.type == Property.__name__
     print(json.dumps(deserialized_object_property.to_dict()))
 
+    json_property_with_array = '''
+        {
+            "type": "Property",
+            "property": ["city", "ok"]
+        }
+    '''
+    deserialized_object_property_with_array = deserialize_objects(json.loads(json_property_with_array))
+    assert deserialized_object_property_with_array.type == Property.__name__
+    print(json.dumps(deserialized_object_property_with_array.to_dict()))
+
     json_comparison = '''
             {
                 "type": "Comparison",
@@ -995,4 +1006,6 @@ if __name__ == '__main__':
         print(i.to_statement())
         print(json.dumps(i.to_dict()))
     print(deserialized_object_expression.to_statement())
+    print(json.dumps(deserialized_object_property_with_array.to_dict()))
+    print(deserialized_object_property_with_array.to_statement())
     print(' -----> everything fine <----- ')

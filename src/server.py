@@ -28,6 +28,8 @@ from request_mapping import map_request
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+LENGTH_ODATA_METADATA_PREFIX = len('$metadata#')
+
 def handle_error(msg: str = '', status_code: int = -1):
     if status_code == -1:
         correlation_id = str(uuid.uuid4())
@@ -383,6 +385,7 @@ def perform_bulk_search(esh_version, tenant_id, esh_query):
     payload = [f'/{esh_version}/{tenant_schema_name}/{w}' for w in esh_query]
     bulk_request = esh_search_escape(json.dumps([{'URI': payload}]))
     sql = f"CALL ESH_SEARCH('{bulk_request}',?)"
+    print(sql)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         _ = db.cur.execute(sql)
         #res = '[' + ','.join([w[0] for w in db.cur.fetchall()]) + ']'
@@ -457,11 +460,41 @@ async def search_v2(tenant_id, esh_version, query=Body(...)):
             if not (res and len(res) == 1):
                 logging.error('Tenant %s has no entries in the _MODEL table', tenant_id)
                 handle_error('Configuration inconsistent', 500)
-        esh_mapped_queries = map_request(json.loads(res[0]), query)
+            mapping = json.loads(res[0])
+        esh_mapped_queries = map_request(mapping, query)
         esh_query = [IESSearchOptions(w).to_statement()[1:] for w in esh_mapped_queries]
         
         # esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
-        return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
+        # return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
+        search_results = perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
+        for search_result in search_results:
+            if 'value' in search_result:
+                for matched_object in search_result['value']:
+                    odata_name = matched_object['@odata.context'][LENGTH_ODATA_METADATA_PREFIX:]
+                    for view_value in mapping['views'].values():
+                        if view_value['odata_name'] == odata_name:
+                            entity_name = view_value['entity_name']
+                            break
+                    data_request = {
+                        entity_name: [
+                            {
+                                "id": matched_object['ID']
+                            }
+                        ]
+                    }
+                    read_data_query = await read_data(tenant_id, data_request)
+                    for key in read_data_query[entity_name][0]:
+                        matched_object[key] = read_data_query[entity_name][0][key]
+                    del matched_object['ID']
+                    del matched_object['@odata.context']
+                    # matched_object = read_data_query[entity_name][0]
+                    matched_object['@esh.context'] = entity_name
+                    for connector_statistic in search_result["@com.sap.vocabularies.Search.v1.SearchStatistics"]["ConnectorStatistics"]:
+                        if 'OdataID' in connector_statistic and connector_statistic['OdataID'] == odata_name:
+                            connector_statistic['@esh.context'] = entity_name
+                            del connector_statistic['OdataID']
+                    
+        return search_results
     except Exception as e:
         return {'error': f'{e}'}
 

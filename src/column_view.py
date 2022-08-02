@@ -1,7 +1,8 @@
 from copy import deepcopy
 from name_mapping import NameMapping
+from constants import ENTITY_PREFIX, VIEW_PREFIX
 
-ESH_CONFIG_TEMPLATE = {
+_ESH_CONFIG_TEMPLATE = {
     'uri': '~/$metadata/EntitySets',
     'method': 'PUT',
     'content': {
@@ -28,14 +29,11 @@ def sequenceInt(i = 10, step = 10):
 
 class ColumnView:
     """Column view definition"""
-    def __init__(self, model, anchor_entity_name, schema_name, view_name, odata_name, selector) -> None:
-        self.model = model
-        self.anchor_entity_name = anchor_entity_name
+    def __init__(self, mapping, anchor_entity, schema_name) -> None:
+        self.mapping = mapping
+        self.anchor_entity = anchor_entity
         self.schema_name = schema_name
-        self.view_name = view_name
-        self.odata_name = odata_name
-        self.selector = selector
-        self.esh_config = deepcopy(ESH_CONFIG_TEMPLATE)
+        self.esh_config = deepcopy(_ESH_CONFIG_TEMPLATE)
         self.column_name_mapping = NameMapping()
         self.join_index = {}
         self.view_attribute = []
@@ -44,6 +42,12 @@ class ColumnView:
         self.join_path_id_gen = sequence(1, 'JP', 3)
         self.join_condition_id_gen = sequence(1, 'JC', 3)
         self.ui_position_gen = sequenceInt()
+
+    def by_selector(self, view_name, odata_name, selector):
+        self.view_name = view_name
+        self.odata_name = odata_name
+        self.selector = selector
+
 
     @staticmethod
     def _get_join_index_name(join_index):
@@ -62,8 +66,8 @@ class ColumnView:
 
     def _add_join_condition(self, join_path_id, join_index_from, column_name_from, join_index_to, column_name_to):
         join_condition_id = next(self.join_condition_id_gen)
-        self.join_conditions.append((join_condition_id, self.get_join_index_name(join_index_from),\
-            column_name_from, self.get_join_index_name(join_index_to), column_name_to))
+        self.join_conditions.append((join_condition_id, self._get_join_index_name(join_index_from),\
+            column_name_from, self._get_join_index_name(join_index_to), column_name_to))
         if join_path_id in self.join_path:
             self.join_path[join_path_id].add(join_condition_id)
         else:
@@ -80,7 +84,7 @@ class ColumnView:
         for view_prop_name, table_name, table_prop_name, join_path_id in self.view_attribute:
             v += f"viewAttribute=('{view_prop_name}',\"{table_name}\",\"{table_prop_name}\",'{join_path_id}'"\
                 +",'default','attribute'),\n"
-        v += f"view=('default',\"{self.anchor_table_name}\"),\n"
+        v += f"view=('default',\"{self.anchor_entity['table_name']}\"),\n"
         v += "defaultView='default',\n"
         v += 'OPTIMIZEMETAMODEL=0,\n'
         v += "'LEGACY_MODE' = 'TRUE')"
@@ -157,17 +161,40 @@ class ColumnView:
         else:
             self._add_column(entity_pos, table_name, join_index, join_path_id, name_path)
 
-    def data_definition(self, schema_name):
-        anchor_entity = self.mapping['entities'][self.anchor_entity_name]
-        anchor_table_name = anchor_entity['table_name']
+    def _make_default_selector(self, element, path, table_name):
+        if 'table_name' in element:
+            table_name = element['table_name']
+        if 'elements' in element and element['elements']:
+            view_element = {}
+            for k, v in element['elements'].items():
+                ve = self._make_default_selector(v, path + [k], table_name)
+                if ve:
+                    view_element[k] = ve
+            return {'elements': view_element}
+        if 'items' in element:
+            ve = self._make_default_selector(element['items'], path, table_name)
+            if ve:
+                return ve
+        return {}
+
+
+    def by_default(self):
+        self.view_columns = {}
+        self.selector = self._make_default_selector(self.anchor_entity, [], None)
+        self.odata_name = self.anchor_entity['table_name'][len(ENTITY_PREFIX):]
+        self.view_name = VIEW_PREFIX + self.odata_name
+
+    def data_definition(self):
+        #anchor_entity = self.mapping['entities'][self.anchor_entity_name]
+        anchor_table_name = self.anchor_entity['table_name']
         if 'annotations' in self.mapping['tables'][anchor_table_name]:
             annotations = self.mapping['tables'][anchor_table_name]['annotations']
             self.esh_config['content']['EntityType'] |= annotations
             # for UI5 enterprise search UI to work
             if '@EndUserText.Label' in annotations and not '@SAP.Common.Label' in annotations:
                 self.esh_config['content']['EntityType']['@SAP.Common.Label'] = annotations['@EndUserText.Label']
-        self.esh_config['content']['Fullname'] = f'{schema_name}/{self.view_name}'
+        self.esh_config['content']['Fullname'] = f'{self.schema_name}/{self.view_name}'
         self.esh_config['content']['EntityType']['@EnterpriseSearchHana.identifier'] = self.odata_name
-        self._traverse(self.selector, anchor_entity, [], self._table(anchor_table_name))
+        self._traverse(self.selector, self.anchor_entity, [], self._table(anchor_table_name))
 
         return self._get_sql_statement(), self.esh_config

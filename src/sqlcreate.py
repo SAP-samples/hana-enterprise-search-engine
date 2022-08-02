@@ -1,8 +1,9 @@
 '''Creates SQL commands from tables'''
 from __future__ import annotations
 from copy import deepcopy
-import convert
+from column_view import ColumnView
 
+'''
 
 ESH_CONFIG_TEMPLATE = {
     'uri': '~/$metadata/EntitySets',
@@ -15,6 +16,8 @@ ESH_CONFIG_TEMPLATE = {
             '@EnterpriseSearchHana.identifier': 'VORGANG_MODEL',
             '@EnterpriseSearchHana.passThroughAllAnnotations': True,
             'Properties': []}}}
+'''
+
 
 '''
 {
@@ -54,6 +57,12 @@ def get_columns(table):
         columns.append(cl)
     return columns
 
+def tables_dd(tables):
+    return [f'create table "{t[Constants.table_name]}" ( {", ".join(get_columns(t))} )'\
+        for t in tables.values()]
+
+
+'''
 def sequence(i = 0, prefix = '', fill = 3):
     while True:
         if prefix:
@@ -120,10 +129,6 @@ class ColumnView:
         v += 'OPTIMIZEMETAMODEL=0,\n'
         v += "'LEGACY_MODE' = 'TRUE')"
         return v
-
-def tables_dd(tables):
-    return [f'create table "{t[Constants.table_name]}" ( {", ".join(get_columns(t))} )'\
-        for t in tables.values()]
 
 def search_dd(schema_name, mapping, views):
     views_dd = []
@@ -208,8 +213,17 @@ def traverse_view_elements(cv: ColumnView, esh_config_properties, mapping, view_
         annotations = view_pos['annotations'] if 'annotations' in view_pos else {}
         add_view_column(cv, esh_config_properties, mapping, table_name, join_index, join_path_id,\
             view_pos['view_column_name'], '_VALUE', annotations)            
-
+'''
 def mapping_to_ddl(mapping, schema_name):
     tables = tables_dd(mapping['tables'])
-    sdd = search_dd(schema_name, mapping, [v for v in mapping['views'].values()])
-    return {'tables': tables, 'views': sdd['views'], 'eshConfig':sdd['eshConfig']}
+    #sdd = search_dd(schema_name, mapping, [v for v in mapping['views'].values()])
+    #return {'tables': tables, 'views': sdd['views'], 'eshConfig':sdd['eshConfig']}
+    views = []
+    esh_configs = []
+    for anchor_entity in mapping['entities'].values():
+        cv = ColumnView(mapping, anchor_entity, schema_name)
+        cv.by_default()
+        view, esh_config = cv.data_definition()
+        views.append(view)
+        esh_configs.append(esh_config)
+    return {'tables': tables, 'views': views, 'eshConfig':esh_configs}

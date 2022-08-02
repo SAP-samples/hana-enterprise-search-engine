@@ -91,9 +91,10 @@ class ColumnView:
         return v
 
     def _add_view_column(self, join_index, join_path_id,\
-        name_path, table_column_name, annotations):
+        name_path, table_column_name, annotations, selector_pos):
         table_name = join_index[0]
         view_column_name, _ = self.column_name_mapping.register(name_path)
+        selector_pos['as'] = view_column_name
         self.view_attribute.append((view_column_name, \
             self._get_join_index_name(join_index), table_column_name, join_path_id))
         # ESH config
@@ -129,8 +130,7 @@ class ColumnView:
             , target_join_index, target_key)
         return target_join_index, jp_id
 
-    def _add_column(self, entity_pos, join_index, join_path_id,\
-                name_path):
+    def _add_column(self, entity_pos, join_index, join_path_id, name_path, selector_pos):
         if 'items' in entity_pos:
             ep = entity_pos['items']
             join_index, join_path_id = self._add_join(join_path_id, join_index, ep)
@@ -138,7 +138,7 @@ class ColumnView:
             ep = entity_pos
         annotations = ep['annotations'] if 'annotations' in ep else {}
         self._add_view_column(join_index, join_path_id,\
-            name_path, ep['column_name'], annotations)
+            name_path, ep['column_name'], annotations, selector_pos)
 
 
     def _traverse(self, selector_pos, entity_pos, name_path, join_index, join_path_id = ''):
@@ -159,9 +159,9 @@ class ColumnView:
                         raise NotImplementedError
                 else:
                     self._add_column(entity_property, join_index, join_path_id\
-                        , name_path + [selected_property_name])
+                        , name_path + [selected_property_name], selected_property)
         else:
-            self._add_column(entity_pos, join_index, join_path_id, name_path)
+            self._add_column(entity_pos, join_index, join_path_id, name_path, selector_pos)
 
     def _make_default_selector(self, element, path, table_name):
         if 'table_name' in element:

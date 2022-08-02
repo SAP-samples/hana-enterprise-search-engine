@@ -29,9 +29,9 @@ def sequenceInt(i = 10, step = 10):
 
 class ColumnView:
     """Column view definition"""
-    def __init__(self, mapping, anchor_entity, schema_name) -> None:
+    def __init__(self, mapping, anchor_entity_name, schema_name) -> None:
         self.mapping = mapping
-        self.anchor_entity = anchor_entity
+        self.anchor_entity = mapping['entities'][anchor_entity_name]
         self.schema_name = schema_name
         self.esh_config = deepcopy(_ESH_CONFIG_TEMPLATE)
         self.column_name_mapping = NameMapping()
@@ -181,9 +181,11 @@ class ColumnView:
         if len(path) > 1:
             if 'elements' not in selector_pos['elements'][path[0]]:
                 selector_pos['elements'][path[0]]['elements'] = {}
-            self._selector_from_path(path[1:], selector_pos['elements'])
+            self._selector_from_path(path[1:], selector_pos['elements'][path[0]])
 
-    def by_path_list(self, path_list):
+    def by_path_list(self, path_list, view_name, odata_name):
+        self.view_name = view_name
+        self.odata_name = odata_name
         self.selector = {'elements':{}}
         for path in path_list:
             self._selector_from_path(path, self.selector)
@@ -207,3 +209,4 @@ class ColumnView:
         self._traverse(self.selector, self.anchor_entity, [], self._table(anchor_table_name))
 
         return self._get_sql_statement(), self.esh_config
+

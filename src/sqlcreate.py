@@ -41,10 +41,11 @@ def mapping_to_ddl(mapping, schema_name):
     tables = tables_dd(mapping['tables'])
     #sdd = search_dd(schema_name, mapping, [v for v in mapping['views'].values()])
     #return {'tables': tables, 'views': sdd['views'], 'eshConfig':sdd['eshConfig']}
+    
     views = []
     esh_configs = []
-    for anchor_entity in mapping['entities'].values():
-        cv = ColumnView(mapping, anchor_entity, schema_name)
+    for anchor_entity_name in mapping['entities'].keys():
+        cv = ColumnView(mapping, anchor_entity_name, schema_name)
         cv.by_default()
         view, esh_config = cv.data_definition()
         views.append(view)

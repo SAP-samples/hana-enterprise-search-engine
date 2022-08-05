@@ -2,11 +2,13 @@
 Provides HTTP(S) interfaces
 '''
 from datetime import datetime
+import types
 from fastapi import FastAPI, Request, Body, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import RedirectResponse
 import json
 import uuid
+from column_view import ColumnView
 from db_connection_pool import DBConnection, ConnectionPool, Credentials
 import convert
 import sqlcreate
@@ -445,7 +447,8 @@ async def search_v2(tenant_id, esh_version, query=Body(...)):
     esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
     return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
 
-# v2.1 Search
+# v2.1 Search first version
+'''
 @app.post('/v2.1/search/{tenant_id}/{esh_version:path}')
 async def search_v2(tenant_id, esh_version, query=Body(...)):
     try:
@@ -493,6 +496,144 @@ async def search_v2(tenant_id, esh_version, query=Body(...)):
                         if 'OdataID' in connector_statistic and connector_statistic['OdataID'] == odata_name:
                             connector_statistic['@esh.context'] = entity_name
                             del connector_statistic['OdataID']
+                    
+        return search_results
+    except Exception as e:
+        return {'error': f'{e}'}
+'''
+
+def getListOfSubstringsTermFound(stringSubject):
+    startterm = '<TERM>'
+    endterm = '</TERM>'
+    startfound= '<FOUND>'
+    endfound = '</FOUND>'
+    intstart=0
+    strlength=len(stringSubject)
+    continueloop = 1
+    found_terms = {}
+
+    while(intstart < strlength and continueloop == 1):
+        intindex_startterm=stringSubject.find(startterm,intstart)
+        if(intindex_startterm != -1): #The substring was found, lets proceed
+            intindex_startterm = intindex_startterm+len(startterm)
+            intindex_endterm = stringSubject.find(endterm,intindex_startterm)
+            if(intindex_endterm != -1):
+                subsequence=stringSubject[intindex_startterm:intindex_endterm]
+                found_terms[subsequence] = []
+                intindex_startfound=stringSubject.find(startfound,intindex_endterm)
+                intindex_endfound=stringSubject.find(endfound,intindex_endterm)
+                intindex_startterm_next=stringSubject.find(startterm,intindex_endterm)
+                while (intindex_startterm_next == -1 or intindex_startfound < intindex_startterm_next):
+                    if(intindex_startfound != -1 and intindex_endfound != 1): 
+                        found=stringSubject[intindex_startfound+len(startfound):intindex_endfound]
+                        found_terms[subsequence].append(found)
+                    intindex_startfound=stringSubject.find(startfound,intindex_startfound+1)
+                    if (intindex_startfound == -1):
+                        break
+                    intindex_endfound=stringSubject.find(endfound,intindex_endfound+1)
+                intstart=intindex_endterm+len(endterm)
+            else:
+                continueloop=0
+        else:
+            continueloop=0
+    return found_terms
+
+# v2.2 Search
+@app.post('/v2.1/search/{tenant_id}/{esh_version:path}')
+async def search_v2(tenant_id, esh_version, query=Body(...)):
+    try:
+        validate_tenant_id(tenant_id)
+        
+        tenant_schema_name = get_tenant_schema_name(tenant_id)
+        with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
+            db.cur.execute(f'set schema "{tenant_schema_name}"')
+            sql = f'select top 1 MAPPING from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
+            db.cur.execute(sql)
+            res = db.cur.fetchone()
+            if not (res and len(res) == 1):
+                logging.error('Tenant %s has no entries in the _MODEL table', tenant_id)
+                handle_error('Configuration inconsistent', 500)
+            mapping = json.loads(res[0])
+            # ddl = sqlcreate.mapping_to_ddl(mapping, tenant_schema_name)
+            # for create_view in ddl['views']:
+            #     db.cur.execute(create_view)
+            # sql = f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}', ?)"
+            esh_mapped_queries = map_request(mapping, query)
+            if 'scope' in esh_mapped_queries:
+                anchor_entity_name = esh_mapped_queries['scope']
+                cv = ColumnView(mapping, anchor_entity_name, tenant_schema_name)
+                # for free style elements in query take by_default
+                if 'comparison_paths' in esh_mapped_queries and not 'exist_free_style' in esh_mapped_queries:
+                    cv.by_path_list([["id"]] + esh_mapped_queries['comparison_paths'], mapping['views'][anchor_entity_name]['view_name'], mapping['views'][anchor_entity_name]['odata_name'])
+                else:
+                    cv.by_default()
+                view, esh_config = cv.data_definition()
+                print(view)
+                print(esh_config)
+                print(cv.selector)
+                db.cur.execute(view)
+                db.cur.execute(f"CALL ESH_CONFIG('{json.dumps([esh_config])}', ?)")
+
+        # esh_mapped_queries = map_request(mapping, query)
+        esh_query = [IESSearchOptions(w).to_statement()[1:] for w in esh_mapped_queries['incoming_requests']]
+        
+        
+        # esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
+        # return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
+        search_results = perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
+        for search_result in search_results:
+            if 'value' in search_result:
+                for matched_object in search_result['value']:
+                    odata_name = matched_object['@odata.context'][LENGTH_ODATA_METADATA_PREFIX:]
+                    for view_value in mapping['views'].values():
+                        if view_value['odata_name'] == odata_name:
+                            entity_name = view_value['entity_name']
+                            break
+                    data_request = {
+                        entity_name: [
+                            {
+                                "id": matched_object['ID']
+                            }
+                        ]
+                    }
+                    read_data_query = await read_data(tenant_id, data_request)
+                    for key in read_data_query[entity_name][0]:
+                        matched_object[key] = read_data_query[entity_name][0][key]
+                    del matched_object['ID']
+                    del matched_object['@odata.context']
+                    # matched_object = read_data_query[entity_name][0]
+                    matched_object['@esh.context'] = entity_name
+                    if "@com.sap.vocabularies.Search.v1.WhyFound" in matched_object:
+                        why_found_list = []
+                        for key, values in matched_object["@com.sap.vocabularies.Search.v1.WhyFound"].items():
+                            why_found_list.append({
+                                "selector":  mapping['views'][entity_name]['columns'][key]['path'],
+                                "values": values
+                            })
+                        matched_object["@com.sap.vocabularies.Search.v1.WhyFound"] = why_found_list
+                    if "@com.sap.vocabularies.Search.v1.WhereFound" in matched_object:
+                        #alias_list = []
+                        where_found = matched_object["@com.sap.vocabularies.Search.v1.WhereFound"]
+                        found_terms = getListOfSubstringsTermFound(where_found)
+                        new_where = {}
+                        for term, where_array in found_terms.items():
+                            new_where[term] = []
+                            for item in where_array:
+                                new_where[term].append(mapping['views'][entity_name]['columns'][item]['path'])
+                            '''
+                            alias_list.append({
+                                'alias': [found_property],
+                                'selector': mapping['views'][entity_name]['columns'][found_property]['path']
+                            })
+                            '''
+                        # matched_object["@com.sap.vocabularies.Search.v1.Aliases"] = alias_list
+                        # matched_object["@com.sap.vocabularies.Search.v1.WhereFoundOriginal"] = matched_object["@com.sap.vocabularies.Search.v1.WhereFound"]
+                        matched_object["@com.sap.vocabularies.Search.v1.WhereFound"] = new_where
+                    for connector_statistic in search_result["@com.sap.vocabularies.Search.v1.SearchStatistics"]["ConnectorStatistics"]:
+                        if 'OdataID' in connector_statistic and connector_statistic['OdataID'] == odata_name:
+                            connector_statistic['@esh.context'] = entity_name
+                            del connector_statistic['OdataID']
+
                     
         return search_results
     except Exception as e:

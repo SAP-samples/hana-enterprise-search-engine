@@ -37,7 +37,6 @@ class CsonElement(BaseModel):
     type: Optional[str]
     items: Optional[CsonElement]
     elements: Optional[Dict[str, CsonElement]]
-    
     @root_validator
     def check_exaclty_once(cls, v):
         has_type = 1 if 'type' in v and v['type'] else 0
@@ -48,10 +47,9 @@ class CsonElement(BaseModel):
         return v    
 CsonElement.update_forward_refs()
 
-class CsonDefinition(BaseModel):
+class CsonDefinition(CsonElement):
     kind: str
     includes: Optional[List [str]]
-    elements: Optional[Dict[str, CsonElement]]
 
 class Cson(BaseModel):
     namespace: Optional[str]

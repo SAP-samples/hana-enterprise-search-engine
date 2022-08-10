@@ -16,18 +16,22 @@ class TestType(Enum):
     DATA = 'data.json'
     SEARCH_REQ_ODATA = 'searchRequestOData.json'
     SEARCH_REQ_OPENAPI = 'searchRequestOpenAPI.json'
+    QUERY_REQ = 'queryRequest.json'
+    SEARCH_REQ_V2 = 'searchRequestV2.json'
     SEARCH_RESP_ODATA_GET = 'ODataGET'
     SEARCH_RESP_ODATA_POST = 'ODataPOST'
     SEARCH_RESP_OPENAPI = 'OpenAPI'
+    QUERY_RESP = 'Query'
+    SEARCH_V2_INPUT_MAPPING_SEARCH_OBJECTS = 'searchV2InputMapping.json'
     GET_ALL_TENANTS = 'serviceResponseGetAllTenants.json'
     DELETE_TENANT = 'serviceResponseDeleteTenant.json'
     CREATE_TENANT = 'serviceResponseCreateTenant.json'
     CREATE_MODEL = 'serviceResponseCreateModel.json'
+    CREATE_MODEL_SIMULATE = 'serviceResponseCreateModelSimulate.json'
     LOAD_DATA = 'serviceResponseLoadData.json'
     READ_DATA = 'serviceResponseReadData.json'
     DELETE_DATA = 'serviceResponseDeleteData.json'
     NONE = ''
-
 
 
 class FileLocation(Enum):
@@ -45,13 +49,16 @@ def file_name(package_name, test_name, typ:TestType, location:FileLocation = Non
 
     if typ == TestType.FOLDER_ONLY:
         res = os.path.join(root, location.value)
-    elif typ in (TestType.CDS, TestType.DATA, TestType.SEARCH_REQ_ODATA, TestType.SEARCH_REQ_OPENAPI):
+    elif typ in (TestType.CDS, TestType.DATA, TestType.SEARCH_REQ_ODATA, TestType.SEARCH_REQ_OPENAPI, TestType.QUERY_REQ):
         res = os.path.join(root,  typ.value)
-    elif typ in (TestType.SEARCH_RESP_ODATA_GET, TestType.SEARCH_RESP_ODATA_POST, TestType.SEARCH_RESP_OPENAPI):
+    elif typ in (TestType.SEARCH_RESP_ODATA_GET, TestType.SEARCH_RESP_ODATA_POST, TestType.SEARCH_RESP_OPENAPI, TestType.QUERY_RESP):
         if location == FileLocation.OUTPUT:
             res = os.path.join(root, location.value, f'search{typ.value}.json')
         elif FileLocation.REFERENCE:
-            res = os.path.join(root, location.value, 'search.json')
+            if typ in (TestType.QUERY_RESP,):
+                res = os.path.join(root, location.value, f'search{typ.value}.json')
+            else: 
+                res = os.path.join(root, location.value, 'search.json')
     else:
         res = os.path.join(root, location.value, typ.value)
     return res
@@ -115,6 +122,15 @@ def process_search_result(package_name, test_name, file_type, response_obj):
         json.dump(result_obj, fw_res, indent=4)
     check(package_name, test_name, file_type)
 
+def process_search_result_v2_1(package_name, test_name, file_type, response_obj):
+    result_obj = [round_esh_response(w) for w in response_obj]
+    mask_uuid(result_obj, 'ID')
+    result_fn = file_name(package_name, test_name, file_type\
+        , FileLocation.OUTPUT)
+    with open(result_fn, 'w', encoding='utf-8') as fw_res:
+        json.dump(result_obj, fw_res, indent=4)
+    check(package_name, test_name, file_type)
+
 def mask_uuid(obj, key_name):
     if isinstance(obj, list):
         for o in obj:
@@ -140,11 +156,11 @@ def process_service_response(package_name, test_name, requst_type: TestType, res
         json.dump(result, fw, indent=4)
     check(package_name, test_name, requst_type)
 
-
 current_path = sys.path[0]
-src_path = current_path + '\\..\\..\\src'
+src_path = current_path + f'{os.sep}..{os.sep}..{os.sep}src'
 
-parser = argparse.ArgumentParser(description='Runs test cases for mapper')
+
+parser = argparse.ArgumentParser(description='Runs test cases')
 parser.add_argument('-f', '--folder', nargs='?', help='test package folder', type=str)
 parser.add_argument('-p', '--package', nargs='?', help='test package name', type=str)
 parser.add_argument('-t', '--test', nargs='?', help='test name', type=str)
@@ -167,7 +183,7 @@ args = parser.parse_args()
 if args.folder:
     folder_to_use = args.folder
 else:
-    folder_to_use = current_path + '\\..\\packages'
+    folder_to_use = current_path + f'{os.sep}..{os.sep}packages'
 
 all_packages = {k:[] for k in next(os.walk(folder_to_use))[1]}
 for k in all_packages.keys():
@@ -245,6 +261,9 @@ for package, tests in packages.items():
                 process_service_response(package, test, TestType.DELETE_TENANT, r)
             r = requests.post(f'{base_url}/v1/tenant/{tenant_name}')
             process_service_response(package, test, TestType.CREATE_TENANT, r)
+            r = requests.post(f'{base_url}/v1/deploy/{tenant_name}', json=cson\
+                , params={'simulate': True})
+            process_service_response(package, test, TestType.CREATE_MODEL_SIMULATE, r)
             r = requests.post(f'{base_url}/v1/deploy/{tenant_name}', json=cson)
             process_service_response(package, test, TestType.CREATE_MODEL, r)
             object_ids = None
@@ -268,6 +287,19 @@ for package, tests in packages.items():
                 r = requests.post(url, json=query_obj)
                 process_search_result(package, test\
                     , TestType.SEARCH_RESP_OPENAPI, r.json())
+            else:
+                add_message(package, test, MessageType.TODO\
+                    , TestType.SEARCH_REQ_OPENAPI, 'does not exist')
+
+            # OpenAPIv2.1
+            query_fn = file_name(package, test, TestType.QUERY_REQ)
+            if os.path.exists(query_fn):
+                with open(query_fn, encoding = 'utf-8') as f:
+                    query_obj = json.load(f)
+                url = f'{base_url}/v1/query/{tenant_name}/latest'
+                r = requests.post(url, json=query_obj)
+                process_search_result_v2_1(package, test\
+                    , TestType.QUERY_RESP, r.json())
             else:
                 add_message(package, test, MessageType.TODO\
                     , TestType.SEARCH_REQ_OPENAPI, 'does not exist')

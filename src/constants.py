@@ -2,6 +2,9 @@
 from enum import Enum
 from db_connection_pool import Credentials
 
+ENTITY_PREFIX = 'ENTITY/'
+VIEW_PREFIX = 'VIEW/'
+
 SCHEMA_PREFIX_MAX_LENGTH = 50
 TENANT_ID_MAX_LENGTH = 50
 CONFIG_FILE_NAME = '.config.json'
@@ -12,6 +15,14 @@ TYPES_B64_ENCODE = set(['VARBINARY', 'BLOB', 'BINARY'])
 TYPES_SPATIAL = set(['ST_POINT', 'ST_GEOMETRY'])
 
 SPATIAL_DEFAULT_SRID = 4326
+
+CSON_TYPES = set(['cds.UUID','cds.String','cds.LargeString','cds.Varchar','cds.Integer64'\
+    ,'cds.Timestamp','cds.Boolean','cds.Date','cds.Integer','cds.Decimal','cds.Double'\
+    ,'cds.Time','cds.DateTime','cds.Timestamp','cds.Binary','cds.LargeBinary'\
+    ,'cds.hana.BINARY','cds.hana.VARCHAR','cds.hana.SMALLINT','cds.hana.TINYINT'\
+    ,'cds.hana.SMALLDECIMAL','cds.hana.REAL','cds.hana.CLOB','cds.hana.ST_POINT'\
+    ,'cds.hana.ST_GEOMETRY','cds.Association',
+])
 
 class DBUserType(Enum):
     ADMIN = 'admin'

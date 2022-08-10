@@ -182,7 +182,8 @@ class ColumnView:
         if 'elements' in element and element['elements']:
             view_element = {}
             for k, v in element['elements'].items():
-                view_element[k] = self._make_default_selector(v, path + [k], table_name)
+                if not ('definition' in v and 'isVirtual' in v['definition']):
+                    view_element[k] = self._make_default_selector(v, path + [k], table_name)
             return {'elements': view_element}
         if 'items' in element:
             return self._make_default_selector(element['items'], path, table_name)

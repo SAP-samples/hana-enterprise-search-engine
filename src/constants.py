@@ -16,6 +16,14 @@ TYPES_SPATIAL = set(['ST_POINT', 'ST_GEOMETRY'])
 
 SPATIAL_DEFAULT_SRID = 4326
 
+CSON_TYPES = set(['cds.UUID','cds.String','cds.LargeString','cds.Varchar','cds.Integer64'\
+    ,'cds.Timestamp','cds.Boolean','cds.Date','cds.Integer','cds.Decimal','cds.Double'\
+    ,'cds.Time','cds.DateTime','cds.Timestamp','cds.Binary','cds.LargeBinary'\
+    ,'cds.hana.BINARY','cds.hana.VARCHAR','cds.hana.SMALLINT','cds.hana.TINYINT'\
+    ,'cds.hana.SMALLDECIMAL','cds.hana.REAL','cds.hana.CLOB','cds.hana.ST_POINT'\
+    ,'cds.hana.ST_GEOMETRY','cds.Association',
+])
+
 class DBUserType(Enum):
     ADMIN = 'admin'
     SCHEMA_MODIFY = 'schema_modify'

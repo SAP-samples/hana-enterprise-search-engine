@@ -4,8 +4,8 @@ import os
 import argparse
 
 parser = argparse.ArgumentParser(description='Check consistency between cson and data')
-parser.add_argument('-p', '--package', help='test package name', type=str, required=True, default='relationships')
-parser.add_argument('-t', '--test', help='test name', type=str, required=True, default='01')
+parser.add_argument('-p', '--package', help='test package name', type=str, required=True)
+parser.add_argument('-t', '--test', help='test name', type=str, required=True)
 
 args = parser.parse_args()
 package = args.package
@@ -22,10 +22,10 @@ with open(fn_cson, encoding = 'utf-8') as f:
 
 all_error_messages = set()
 
-def error(str):
-    if str not in all_error_messages:
-        all_error_messages.add(str)
-        print(str)
+def error(s: str):
+    if s not in all_error_messages:
+        all_error_messages.add(s)
+        print(s)
 
 def verify (cson, path, obj, model):
     if 'type' in model and model['type'][:4] != 'cds.':

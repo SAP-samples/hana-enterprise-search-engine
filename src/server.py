@@ -2,7 +2,6 @@
 Provides HTTP(S) interfaces
 '''
 from datetime import datetime
-import types
 from fastapi import FastAPI, Request, Body, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import RedirectResponse
@@ -18,19 +17,59 @@ import uvicorn
 from hdbcli.dbapi import Error as HDBException
 from hdbcli.dbapi import DataError
 import logging
-from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH, TYPES_B64_ENCODE, TYPES_SPATIAL
+from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH, TYPES_B64_ENCODE, TYPES_SPATIAL, CSON_TYPES
 from config import get_user_name
 import sys
-#import logging
 import server_globals as glob
 import base64
 from request_mapping import map_request
+from typing import List, Optional, Dict, ForwardRef
+from pydantic import BaseModel, ValidationError, root_validator
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 LENGTH_ODATA_METADATA_PREFIX = len('$metadata#')
+
+CsonElement = ForwardRef('CsonElement')
+class CsonElement(BaseModel):
+    type: Optional[str]
+    items: Optional[CsonElement]
+    elements: Optional[Dict[str, CsonElement]]
+    
+    @root_validator
+    def check_exaclty_once(cls, v):
+        has_type = 1 if 'type' in v and v['type'] else 0
+        has_items = 1 if 'items' in v and v['items'] else 0
+        has_elements = 1 if 'elements' in v and v['elements'] else 0
+        if sum([has_type, has_items, has_elements]) != 1:
+            raise ValueError('exactly one property "type", "items" or "elements" must exist')
+        return v    
+CsonElement.update_forward_refs()
+
+class CsonDefinition(BaseModel):
+    kind: str
+    includes: Optional[List [str]]
+    elements: Optional[Dict[str, CsonElement]]
+
+class Cson(BaseModel):
+    namespace: Optional[str]
+    definitions: Dict[str, CsonDefinition]
+    version: Optional[str]
+
+def get_types(types, element):
+    if 'elements' in element:
+        for sub_element in element['elements'].values():
+            get_types(types, sub_element)
+    elif 'items' in element:
+        get_types(types, element['items'])
+    else:
+        if element['type'] == 'cds.Association':
+            types.add(element['target'])
+        else:
+            types.add(element['type'])
+
 
 def handle_error(msg: str = '', status_code: int = -1):
     if status_code == -1:
@@ -136,34 +175,51 @@ def get_tenants_sync():
 
 
 @app.post('/v1/deploy/{tenant_id}')
-async def post_model(tenant_id: str, cson=Body(...)):
+async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
     """ Deploy model """
-    tenant_schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
-        db.cur.execute(f'set schema "{tenant_schema_name}"')
-        db.cur.execute('select count(*) from "_MODEL"')
-        num_deployments = db.cur.fetchone()[0]
-        if num_deployments == 0:
-            created_at = datetime.now()
-            try:
-                mapping = convert.cson_to_mapping(cson)
-                ddl = sqlcreate.mapping_to_ddl(mapping, tenant_schema_name)
-            except convert.ModelException as e:
-                handle_error(str(e), 400)
-            try:
-                for sql in ddl['tables']:
-                    db.cur.execute(sql)
-                for sql in ddl['views']:
-                    db.cur.execute(sql)
-                db.cur.execute(f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}',?)")
-                sql = 'insert into _MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
-                db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(mapping)))
-                db.con.commit()
-            except HDBException as e:
-                handle_error(f'dbapi Error: {e.errorcode}, {e.errortext} for:\n\t{sql}')
-            return {'detail': 'Model successfully deployed'}
-        else:
-            handle_error('Model already deployed', 422)
+    try:
+        _ = Cson(**cson)
+    except ValidationError as e:
+        handle_error(str(e), 422)
+
+    types = set()
+    for element in cson['definitions'].values():
+        get_types(types, element)
+    types -= set(cson['definitions'])
+    types -= CSON_TYPES
+    if types:
+        msg = 'Missing types: {}'.format(', '.join(list(types)))
+        msg += '\nValid built-in types: {}'.format(', '.join(list(CSON_TYPES)))
+        handle_error(msg, 422)
+    if simulate:
+        return {'detail': 'Model is consistent'}
+    else:
+        tenant_schema_name = get_tenant_schema_name(tenant_id)
+        with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
+            db.cur.execute(f'set schema "{tenant_schema_name}"')
+            db.cur.execute('select count(*) from "_MODEL"')
+            num_deployments = db.cur.fetchone()[0]
+            if num_deployments == 0:
+                created_at = datetime.now()
+                try:
+                    mapping = convert.cson_to_mapping(cson)
+                    ddl = sqlcreate.mapping_to_ddl(mapping, tenant_schema_name)
+                except convert.ModelException as e:
+                    handle_error(str(e), 400)
+                try:
+                    for sql in ddl['tables']:
+                        db.cur.execute(sql)
+                    for sql in ddl['views']:
+                        db.cur.execute(sql)
+                    db.cur.execute(f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}',?)")
+                    sql = 'insert into _MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
+                    db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(mapping)))
+                    db.con.commit()
+                except HDBException as e:
+                    handle_error(f'dbapi Error: {e.errorcode}, {e.errortext} for:\n\t{sql}')
+                return {'detail': 'Model successfully deployed'}
+            else:
+                handle_error('Model already deployed', 422)
 
 def get_mapping(tenant_id):
     tenant_schema_name = get_tenant_schema_name(tenant_id)
@@ -447,61 +503,6 @@ async def search_v2(tenant_id, esh_version, query=Body(...)):
     esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
     return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
 
-# v2.1 Search first version
-'''
-@app.post('/v2.1/search/{tenant_id}/{esh_version:path}')
-async def search_v2(tenant_id, esh_version, query=Body(...)):
-    try:
-        validate_tenant_id(tenant_id)
-        
-        tenant_schema_name = get_tenant_schema_name(tenant_id)
-        with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
-            db.cur.execute(f'set schema "{tenant_schema_name}"')
-            sql = f'select top 1 MAPPING from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
-            db.cur.execute(sql)
-            res = db.cur.fetchone()
-            if not (res and len(res) == 1):
-                logging.error('Tenant %s has no entries in the _MODEL table', tenant_id)
-                handle_error('Configuration inconsistent', 500)
-            mapping = json.loads(res[0])
-        esh_mapped_queries = map_request(mapping, query)
-        esh_query = [IESSearchOptions(w).to_statement()[1:] for w in esh_mapped_queries]
-        
-        # esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
-        # return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
-        search_results = perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
-        for search_result in search_results:
-            if 'value' in search_result:
-                for matched_object in search_result['value']:
-                    odata_name = matched_object['@odata.context'][LENGTH_ODATA_METADATA_PREFIX:]
-                    for view_value in mapping['views'].values():
-                        if view_value['odata_name'] == odata_name:
-                            entity_name = view_value['entity_name']
-                            break
-                    data_request = {
-                        entity_name: [
-                            {
-                                "id": matched_object['ID']
-                            }
-                        ]
-                    }
-                    read_data_query = await read_data(tenant_id, data_request)
-                    for key in read_data_query[entity_name][0]:
-                        matched_object[key] = read_data_query[entity_name][0][key]
-                    del matched_object['ID']
-                    del matched_object['@odata.context']
-                    # matched_object = read_data_query[entity_name][0]
-                    matched_object['@esh.context'] = entity_name
-                    for connector_statistic in search_result["@com.sap.vocabularies.Search.v1.SearchStatistics"]["ConnectorStatistics"]:
-                        if 'OdataID' in connector_statistic and connector_statistic['OdataID'] == odata_name:
-                            connector_statistic['@esh.context'] = entity_name
-                            del connector_statistic['OdataID']
-                    
-        return search_results
-    except Exception as e:
-        return {'error': f'{e}'}
-'''
-
 def getListOfSubstringsTermFound(stringSubject):
     startterm = '<TERM>'
     endterm = '</TERM>'
@@ -538,9 +539,9 @@ def getListOfSubstringsTermFound(stringSubject):
             continueloop=0
     return found_terms
 
-# v2.2 Search
-@app.post('/v2.1/search/{tenant_id}/{esh_version:path}')
-async def search_v2(tenant_id, esh_version, query=Body(...)):
+# v1 Query
+@app.post('/v1/query/{tenant_id}/{esh_version:path}')
+async def search_v21(tenant_id, esh_version, query=Body(...)):
     try:
         validate_tenant_id(tenant_id)
         
@@ -611,7 +612,7 @@ async def search_v2(tenant_id, esh_version, query=Body(...)):
                                 "values": values
                             })
                         matched_object["@com.sap.vocabularies.Search.v1.WhyFound"] = why_found_list
-                    if "@com.sap.vocabularies.Search.v1.WhereFound" in matched_object:
+                    if "@com.sap.vocabularies.Search.v1.WhereFound" in matched_object and matched_object["@com.sap.vocabularies.Search.v1.WhereFound"]:
                         #alias_list = []
                         where_found = matched_object["@com.sap.vocabularies.Search.v1.WhereFound"]
                         found_terms = getListOfSubstringsTermFound(where_found)

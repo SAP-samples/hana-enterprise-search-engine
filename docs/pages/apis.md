@@ -4,6 +4,9 @@ title: "APIs"
 rank: 3
 ---
 
+1. TOC
+   {:toc}
+
 The enterprise search engine provides the following APIs:
 
 | Functionality | HTTP method | URL | URL parameters | Request Body | Response Body | API maturity |

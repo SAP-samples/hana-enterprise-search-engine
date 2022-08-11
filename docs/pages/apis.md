@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "APIs"
-rank: 2
+rank: 3
 ---
 
 The enterprise search engine provides the following APIs:
@@ -34,12 +34,35 @@ API maturity:
 [This](\tests\packages\run_tests.py) test program demonstrates the API usage based on a test example.
 
 
-### Create tenant
+# Create tenant
+
+This call creates a new tenant. The provided tenant-id needs to be alphanumeric and has a maximal length of 50 characters.
+
+Maturity: in development
+
+```http
+POST /v1/tenant/{tenant-id} 
+```
+
+Example Request:
+```http
+POST /v1/tenant/testtenant01
+```
+
+Example Response:
+```json
+{
+        "detail": "Tenant 'testtenant01' successfully created"
+}
+```
+
+
+
+
 | Functionality | HTTP method | URL | URL parameters | Request Body | Response Body | API maturity |
 | :-------------: | :-----------: | :----:  | :----:  | :----:    | :----:    | :----:    |
 | Create tenant | POST | /v1/tenant/{tenant-id} | - | - | status | \** |
 
-A new tenant is created with this call. The tenant-id needs to be alphanumeric and has a maximal length of 50 characters.
 
 #### Example Request URL:
 

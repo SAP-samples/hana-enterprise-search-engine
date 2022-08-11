@@ -27,7 +27,7 @@ search:
   button: false
 
 aux_links:
-  "View it on GitHub":
+  "View on GitHub":
     - "//github.com/SAP-samples/hana-enterprise-search-engine"
 aux_links_new_tab: false
 heading_anchors: true

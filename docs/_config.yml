@@ -1,1 +1,3 @@
 theme: jekyll-theme-cayman
+title: HANA Enterprise Search Engine
+description: Sample application exposing SAP HANA search features as HTTP-REST services

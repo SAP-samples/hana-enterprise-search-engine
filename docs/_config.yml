@@ -1,3 +1,9 @@
-theme: jekyll-theme-cayman
+remote_theme: just-the-docs/just-the-docs
+search_enabled: true
+aux_links:
+  "View it on GitHub":
+    - "//github.com/SAP-samples/hana-enterprise-search-engine"
+aux_links_new_tab: false
+
 title: HANA Enterprise Search Engine
 description: Sample application exposing SAP HANA search features as HTTP-REST services

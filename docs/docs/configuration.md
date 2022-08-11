@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Configuration
-rank: 1
+rank: 2
 ---
 
 This file describes the configuration

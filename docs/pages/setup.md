@@ -27,7 +27,7 @@ nav_order: 2
 
 # Installation
 ## Download example
-Clone or download this repository for example to c:\devpath\hana-enterprise-search-engine. 
+Clone or download the [repository](https://github.com/SAP-samples/hana-enterprise-search-engine) for example to c:\devpath\hana-enterprise-search-engine. 
 
 ## Setup Python environment
 Then open a console and change to the download path:

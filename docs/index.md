@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Home
+title: Introduction
 nav_order: 1
 description: "This example shows how to utilize the power of SAP HANA with minimal effort"
 permalink: /

@@ -34,3 +34,6 @@ heading_anchors: true
 last_edit_timestamp: true
 title: HANA Enterprise Search Engine
 description: Sample application exposing SAP HANA search features as HTTP-REST services
+
+kramdown:
+  toc_levels: 1..2

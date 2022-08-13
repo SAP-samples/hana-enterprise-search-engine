@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "Setup and Configuration"
+title: "Installation"
 nav_order: 2
 ---
 
@@ -13,21 +13,23 @@ nav_order: 2
 {:toc}
 </details>
 
-
-# Requirements
+# Preconditions
+## Preconditions to run the example
 - Up-to date SAP HANA (on-prem or cloud)
 - Latest version of [Python 3.10](https://www.python.org/downloads/ "download")
 - [SAP CAP](https://cap.cloud.sap/docs/get-started/ "getting started")
 
-## Additional requirements for development
+## Preconditions for development
 - [Visual Studio Code](https://code.visualstudio.com/download "download")
 - [SAP CDS language support for Visual Studio Code](https://cap.cloud.sap/docs/tools/#add-cds-editor)
 - Python linting as described [here](https://code.visualstudio.com/docs/python/linting)
 
 
-# Download and Installation
+# Installation
+## Download example
 Clone or download this repository for example to c:\devpath\hana-enterprise-search-engine. 
 
+## Setup Python environment
 Then open a console and change to the download path:
 ```bat
 c:\ cd c:\devpath\hana-enterprise-search-engine
@@ -48,7 +50,6 @@ If the environment is activated correctly, a previx (.venv) is shown in the comm
 (.venv) c:\devpath\hana-enterprise-search-engine>
 ```
 
-
 Install the required Python packages:
 ```bat
 (.venv) c:\devpath\hana-enterprise-search-engine> python -m pip install -r requirements/core.txt
@@ -58,8 +59,7 @@ Install additional Python packages if this installation is used for development:
 (.venv) c:\devpath\hana-enterprise-search-engine> python -m pip install -r requirements/development.txt
 ```
 
-
-## Configuration
+## Setup connection to HANA
 An admin-user is needed with the following privileges:
 - system privilege CREATE SCHEMA (grantable to other users and roles)
 - system privilege USER ADMIN

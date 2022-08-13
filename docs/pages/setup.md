@@ -4,18 +4,28 @@ title: "Setup and Configuration"
 nav_order: 2
 ---
 
-## Requirements
+<details open markdown="block">
+  <summary>
+    Table of contents
+  </summary>
+  {: .text-delta }
+1. TOC
+{:toc}
+</details>
+
+
+# Requirements
 - Up-to date SAP HANA (on-prem or cloud)
 - Latest version of [Python 3.10](https://www.python.org/downloads/ "download")
 - [SAP CAP](https://cap.cloud.sap/docs/get-started/ "getting started")
 
-### Additional requirements for development
+## Additional requirements for development
 - [Visual Studio Code](https://code.visualstudio.com/download "download")
 - [SAP CDS language support for Visual Studio Code](https://cap.cloud.sap/docs/tools/#add-cds-editor)
 - Python linting as described [here](https://code.visualstudio.com/docs/python/linting)
 
 
-## Download and Installation
+# Download and Installation
 Clone or download this repository for example to c:\devpath\hana-enterprise-search-engine. 
 
 Then open a console and change to the download path:
@@ -49,7 +59,7 @@ Install additional Python packages if this installation is used for development:
 ```
 
 
-### Configuration
+## Configuration
 An admin-user is needed with the following privileges:
 - system privilege CREATE SCHEMA (grantable to other users and roles)
 - system privilege USER ADMIN
@@ -79,7 +89,7 @@ c:\devpath\hana-enterprise-search-engine> python src/config.py --action delete -
 ```
 Attention: This will delete ALL data of this installation!
 
-### Start server
+## Start server
 Start the server in the console with the activated virtual environment:
 ```bat
 c:\ cd c:\devpath\hana-enterprise-search-engine
@@ -89,7 +99,7 @@ c:\devpath\hana-enterprise-search-engine> .venv\scripts\activate
 
 The message "Application startup complete" indicates a successful server startup.
 
-### Run end-to-end test
+## Run end-to-end test
 
 ```bat
 (.venv) c:\devpath\hana-enterprise-search-engine> python tests\packages\run_tests.py

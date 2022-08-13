@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Setup and Configuration"
-rank: 2
+nav_order: 2
 ---
 
 ## Requirements

@@ -384,7 +384,6 @@ def cson_to_mapping(cson, pk = DefaultPK):
                 column['isVirtual'] = True
 
         table['sql'] = {}
-        #table_name = table['table_name']
         nl = table['level']
         select_columns = []
         for k, v in table['columns'].items():
@@ -398,12 +397,10 @@ def cson_to_mapping(cson, pk = DefaultPK):
                 key_column = table['pk']
             else:
                 key_column = table['pkParent']
-            #select_columns = [f'"{k}"' for k, v in table['columns'].items() if not ('isVirtual' in v and v['isVirtual'])]
             sql_table_joins = f'"{table_name}"'
             sql_condition = f'"{key_column}" in ({{id_list}})'
             table['sql']['delete'] = f'DELETE from {sql_table_joins} where {sql_condition}'
         else:
-            #select_columns = [f'L{nl}."{k}"' for k, v in table['columns'].items() if not ('isVirtual' in v and v['isVirtual'])]
             joins = []
             del_subselect = []
             parents = get_parents(tables, table, table['level'] - 1)
@@ -420,46 +417,8 @@ def cson_to_mapping(cson, pk = DefaultPK):
             sql_table_joins = f'"{table_name}" L{nl} {" ".join(joins)}'
             sql_condition = f'L1."_ID" in ({{id_list}})'
             table['sql']['delete'] = f'DELETE from "{table_name}" where _ID{len(parents)} in ({del_subselect_str})'
-
         table['sql']['select'] = f'SELECT {", ".join(select_columns)} from {sql_table_joins} where {sql_condition}'
-
-        default_views = {}
-        name_mapping = NameMapping()
-        for entity_name, entity in entities.items():
-            view_columns = {}
-            view_elements = get_view_columns(tables, view_columns, name_mapping, entity, [])
-            odata_name = entity['table_name'][len(ENTITY_PREFIX):]
-            view_name = VIEW_PREFIX + odata_name
-            default_views[entity_name] = {'view_name': view_name, 'odata_name': odata_name,\
-                'entity_name': entity_name, 'columns': view_columns, 'elements': view_elements['elements']}
-    return {'tables': tables, 'entities': entities, 'views': default_views}
-
-
-def get_view_columns(tables, view_columns, name_mapping, element, path, table_name = None):
-    if 'table_name' in element:
-        table_name = element['table_name']
-    if 'elements' in element and element['elements']:
-        view_element = {}
-        for k, v in element['elements'].items():
-            ve = get_view_columns(tables, view_columns, name_mapping, v, path + [k], table_name)
-            if ve:
-                view_element[k] = ve
-        return {'elements': view_element}
-    if 'items' in element:
-        ve = get_view_columns(tables, view_columns, name_mapping, element['items'], path, table_name)
-        if ve:
-            return {'items': ve}
-    column_name, _ = name_mapping.register(path)
-    #view_columns[column_name] = {'path': path, 'table_name': table_name, \
-    #    'table_column_name': element['column_name']}
-    view_column = {'path': path}
-    table_column = tables[table_name]['columns'][element['column_name']]
-    if 'annotations' in table_column:
-        if '@sap.esh.isVirtual' in table_column['annotations']:
-            return {}
-        view_column['annotations'] = table_column['annotations']
-    view_columns[column_name] = view_column
-    return {'view_column_name': column_name}
+    return {'tables': tables, 'entities': entities}
 
 def get_parents(tables, table, steps):
     if not 'parent' in table:

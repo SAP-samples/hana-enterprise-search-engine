@@ -4,7 +4,7 @@ title: "Data Types"
 nav_order: 4
 ---
 
-For examples for the usage of different data types see the [datatypes test folder](../../tests/packages/datatypes/).
+For examples for the usage of different data types see the [datatypes test folder](https://github.com/SAP-samples/hana-enterprise-search-engine/tree/main/tests/packages/datatypes).
 
 | CDS Type | Arguments / Remarks	| Example Value | HANA SQL Type |
 | ---  |  --- |  --- |  --- | 

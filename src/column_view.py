@@ -1,3 +1,4 @@
+"""Column View"""
 from copy import deepcopy
 from name_mapping import NameMapping
 from constants import ENTITY_PREFIX, VIEW_PREFIX
@@ -22,7 +23,7 @@ def sequence(i = 0, prefix = '', fill = 3):
             yield i
         i += 1
 
-def sequenceInt(i = 10, step = 10):
+def sequence_int(i = 10, step = 10):
     while True:
         yield i
         i += step
@@ -41,7 +42,7 @@ class ColumnView:
         self.join_path = {}
         self.join_path_id_gen = sequence(1, 'JP', 3)
         self.join_condition_id_gen = sequence(1, 'JC', 3)
-        self.ui_position_gen = sequenceInt()
+        self.ui_position_gen = sequence_int()
 
     def by_selector(self, view_name, odata_name, selector):
         self.view_name = view_name
@@ -125,7 +126,7 @@ class ColumnView:
             jp_id = next(self.join_path_id_gen)
         target_table_name = target_entity_pos['table_name']
         target_join_index = self._table(target_table_name)
-        
+
         if association_source_column:
             source_key = association_source_column
             target_key = self.mapping['tables'][target_table_name]['pk']

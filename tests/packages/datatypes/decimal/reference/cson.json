@@ -1,0 +1,19 @@
+{
+    "definitions": {
+        "TestEntity": {
+            "kind": "entity",
+            "elements": {
+                "id": {
+                    "key": true,
+                    "type": "cds.UUID"
+                },
+                "testProperty": {
+                    "type": "cds.Decimal",
+                    "precision": 20,
+                    "scale": 10
+                }
+            }
+        }
+    },
+    "$version": "2.0"
+}

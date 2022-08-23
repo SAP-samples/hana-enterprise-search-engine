@@ -1,0 +1,27 @@
+{
+    "statusCode": 200,
+    "body": {
+        "TestEntity": [
+            {
+                "id": "********-****-****-****-************",
+                "testProperty": {
+                    "type": "CircularString",
+                    "coordinates": [
+                        [
+                            5,
+                            10
+                        ],
+                        [
+                            10,
+                            12
+                        ],
+                        [
+                            15,
+                            10
+                        ]
+                    ]
+                }
+            }
+        ]
+    }
+}

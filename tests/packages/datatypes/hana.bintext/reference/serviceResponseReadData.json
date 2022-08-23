@@ -1,0 +1,11 @@
+{
+    "statusCode": 200,
+    "body": {
+        "TestEntity": [
+            {
+                "id": "********-****-****-****-************",
+                "testProperty": "BOOKMARKS:\nDummy PDF file\n\nPage 1\n\nDummy PDF file\n"
+            }
+        ]
+    }
+}

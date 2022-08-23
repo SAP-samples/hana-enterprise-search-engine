@@ -1,0 +1,17 @@
+{
+    "statusCode": 200,
+    "body": {
+        "TestEntity": [
+            {
+                "id": "********-****-****-****-************",
+                "testProperty": {
+                    "type": "Point",
+                    "coordinates": [
+                        30,
+                        10
+                    ]
+                }
+            }
+        ]
+    }
+}

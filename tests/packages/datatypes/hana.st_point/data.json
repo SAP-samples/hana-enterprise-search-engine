@@ -1,0 +1,10 @@
+{
+    "TestEntity": [
+        {
+            "testProperty": {
+                "type": "Point", 
+                "coordinates": [30.0, 10.0]
+            }
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+{
+    "definitions": {
+        "TestEntity": {
+            "kind": "entity",
+            "elements": {
+                "id": {
+                    "key": true,
+                    "type": "cds.UUID"
+                },
+                "testProperty": {
+                    "type": "cds.Boolean"
+                }
+            }
+        }
+    },
+    "$version": "2.0"
+}

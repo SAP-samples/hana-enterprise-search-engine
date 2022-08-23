@@ -94,7 +94,7 @@ content-type: application/json
 [
   {
     "name": "hp74CDXIUsikzsuL478ZLroYESIYKvDS",
-    "createdAt": "2022-08-13T14:03:25.532000"
+    "createdAt": "2022-08-23T13:35:29.977000"
   }
 ]
 ```
@@ -293,43 +293,36 @@ content-type: application/json
       "loc": [
         "definitions",
         "example.Person",
-        "elements",
-        "id",
-        "__root__"
+        "elements"
       ],
-      "msg": "exactly one property type, items or elements must exist",
-      "type": "value_error"
+      "msg": "an entity must have exactly one key-element"
     },
     {
       "loc": [
         "definitions",
         "example.Person",
         "elements",
-        "firstName",
-        "__root__"
+        "id"
       ],
-      "msg": "exactly one property type, items or elements must exist",
-      "type": "value_error"
+      "msg": "empty"
     },
     {
       "loc": [
         "definitions",
         "example.Person",
         "elements",
-        "lastName",
-        "__root__"
+        "firstName"
       ],
-      "msg": "exactly one property type, items or elements must exist",
-      "type": "value_error"
+      "msg": "empty"
     },
     {
       "loc": [
         "definitions",
         "example.Person",
-        "__root__"
+        "elements",
+        "lastName"
       ],
-      "msg": "exactly one property type, items or elements must exist",
-      "type": "value_error"
+      "msg": "empty"
     }
   ]
 }
@@ -475,43 +468,36 @@ content-type: application/json
       "loc": [
         "definitions",
         "example.Person",
-        "elements",
-        "id",
-        "__root__"
+        "elements"
       ],
-      "msg": "exactly one property type, items or elements must exist",
-      "type": "value_error"
+      "msg": "an entity must have exactly one key-element"
     },
     {
       "loc": [
         "definitions",
         "example.Person",
         "elements",
-        "firstName",
-        "__root__"
+        "id"
       ],
-      "msg": "exactly one property type, items or elements must exist",
-      "type": "value_error"
+      "msg": "empty"
     },
     {
       "loc": [
         "definitions",
         "example.Person",
         "elements",
-        "lastName",
-        "__root__"
+        "firstName"
       ],
-      "msg": "exactly one property type, items or elements must exist",
-      "type": "value_error"
+      "msg": "empty"
     },
     {
       "loc": [
         "definitions",
         "example.Person",
-        "__root__"
+        "elements",
+        "lastName"
       ],
-      "msg": "exactly one property type, items or elements must exist",
-      "type": "value_error"
+      "msg": "empty"
     }
   ]
 }
@@ -568,10 +554,10 @@ content-type: application/json
 {
   "example.Person": [
     {
-      "id": "f0a51014-1aff-11ed-89fc-98fa9b3c3838"
+      "id": "b241e6a6-22d7-11ed-b6b4-98fa9b3c3838"
     },
     {
-      "id": "f0a51015-1aff-11ed-8e5f-98fa9b3c3838"
+      "id": "b241e6a7-22d7-11ed-b03e-98fa9b3c3838"
     }
   ]
 }
@@ -617,10 +603,10 @@ Content-Type: application/json
 {
   "example.Person": [
     {
-      "id": "f1a060ca-1aff-11ed-8505-98fa9b3c3838"
+      "id": "b33edfab-22d7-11ed-b813-98fa9b3c3838"
     },
     {
-      "id": "f1a087f7-1aff-11ed-a7bb-98fa9b3c3838"
+      "id": "b33edfac-22d7-11ed-bf9d-98fa9b3c3838"
     }
   ]
 }
@@ -637,12 +623,12 @@ content-type: application/json
 {
   "example.Person": [
     {
-      "id": "f1a060ca-1aff-11ed-8505-98fa9b3c3838",
+      "id": "b33edfab-22d7-11ed-b813-98fa9b3c3838",
       "firstName": "John",
       "lastName": "Doe"
     },
     {
-      "id": "f1a087f7-1aff-11ed-a7bb-98fa9b3c3838",
+      "id": "b33edfac-22d7-11ed-bf9d-98fa9b3c3838",
       "firstName": "Jane",
       "lastName": "Doe"
     }
@@ -675,10 +661,10 @@ Content-Type: application/json
 {
   "example.Person": [
     {
-      "id": "f1a060ca-1aff-11ed-8505-98fa9b3c3838"
+      "id": "b33edfab-22d7-11ed-b813-98fa9b3c3838"
     },
     {
-      "id": "f1a087f7-1aff-11ed-a7bb-98fa9b3c3838"
+      "id": "b33edfac-22d7-11ed-bf9d-98fa9b3c3838"
     }
   ]
 }
@@ -744,15 +730,15 @@ content-type: application/json
     }
   ],
   "@odata.count": 1,
-  "@com.sap.vocabularies.Search.v1.ResponseTime": 0.106463,
-  "@com.sap.vocabularies.Search.v1.SearchTime": 0.0807029977,
+  "@com.sap.vocabularies.Search.v1.ResponseTime": 0.105429001,
+  "@com.sap.vocabularies.Search.v1.SearchTime": 0.0805659964,
   "@com.sap.vocabularies.Search.v1.SearchStatistics": {
     "ConnectorStatistics": [
       {
         "OdataID": "EXAMPLEPERSON",
         "StatusCode": 200,
-        "@com.sap.vocabularies.Search.v1.SearchTime": 0.0807029977,
-        "@com.sap.vocabularies.Search.v1.CPUTime": 0.0823820009
+        "@com.sap.vocabularies.Search.v1.SearchTime": 0.0805659964,
+        "@com.sap.vocabularies.Search.v1.CPUTime": 0.0820650011
       }
     ],
     "StatusCode": 200
@@ -893,15 +879,15 @@ content-type: application/json
       }
     ],
     "@odata.count": 1,
-    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.0466080009,
-    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0213970001,
+    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.045398999,
+    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0210539996,
     "@com.sap.vocabularies.Search.v1.SearchStatistics": {
       "ConnectorStatistics": [
         {
           "OdataID": "EXAMPLEPERSON",
           "StatusCode": 200,
-          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0213970001,
-          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0236600004
+          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0210539996,
+          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0232500005
         }
       ],
       "StatusCode": 200
@@ -910,15 +896,15 @@ content-type: application/json
   {
     "value": [],
     "@odata.count": 0,
-    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.0469320006,
-    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0221319999,
+    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.0448010005,
+    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0208260007,
     "@com.sap.vocabularies.Search.v1.SearchStatistics": {
       "ConnectorStatistics": [
         {
           "OdataID": "EXAMPLEPERSON",
           "StatusCode": 200,
-          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0221319999,
-          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0280639994
+          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0208260007,
+          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0271499995
         }
       ],
       "StatusCode": 200
@@ -1069,15 +1055,15 @@ content-type: application/json
       }
     ],
     "@odata.count": 1,
-    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.0456749983,
-    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0205109994,
+    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.0414530001,
+    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0181450005,
     "@com.sap.vocabularies.Search.v1.SearchStatistics": {
       "ConnectorStatistics": [
         {
           "OdataID": "EXAMPLEPERSON",
           "StatusCode": 200,
-          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0205109994,
-          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0217339992
+          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0181450005,
+          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0200130008
         }
       ],
       "StatusCode": 200
@@ -1086,15 +1072,15 @@ content-type: application/json
   {
     "value": [],
     "@odata.count": 0,
-    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.0445500016,
-    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0198020003,
+    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.041037999,
+    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0180440004,
     "@com.sap.vocabularies.Search.v1.SearchStatistics": {
       "ConnectorStatistics": [
         {
           "OdataID": "EXAMPLEPERSON",
           "StatusCode": 200,
-          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0198020003,
-          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0269670002
+          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0180440004,
+          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0254050008
         }
       ],
       "StatusCode": 200

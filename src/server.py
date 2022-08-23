@@ -8,6 +8,7 @@ from starlette.responses import RedirectResponse
 import json
 import uuid
 from column_view import ColumnView
+import consistency_check
 from db_connection_pool import DBConnection, ConnectionPool, Credentials
 import convert
 import sqlcreate
@@ -23,52 +24,12 @@ import sys
 import server_globals as glob
 import base64
 from request_mapping import map_request
-from typing import List, Optional, Dict, ForwardRef
-from pydantic import BaseModel, ValidationError, root_validator
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount('/static', StaticFiles(directory='static'), name='static')
 
 LENGTH_ODATA_METADATA_PREFIX = len('$metadata#')
-
-CsonElement = ForwardRef('CsonElement')
-class CsonElement(BaseModel):
-    type: Optional[str]
-    items: Optional[CsonElement]
-    elements: Optional[Dict[str, CsonElement]]
-    @root_validator
-    def check_exaclty_once(cls, v):
-        has_type = 1 if 'type' in v and v['type'] else 0
-        has_items = 1 if 'items' in v and v['items'] else 0
-        has_elements = 1 if 'elements' in v and v['elements'] else 0
-        if sum([has_type, has_items, has_elements]) != 1:
-            raise ValueError(
-                'exactly one property ''type'', ''items'' or ''elements'' must exist')
-        return v    
-CsonElement.update_forward_refs()
-
-class CsonDefinition(CsonElement):
-    kind: str
-    includes: Optional[List [str]]
-
-class Cson(BaseModel):
-    namespace: Optional[str]
-    definitions: Dict[str, CsonDefinition]
-    version: Optional[str]
-
-def get_types(types, element):
-    if 'elements' in element:
-        for sub_element in element['elements'].values():
-            get_types(types, sub_element)
-    elif 'items' in element:
-        get_types(types, element['items'])
-    else:
-        if element['type'] == 'cds.Association':
-            types.add(element['target'])
-        else:
-            types.add(element['type'])
-
 
 def handle_error(msg: str = '', status_code: int = -1):
     if status_code == -1:
@@ -188,20 +149,9 @@ def get_tenants_sync():
 @app.post('/v1/deploy/{tenant_id}')
 async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
     """ Deploy model """
-    try:
-        o = Cson(**cson)
-    except ValidationError as e:
-        raise HTTPException(422, e.errors())
-
-    types = set()
-    for element in cson['definitions'].values():
-        get_types(types, element)
-    types -= set(cson['definitions'])
-    types -= CSON_TYPES
-    if types:
-        msg = 'Missing types: {}'.format(', '.join(list(types)))
-        msg += '\nValid built-in types: {}'.format(', '.join(list(CSON_TYPES)))
-        handle_error(msg, 422)
+    errors = consistency_check.check_cson(cson)
+    if errors:
+        raise HTTPException(422, errors)
     if simulate:
         return {'detail': 'Model is consistent'}
     else:
@@ -237,7 +187,7 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
 def get_mapping(tenant_id):
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         set_tenant_schema(db, tenant_id)
-        sql = f'select top 1 MAPPING from "_MODEL" order by CREATED_AT desc'
+        sql = 'select top 1 MAPPING from "_MODEL" order by CREATED_AT desc'
         db.cur.execute(sql)
         res = db.cur.fetchone()
         if not (res and len(res) == 1):
@@ -510,35 +460,35 @@ async def search_v2(tenant_id, esh_version, query=Body(...)):
     esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
     return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
 
-def getListOfSubstringsTermFound(stringSubject):
+def get_list_of_substrings_term_found(string_subject):
     startterm = '<TERM>'
     endterm = '</TERM>'
     startfound= '<FOUND>'
     endfound = '</FOUND>'
     intstart=0
-    strlength=len(stringSubject)
+    strlength=len(string_subject)
     continueloop = 1
     found_terms = {}
 
-    while(intstart < strlength and continueloop == 1):
-        intindex_startterm=stringSubject.find(startterm,intstart)
-        if(intindex_startterm != -1): #The substring was found, lets proceed
+    while intstart < strlength and continueloop == 1:
+        intindex_startterm=string_subject.find(startterm,intstart)
+        if intindex_startterm != -1: #The substring was found, lets proceed
             intindex_startterm = intindex_startterm+len(startterm)
-            intindex_endterm = stringSubject.find(endterm,intindex_startterm)
-            if(intindex_endterm != -1):
-                subsequence=stringSubject[intindex_startterm:intindex_endterm]
+            intindex_endterm = string_subject.find(endterm,intindex_startterm)
+            if intindex_endterm != -1:
+                subsequence=string_subject[intindex_startterm:intindex_endterm]
                 found_terms[subsequence] = []
-                intindex_startfound=stringSubject.find(startfound,intindex_endterm)
-                intindex_endfound=stringSubject.find(endfound,intindex_endterm)
-                intindex_startterm_next=stringSubject.find(startterm,intindex_endterm)
-                while (intindex_startterm_next == -1 or intindex_startfound < intindex_startterm_next):
-                    if(intindex_startfound != -1 and intindex_endfound != 1): 
-                        found=stringSubject[intindex_startfound+len(startfound):intindex_endfound]
+                intindex_startfound=string_subject.find(startfound,intindex_endterm)
+                intindex_endfound=string_subject.find(endfound,intindex_endterm)
+                intindex_startterm_next=string_subject.find(startterm,intindex_endterm)
+                while intindex_startterm_next == -1 or intindex_startfound < intindex_startterm_next:
+                    if intindex_startfound != -1 and intindex_endfound != 1:
+                        found=string_subject[intindex_startfound+len(startfound):intindex_endfound]
                         found_terms[subsequence].append(found)
-                    intindex_startfound=stringSubject.find(startfound,intindex_startfound+1)
-                    if (intindex_startfound == -1):
+                    intindex_startfound=string_subject.find(startfound,intindex_startfound+1)
+                    if intindex_startfound == -1:
                         break
-                    intindex_endfound=stringSubject.find(endfound,intindex_endfound+1)
+                    intindex_endfound=string_subject.find(endfound,intindex_endfound+1)
                 intstart=intindex_endterm+len(endterm)
             else:
                 continueloop=0
@@ -552,7 +502,7 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
     try:
         with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
             tenant_schema_name = set_tenant_schema(db, tenant_id)
-            sql = f'select top 1 MAPPING from "_MODEL" order by CREATED_AT desc'
+            sql = 'select top 1 MAPPING from "_MODEL" order by CREATED_AT desc'
             db.cur.execute(sql)
             res = db.cur.fetchone()
             if not (res and len(res) == 1):
@@ -568,8 +518,10 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
                 anchor_entity_name = esh_mapped_queries['scope']
                 cv = ColumnView(mapping, anchor_entity_name, tenant_schema_name)
                 # for free style elements in query take by_default
-                if 'comparison_paths' in esh_mapped_queries and not 'exist_free_style' in esh_mapped_queries:
-                    cv.by_path_list([["id"]] + esh_mapped_queries['comparison_paths'], mapping['views'][anchor_entity_name]['view_name'], mapping['views'][anchor_entity_name]['odata_name'])
+                if 'comparison_paths' in esh_mapped_queries and 'exist_free_style' not in esh_mapped_queries:
+                    cv.by_path_list([['id']] + esh_mapped_queries['comparison_paths']\
+                        , mapping['views'][anchor_entity_name]['view_name']\
+                        , mapping['views'][anchor_entity_name]['odata_name'])
                 else:
                     cv.by_default()
                 view, esh_config = cv.data_definition()
@@ -581,8 +533,8 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
 
         # esh_mapped_queries = map_request(mapping, query)
         esh_query = [IESSearchOptions(w).to_statement()[1:] for w in esh_mapped_queries['incoming_requests']]
-        
-        
+
+
         # esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
         # return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
         search_results = perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
@@ -597,7 +549,7 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
                     data_request = {
                         entity_name: [
                             {
-                                "id": matched_object['ID']
+                                'id': matched_object['ID']
                             }
                         ]
                     }
@@ -608,18 +560,19 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
                     del matched_object['@odata.context']
                     # matched_object = read_data_query[entity_name][0]
                     matched_object['@esh.context'] = entity_name
-                    if "@com.sap.vocabularies.Search.v1.WhyFound" in matched_object:
+                    if '@com.sap.vocabularies.Search.v1.WhyFound' in matched_object:
                         why_found_list = []
-                        for key, values in matched_object["@com.sap.vocabularies.Search.v1.WhyFound"].items():
+                        for key, values in matched_object['@com.sap.vocabularies.Search.v1.WhyFound'].items():
                             why_found_list.append({
-                                "selector":  mapping['views'][entity_name]['columns'][key]['path'],
-                                "values": values
+                                'selector':  mapping['views'][entity_name]['columns'][key]['path'],
+                                'values': values
                             })
-                        matched_object["@com.sap.vocabularies.Search.v1.WhyFound"] = why_found_list
-                    if "@com.sap.vocabularies.Search.v1.WhereFound" in matched_object and matched_object["@com.sap.vocabularies.Search.v1.WhereFound"]:
+                        matched_object['@com.sap.vocabularies.Search.v1.WhyFound'] = why_found_list
+                    if '@com.sap.vocabularies.Search.v1.WhereFound' in matched_object\
+                         and matched_object['@com.sap.vocabularies.Search.v1.WhereFound']:
                         #alias_list = []
-                        where_found = matched_object["@com.sap.vocabularies.Search.v1.WhereFound"]
-                        found_terms = getListOfSubstringsTermFound(where_found)
+                        where_found = matched_object['@com.sap.vocabularies.Search.v1.WhereFound']
+                        found_terms = get_list_of_substrings_term_found(where_found)
                         new_where = {}
                         for term, where_array in found_terms.items():
                             new_where[term] = []
@@ -632,14 +585,16 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
                             })
                             '''
                         # matched_object["@com.sap.vocabularies.Search.v1.Aliases"] = alias_list
-                        # matched_object["@com.sap.vocabularies.Search.v1.WhereFoundOriginal"] = matched_object["@com.sap.vocabularies.Search.v1.WhereFound"]
-                        matched_object["@com.sap.vocabularies.Search.v1.WhereFound"] = new_where
-                    for connector_statistic in search_result["@com.sap.vocabularies.Search.v1.SearchStatistics"]["ConnectorStatistics"]:
+                        # matched_object["@com.sap.vocabularies.Search.v1.WhereFoundOriginal"] \
+                        # = matched_object["@com.sap.vocabularies.Search.v1.WhereFound"]
+                        matched_object['@com.sap.vocabularies.Search.v1.WhereFound'] = new_where
+                    for connector_statistic \
+                    in search_result['@com.sap.vocabularies.Search.v1.SearchStatistics']['ConnectorStatistics']:
                         if 'OdataID' in connector_statistic and connector_statistic['OdataID'] == odata_name:
                             connector_statistic['@esh.context'] = entity_name
                             del connector_statistic['OdataID']
 
-                    
+
         return search_results
     except Exception as e:
         return {'error': f'{e}'}

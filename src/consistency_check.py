@@ -28,12 +28,11 @@ def check_cson(cson:dict):
     return errors
 
 def check_cson_definition(errors:list, cson:dict, cson_definition:dict, loc:list):
-    check_property(errors, cson_definition, 'includes', list, loc, False)
-    #if check_property(errors, cson_definition, 'includes', list, loc, False):
-    #    for incl in cson_definition['includes']:
-    #        if incl not in cson['definitions']:
-    #            errors.append({'loc':loc + ['includes', incl]\
-    #                ,'msg':'unknown definition'})
+    if check_property(errors, cson_definition, 'includes', list, loc, False):
+        for incl in cson_definition['includes']:
+            if incl not in cson['definitions']:
+                errors.append({'loc':loc + ['includes', incl]\
+                    ,'msg':'unknown definition'})
     if check_property(errors, cson_definition, 'kind', str, loc, True):
         if not cson_definition['kind'] in ['type', 'entity', 'aspect']:
             errors.append({'loc':loc + ['kind', cson_definition['kind']]\

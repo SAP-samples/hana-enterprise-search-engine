@@ -18,12 +18,15 @@ import uvicorn
 from hdbcli.dbapi import Error as HDBException
 from hdbcli.dbapi import DataError
 import logging
-from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH, TYPES_B64_ENCODE, TYPES_SPATIAL, CSON_TYPES
+from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH, TYPES_B64_ENCODE, TYPES_SPATIAL
 from config import get_user_name
 import sys
 import server_globals as glob
 import base64
 from request_mapping import map_request
+#import esh_objects
+import query_mapping
+import time
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
@@ -49,18 +52,6 @@ def get_tenant_schema_name(tenant_id: str):
     validate_tenant_id(tenant_id)
     return f'{glob.db_tenant_prefix}{tenant_id}'
 
-def set_tenant_schema(db, tenant_id: str):
-    tenant_schema_name = get_tenant_schema_name(tenant_id)
-    try:
-        db.cur.execute(f'set schema "{tenant_schema_name}"')
-    except HDBException as e:
-        if e.errorcode == 362:
-            handle_error(f"Tennant id '{tenant_id}' does not exist", 404)
-        else:
-            handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
-    return tenant_schema_name
-
-
 def esh_search_escape(s):
     return s.replace("'","''")
 
@@ -84,6 +75,7 @@ async def post_tenant(tenant_id):
             sql = f'create schema "{tenant_schema_name}"'
             db.cur.execute(sql)
         except HDBException as e:
+            db.con.rollback()
             if e.errorcode == 386:
                 handle_error(f"Tenant creation failed. Tennant id '{tenant_id}' already exists", 422)
             else:
@@ -91,7 +83,9 @@ async def post_tenant(tenant_id):
         try:
             db.cur.execute(\
                 f'create table "{tenant_schema_name}"."_MODEL" (CREATED_AT TIMESTAMP, CSON NCLOB, MAPPING NCLOB)')
+            glob.mapping.pop(tenant_schema_name, None)
         except HDBException as e:
+            db.con.rollback()
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
         try:
             read_user_name = get_user_name(glob.db_schema_prefix, DBUserType.DATA_READ)
@@ -110,22 +104,27 @@ async def post_tenant(tenant_id):
             db.cur.execute(f'GRANT ALTER ON SCHEMA "{tenant_schema_name}" TO {schema_modify_user_name}')
             logging.info('Tenant schema created %s', tenant_schema_name)
         except HDBException as e:
+            db.con.rollback()
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
-
+        db.con.commit()
     return {'detail': f"Tenant '{tenant_id}' successfully created"}
 
 @app.delete('/v1/tenant/{tenant_id}')
 async def delete_tenant(tenant_id: str):
     """Delete tenant"""
     with DBConnection(glob.connection_pools[DBUserType.ADMIN]) as db:
-        tenant_schema_name = set_tenant_schema(db, tenant_id)
+        tenant_schema_name = get_tenant_schema_name(tenant_id)
         try:
             db.cur.execute(f'drop schema "{tenant_schema_name}" cascade')
+            if tenant_schema_name in glob.mapping:
+                glob.mapping.pop(tenant_schema_name, None)
         except HDBException as e:
+            db.con.rollback()
             if e.errorcode == 362:
                 handle_error(f"Tenant deletion failed. Tennant id '{tenant_id}' does not exist", 404)
             else:
                 handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
+        db.con.commit()
     return {'detail': f"Tenant '{tenant_id}' successfully deleted"}
 
 @app.get('/v1/tenant')
@@ -156,8 +155,8 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
         return {'detail': 'Model is consistent'}
     else:
         with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
-            tenant_schema_name = set_tenant_schema(db, tenant_id)
-            db.cur.execute('select count(*) from "_MODEL"')
+            tenant_schema_name = get_tenant_schema_name(tenant_id)
+            db.cur.execute(f'select count(*) from "{tenant_schema_name}"."_MODEL"')
             num_deployments = db.cur.fetchone()[0]
             if num_deployments == 0:
                 created_at = datetime.now()
@@ -172,10 +171,12 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
                     for sql in ddl['views']:
                         db.cur.execute(sql)
                     db.cur.execute(f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}',?)")
-                    sql = 'insert into _MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
+                    sql = f'insert into "{tenant_schema_name}"._MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
                     db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(mapping)))
                     db.con.commit()
+                    glob.mapping[tenant_schema_name] = mapping
                 except HDBException as e:
+                    db.con.rollback()
                     if e.errorcode == 362:
                         handle_error(f"Tennant id '{tenant_id}' does not exist", 404)
                     else:
@@ -184,16 +185,21 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
             else:
                 handle_error('Model already deployed', 422)
 
-def get_mapping(tenant_id):
-    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
-        set_tenant_schema(db, tenant_id)
-        sql = 'select top 1 MAPPING from "_MODEL" order by CREATED_AT desc'
-        db.cur.execute(sql)
-        res = db.cur.fetchone()
-        if not (res and len(res) == 1):
-            logging.error('Tenant %s has no entries in the _MODEL table', tenant_id)
-            handle_error('Configuration inconsistent', 500)
-    return json.loads(res[0])
+
+def get_mapping(tenant_id, schema_name):
+    if schema_name in glob.mapping:
+        return glob.mapping[schema_name]
+    else:
+        with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+            sql = f'select top 1 MAPPING from "{schema_name}"."_MODEL" order by CREATED_AT desc'
+            db.cur.execute(sql)
+            res = db.cur.fetchone()
+            if not (res and len(res) == 1):
+                logging.error('Tenant %s has no entries in the _MODEL table', tenant_id)
+                handle_error('Configuration inconsistent', 500)
+        mapping = json.loads(res[0])
+        glob.mapping[schema_name] = mapping
+        return mapping
 
 
 @app.post('/v1/data/{tenant_id}')
@@ -202,8 +208,9 @@ async def post_data(tenant_id, objects=Body(...)):
     if not isinstance(objects, dict):
         handle_error('provide dictionary of object types', 400)
     with DBConnection(glob.connection_pools[DBUserType.DATA_WRITE]) as db:
-        set_tenant_schema(db, tenant_id)
-        mapping = get_mapping(tenant_id)
+        schema_name = get_tenant_schema_name(tenant_id)
+        mapping = get_mapping(tenant_id, schema_name)
+        db.cur.execute(f'set schema "{schema_name}"')
         try:
             dml = convert.objects_to_dml(mapping, objects)
         except convert.DataException as e:
@@ -220,7 +227,7 @@ async def post_data(tenant_id, objects=Body(...)):
                     else:
                         cp.append('?')
                 column_placeholders = ','.join(cp)
-                sql = f'insert into "{table_name}" ({column_names}) values ({column_placeholders})'
+                sql = f'insert into "{schema_name}"."{table_name}" ({column_names}) values ({column_placeholders})'
                 db.cur.executemany(sql, v['rows'])
             db.con.commit()
         except DataError as e:
@@ -263,8 +270,8 @@ async def read_data(tenant_id, objects=Body(...)):
     if not isinstance(objects, dict):
         handle_error('provide dictionary of object types', 400)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
-        set_tenant_schema(db, tenant_id)
-        mapping = get_mapping(tenant_id)
+        schema_name = get_tenant_schema_name(tenant_id)
+        mapping = get_mapping(tenant_id, schema_name)
         response = {}
         for object_type, obj_list  in objects.items():
             if not isinstance(obj_list, list):
@@ -286,7 +293,7 @@ async def read_data(tenant_id, objects=Body(...)):
 
             for table in table_sequence:
                 all_objects[table['table_name']] = {}
-                sql = table['sql']['select'].format(id_list = id_list)
+                sql = table['sql']['select'].format(schema_name = schema_name, id_list = id_list)
                 db.cur.execute(sql)
                 if '_VALUE' in table['columns']:
                     for row in db.cur:
@@ -339,8 +346,8 @@ async def delete_data(tenant_id, objects=Body(...)):
     if not isinstance(objects, dict):
         handle_error('provide dictionary of object types', 400)
     with DBConnection(glob.connection_pools[DBUserType.DATA_WRITE]) as db:
-        set_tenant_schema(db, tenant_id)
-        mapping = get_mapping(tenant_id)
+        schema_name = get_tenant_schema_name(tenant_id)
+        mapping = get_mapping(tenant_id, schema_name)
         for object_type, obj_list  in objects.items():
             if not isinstance(obj_list, list):
                 handle_error('provide list of objects per object type', 400)
@@ -359,7 +366,7 @@ async def delete_data(tenant_id, objects=Body(...)):
             id_list = ', '.join([f"'{w}'" for w in ids])
 
             for table in table_sequence:
-                sql = table['sql']['delete'].format(id_list = id_list)
+                sql = table['sql']['delete'].format(schema_name = schema_name, id_list = id_list)
                 db.cur.execute(sql)
         db.con.commit()
 
@@ -387,7 +394,7 @@ def get_table_sequence(mapping, table_sequence, current_table):
 def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
     #logging.info(search_query)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
-        tenant_schema_name = set_tenant_schema(db, tenant_id)
+        tenant_schema_name = get_tenant_schema_name(tenant_id)
         sql = f'''CALL ESH_SEARCH('["/{esh_version}/{tenant_schema_name}{esh_search_escape(esh_query)}"]',?)'''
         _ = db.cur.execute(sql)
         for row in db.cur.fetchall():
@@ -399,7 +406,7 @@ def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
 
 def perform_bulk_search(esh_version, tenant_id, esh_query):
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
-        tenant_schema_name = set_tenant_schema(db, tenant_id)
+        tenant_schema_name = get_tenant_schema_name(tenant_id)
         payload = [f'/{esh_version}/{tenant_schema_name}/{w}' for w in esh_query]
         bulk_request = esh_search_escape(json.dumps([{'URI': payload}]))
         sql = f"CALL ESH_SEARCH('{bulk_request}',?)"
@@ -496,13 +503,13 @@ def get_list_of_substrings_term_found(string_subject):
             continueloop=0
     return found_terms
 
-# v1 Query
-@app.post('/v1/query/{tenant_id}/{esh_version:path}')
+# Search v21
+@app.post('/v21/search/{tenant_id}/{esh_version:path}')
 async def search_v21(tenant_id, esh_version, query=Body(...)):
     try:
         with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
-            tenant_schema_name = set_tenant_schema(db, tenant_id)
-            sql = 'select top 1 MAPPING from "_MODEL" order by CREATED_AT desc'
+            tenant_schema_name = get_tenant_schema_name(tenant_id)
+            sql = f'select top 1 MAPPING from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
             db.cur.execute(sql)
             res = db.cur.fetchone()
             if not (res and len(res) == 1):
@@ -593,11 +600,78 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
                         if 'OdataID' in connector_statistic and connector_statistic['OdataID'] == odata_name:
                             connector_statistic['@esh.context'] = entity_name
                             del connector_statistic['OdataID']
-
-
         return search_results
     except Exception as e:
         return {'error': f'{e}'}
+
+def get_column_view(mapping, anchor_entity_name, schema_name, path_list):
+    view_id = str(uuid.uuid4()).replace("-", "").upper()
+    view_name = f'VIEW/{view_id}'
+    odata_name = f'VIEW_{view_id}'
+    cv = ColumnView(mapping, anchor_entity_name, schema_name)
+    cv.by_path_list(path_list, view_name, odata_name)
+    return cv
+
+# Query v1
+@app.post('/v1/query/{tenant_id}/{esh_version:path}')
+async def query_v1(tenant_id, esh_version, queries=Body(...)):
+    schema_name = get_tenant_schema_name(tenant_id)
+    with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
+        mapping = get_mapping(tenant_id, schema_name)
+        dynmaic_views = []
+        configurations = []
+        uris = []
+        view_ddls = []
+        requested_entity_types = []
+        for query in queries:
+            scopes, pathes = query_mapping.extract_pathes(query)
+            requested_entity_types.append(scopes[0])
+            cv = get_column_view(mapping, scopes[0], schema_name, pathes.keys())
+            view_ddl, esh_config = cv.data_definition()
+            configurations.append(esh_config['content'])
+            for path in pathes.keys():
+                pathes[path] = cv.column_name_by_path(path)
+            query_mapping.map_query(query, [cv.odata_name], pathes)
+            view_ddls.append(view_ddl)
+            dynmaic_views.append(cv.view_name)
+            search_object = IESSearchOptions(query)
+            search_object.select = ['ID']
+            esh_query = search_object.to_statement()[1:]
+            uris.append(f'/{get_esh_version(esh_version)}/{schema_name}/{esh_query}')
+        for view_ddl in view_ddls:
+            db.cur.execute(view_ddl)
+    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+        bulk_request = [{'Configuration': configurations, 'URI': uris}]
+        sql = f"CALL ESH_SEARCH('{esh_search_escape(json.dumps(bulk_request))}',?)"
+        _ = db.cur.execute(sql)
+        search_results = cleanse_output([json.loads(w[0]) for w in db.cur.fetchall()])
+    with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
+        for view_name in dynmaic_views:
+            sql = f'drop view "{schema_name}"."{view_name}"'
+            db.cur.execute(sql)
+
+    data_request = {}
+    for i, search_result in enumerate(search_results):
+        if 'value' in search_result and search_result['value']:
+            requested_entity_type = requested_entity_types[i]
+            if not requested_entity_type in data_request:
+                data_request[requested_entity_type] = []
+            for res_item in search_result['value']:
+                data_request[requested_entity_type].append[{'ID':res_item['ID']}]
+    full_objects = await read_data(tenant_id, data_request)
+    full_objects_idx = {k:{v['ID']:v} for k, v in full_objects.items()}
+
+    results = []
+    for i, search_result in enumerate(search_results):
+        result = []
+        if 'value' in search_result and search_result['value']:
+            requested_entity_type = requested_entity_types[i]
+            for res_item in search_result['value']:
+                result.append(full_objects_idx[requested_entity_type][res_item['ID']])
+        results.append(result)
+    return results
+    
+
 
 @app.get('/{path:path}')
 async def tile_request(path: str, response: Response):

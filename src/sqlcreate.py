@@ -33,12 +33,12 @@ def get_columns(table):
         columns.append(cl)
     return columns
 
-def tables_dd(tables):
-    return [f'create table "{t[Constants.table_name]}" ( {", ".join(get_columns(t))} )'\
+def tables_dd(tables, schema_name):
+    return [f'create table "{schema_name}"."{t[Constants.table_name]}" ( {", ".join(get_columns(t))} )'\
         for t in tables.values()]
 
 def mapping_to_ddl(mapping, schema_name):
-    tables = tables_dd(mapping['tables'])
+    tables = tables_dd(mapping['tables'], schema_name)
     #sdd = search_dd(schema_name, mapping, [v for v in mapping['views'].values()])
     #return {'tables': tables, 'views': sdd['views'], 'eshConfig':sdd['eshConfig']}
     

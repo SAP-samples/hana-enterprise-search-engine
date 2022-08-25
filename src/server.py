@@ -340,6 +340,7 @@ async def read_data(tenant_id, objects=Body(...)):
                 response[object_type].append(all_objects[root_table['table_name']][i])
     return response
 
+
 @app.delete('/v1/data/{tenant_id}')
 async def delete_data(tenant_id, objects=Body(...)):
     """DELETE Data"""
@@ -605,7 +606,7 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
         return {'error': f'{e}'}
 
 def get_column_view(mapping, anchor_entity_name, schema_name, path_list):
-    view_id = str(uuid.uuid4()).replace("-", "").upper()
+    view_id = str(uuid.uuid4()).replace('-', '').upper()
     view_name = f'VIEW/{view_id}'
     odata_name = f'VIEW_{view_id}'
     cv = ColumnView(mapping, anchor_entity_name, schema_name)
@@ -615,6 +616,7 @@ def get_column_view(mapping, anchor_entity_name, schema_name, path_list):
 # Query v1
 @app.post('/v1/query/{tenant_id}/{esh_version:path}')
 async def query_v1(tenant_id, esh_version, queries=Body(...)):
+    ts = time.time()
     schema_name = get_tenant_schema_name(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
         mapping = get_mapping(tenant_id, schema_name)
@@ -644,7 +646,8 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
         bulk_request = [{'Configuration': configurations, 'URI': uris}]
         sql = f"CALL ESH_SEARCH('{esh_search_escape(json.dumps(bulk_request))}',?)"
         _ = db.cur.execute(sql)
-        search_results = cleanse_output([json.loads(w[0]) for w in db.cur.fetchall()])
+        #search_results = cleanse_output([json.loads(w[0]) for w in db.cur.fetchall()])
+        search_results = [json.loads(w[0]) for w in db.cur.fetchall()]
     with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
         for view_name in dynmaic_views:
             sql = f'drop view "{schema_name}"."{view_name}"'
@@ -657,9 +660,13 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
             if not requested_entity_type in data_request:
                 data_request[requested_entity_type] = []
             for res_item in search_result['value']:
-                data_request[requested_entity_type].append[{'ID':res_item['ID']}]
+                data_request[requested_entity_type].append({'id':res_item['ID']})
     full_objects = await read_data(tenant_id, data_request)
-    full_objects_idx = {k:{v['ID']:v} for k, v in full_objects.items()}
+    full_objects_idx = {}
+    for k, v in full_objects.items():
+        full_objects_idx[k] = {}
+        for i in v:
+            full_objects_idx[k][i['id']] = i
 
     results = []
     for i, search_result in enumerate(search_results):
@@ -669,8 +676,9 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
             for res_item in search_result['value']:
                 result.append(full_objects_idx[requested_entity_type][res_item['ID']])
         results.append(result)
+    print(f'############# {time.time() - ts}')
     return results
-    
+
 
 
 @app.get('/{path:path}')

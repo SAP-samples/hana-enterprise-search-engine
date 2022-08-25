@@ -75,17 +75,17 @@ class ColumnView:
             self.join_path[join_path_id] = set([join_condition_id])
 
     def _get_sql_statement(self):
-        v  = f'create or replace column view "{self.view_name}" with parameters (indexType=6,\n'
+        v  = f'create or replace column view "{self.schema_name}"."{self.view_name}" with parameters (indexType=6,\n'
         for join_index in self.join_index:
-            v += f'joinIndex="{join_index}",joinIndexType=0,joinIndexEstimation=0,\n'
+            v += f'joinIndex="{self.schema_name}"."{join_index}",joinIndexType=0,joinIndexEstimation=0,\n'
         for jc in self.join_conditions:
-            v += f'joinCondition=(\'{jc[0]}\',"{jc[1]}","{jc[2]}","{jc[3]}","{jc[4]}",\'\',81,0),\n'
+            v += f'joinCondition=(\'{jc[0]}\',"{self.schema_name}"."{jc[1]}","{jc[2]}","{self.schema_name}"."{jc[3]}","{jc[4]}",\'\',81,0),\n'
         for jp_name, jp_conditions in self.join_path.items():
             v += f"joinPath=('{jp_name}','{','.join(sorted(list(jp_conditions)))}'),\n"
         for view_prop_name, table_name, table_prop_name, join_path_id in self.view_attribute:
-            v += f"viewAttribute=('{view_prop_name}',\"{table_name}\",\"{table_prop_name}\",'{join_path_id}'"\
+            v += f"viewAttribute=('{view_prop_name}',\"{self.schema_name}\".\"{table_name}\",\"{table_prop_name}\",'{join_path_id}'"\
                 +",'default','attribute'),\n"
-        v += f"view=('default',\"{self.anchor_entity['table_name']}\"),\n"
+        v += f"view=('default',\"{self.schema_name}\".\"{self.anchor_entity['table_name']}\"),\n"
         v += "defaultView='default',\n"
         v += 'OPTIMIZEMETAMODEL=0,\n'
         v += "'LEGACY_MODE' = 'TRUE')"
@@ -224,3 +224,11 @@ class ColumnView:
         self._traverse(self.selector, self.anchor_entity, [], self._table(anchor_table_name))
 
         return self._get_sql_statement(), self.esh_config
+
+    def column_name_by_path(self, path, selector = None):
+        if not selector:
+            selector = self.selector
+        if len(path) > 1:
+            return self.column_name_by_path(path[1:], selector['elements'][path[0]])
+        return selector['elements'][path[0]]['as']
+

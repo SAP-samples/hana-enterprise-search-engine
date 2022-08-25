@@ -59,7 +59,15 @@ def verify (cson, path, obj, model):
             for o in obj:
                 verify(cson, path,o, model['items'])
 
+if not isinstance(data, dict):
+    error('data must be a dictionary of object types')
+    exit()
+
+
 for object_type, object_list in data.items():
+    if not isinstance(object_list, list):
+        error('{} is not a list'.format(object_type))
+        continue
     if object_type not in cson['definitions']:
         error(f'unknown entity - {object_type}')
         continue

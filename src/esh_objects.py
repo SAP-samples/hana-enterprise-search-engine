@@ -791,7 +791,7 @@ if __name__ == '__main__':
         '''
     deserialized_object_comparison = deserialize_objects(json.loads(json_comparison))
     assert deserialized_object_comparison.type == Comparison.__name__
-    
+
     print(json.dumps(deserialized_object_comparison.to_dict()))
 
     json_multi_values = '''
@@ -995,7 +995,7 @@ if __name__ == '__main__':
     #print(deserialized_object_multilinestring.to_statement())
     #print(deserialized_object_multipolygon.to_statement())
     #print(deserialized_object_multigeometry_collection.to_statement())
-    for i in [  deserialized_object_point, 
+    for i in [  deserialized_object_point,
                 deserialized_object_linestring,
                 deserialized_object_circular_string,
                 deserialized_object_polygon,

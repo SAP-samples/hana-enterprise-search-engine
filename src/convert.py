@@ -397,7 +397,7 @@ def cson_to_mapping(cson, pk = DefaultPK):
                 key_column = table['pk']
             else:
                 key_column = table['pkParent']
-            sql_table_joins = f'"{table_name}"'
+            sql_table_joins = f'"{{schema_name}}"."{table_name}"'
             sql_condition = f'"{key_column}" in ({{id_list}})'
             table['sql']['delete'] = f'DELETE from {sql_table_joins} where {sql_condition}'
         else:
@@ -405,18 +405,18 @@ def cson_to_mapping(cson, pk = DefaultPK):
             del_subselect = []
             parents = get_parents(tables, table, table['level'] - 1)
             for i, parent in enumerate(parents):
-                joins.append(f'inner join "{parent}" L{i+1} on L{i+2}._ID{i+1} = L{i+1}._ID{i+1}')
+                joins.append(f'inner join "{{schema_name}}"."{parent}" L{i+1} on L{i+2}._ID{i+1} = L{i+1}._ID{i+1}')
                 if i == len(parents) - 1:
                     del_subselect.append(f'select _ID{i+1} from "{parent}" L{i+1}')
                 else:
-                    del_subselect.append(f'inner join "{parent}" L{i+1} on L{i+2}._ID{i+1} = L{i+1}._ID{i+1}')
+                    del_subselect.append(f'inner join "{{schema_name}}"."{parent}" L{i+1} on L{i+2}._ID{i+1} = L{i+1}._ID{i+1}')
             joins.reverse()
             del_subselect.reverse()
             del_subselect.append('where L1."_ID" in ({id_list})')
             del_subselect_str = ' '.join(del_subselect)
-            sql_table_joins = f'"{table_name}" L{nl} {" ".join(joins)}'
+            sql_table_joins = f'"{{schema_name}}"."{table_name}" L{nl} {" ".join(joins)}'
             sql_condition = f'L1."_ID" in ({{id_list}})'
-            table['sql']['delete'] = f'DELETE from "{table_name}" where _ID{len(parents)} in ({del_subselect_str})'
+            table['sql']['delete'] = f'DELETE from "{{schema_name}}"."{table_name}" where _ID{len(parents)} in ({del_subselect_str})'
         table['sql']['select'] = f'SELECT {", ".join(select_columns)} from {sql_table_joins} where {sql_condition}'
     return {'tables': tables, 'entities': entities}
 

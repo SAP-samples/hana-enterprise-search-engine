@@ -18,7 +18,7 @@ import uvicorn
 from hdbcli.dbapi import Error as HDBException
 from hdbcli.dbapi import DataError
 import logging
-from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH, TYPES_B64_ENCODE, TYPES_SPATIAL
+from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH, TYPES_B64_ENCODE, TYPES_SPATIAL, CONCURRENT_CONNECTIONS
 from config import get_user_name
 import sys
 import server_globals as glob
@@ -27,6 +27,7 @@ from request_mapping import map_request
 #import esh_objects
 import query_mapping
 import time
+from asyncio import gather
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
@@ -75,7 +76,7 @@ async def post_tenant(tenant_id):
             sql = f'create schema "{tenant_schema_name}"'
             db.cur.execute(sql)
         except HDBException as e:
-            db.con.rollback()
+            db.cur.connection.rollback()
             if e.errorcode == 386:
                 handle_error(f"Tenant creation failed. Tennant id '{tenant_id}' already exists", 422)
             else:
@@ -85,7 +86,7 @@ async def post_tenant(tenant_id):
                 f'create table "{tenant_schema_name}"."_MODEL" (CREATED_AT TIMESTAMP, CSON NCLOB, MAPPING NCLOB)')
             glob.mapping.pop(tenant_schema_name, None)
         except HDBException as e:
-            db.con.rollback()
+            db.cur.connection.rollback()
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
         try:
             read_user_name = get_user_name(glob.db_schema_prefix, DBUserType.DATA_READ)
@@ -104,9 +105,9 @@ async def post_tenant(tenant_id):
             db.cur.execute(f'GRANT ALTER ON SCHEMA "{tenant_schema_name}" TO {schema_modify_user_name}')
             logging.info('Tenant schema created %s', tenant_schema_name)
         except HDBException as e:
-            db.con.rollback()
+            db.cur.connection.rollback()
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
-        db.con.commit()
+        db.cur.connection.commit()
     return {'detail': f"Tenant '{tenant_id}' successfully created"}
 
 @app.delete('/v1/tenant/{tenant_id}')
@@ -119,12 +120,12 @@ async def delete_tenant(tenant_id: str):
             if tenant_schema_name in glob.mapping:
                 glob.mapping.pop(tenant_schema_name, None)
         except HDBException as e:
-            db.con.rollback()
+            db.cur.connection.rollback()
             if e.errorcode == 362:
                 handle_error(f"Tenant deletion failed. Tennant id '{tenant_id}' does not exist", 404)
             else:
                 handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
-        db.con.commit()
+        db.cur.connection.commit()
     return {'detail': f"Tenant '{tenant_id}' successfully deleted"}
 
 @app.get('/v1/tenant')
@@ -144,7 +145,71 @@ def get_tenants_sync():
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
 
 
+async def execute_async(db, sql):
+    db.cur.execute(sql)
 
+'''
+def bulkify(sqls, dbs):
+    block_size = len(dbs)
+    start = 0
+    while True:
+        calls = []
+        for i, sql in enumerate(sqls[start:start + block_size]):
+            calls.append(execute_async(dbs[i], sql))
+        yield calls
+        start += block_size
+        if start >= len(sqls):
+            return
+
+
+@app.post('/v1/deploy/{tenant_id}')
+async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
+    """ Deploy model """
+    errors = consistency_check.check_cson(cson)
+    if errors:
+        raise HTTPException(422, errors)
+    if simulate:
+        return {'detail': 'Model is consistent'}
+    else:
+        with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
+            tenant_schema_name = get_tenant_schema_name(tenant_id)
+            db.cur.execute(f'select count(*) from "{tenant_schema_name}"."_MODEL"')
+            num_deployments = db.cur.fetchone()[0]
+            if num_deployments != 0:
+                handle_error('Model already deployed', 422)
+        created_at = datetime.now()
+        try:
+            mapping = convert.cson_to_mapping(cson)
+            ddl = sqlcreate.mapping_to_ddl(mapping, tenant_schema_name)
+        except convert.ModelException as e:
+            handle_error(str(e), 400)
+        try:
+            block_size = CONCURRENT_CONNECTIONS if len(ddl['tables']) > CONCURRENT_CONNECTIONS else len(ddl['tables'])
+            connections = [glob.connection_pools[DBUserType.SCHEMA_MODIFY].get_connection()]*block_size
+            for calls in bulkify(ddl['tables'], connections):
+                ts = time.time()
+                await gather(*calls)
+                print(f'####### Create Table Block took {time.time() - ts} seconds')
+            for calls in bulkify(ddl['views'], connections):
+                await gather(*calls)
+            _ = [db.cur.connection.commit() for db in connections]
+            _ = [glob.connection_pools[DBUserType.SCHEMA_MODIFY].return_connection(db) for db in connections]
+            with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
+                db.cur.execute(f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}',?)")
+                sql = f'insert into "{tenant_schema_name}"._MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
+                db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(mapping)))
+                db.cur.connection.commit()
+                glob.mapping[tenant_schema_name] = mapping
+        except HDBException as e:
+            db.cur.connection.rollback()
+            if e.errorcode == 362:
+                handle_error(f"Tennant id '{tenant_id}' does not exist", 404)
+            else:
+                handle_error(f'dbapi Error: {e.errorcode}, {e.errortext} for:\n\t{sql}')
+        return {'detail': 'Model successfully deployed'}
+
+
+'''
 @app.post('/v1/deploy/{tenant_id}')
 async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
     """ Deploy model """
@@ -173,10 +238,10 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
                     db.cur.execute(f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}',?)")
                     sql = f'insert into "{tenant_schema_name}"._MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
                     db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(mapping)))
-                    db.con.commit()
+                    db.cur.connection.commit()
                     glob.mapping[tenant_schema_name] = mapping
                 except HDBException as e:
-                    db.con.rollback()
+                    db.cur.connection.rollback()
                     if e.errorcode == 362:
                         handle_error(f"Tennant id '{tenant_id}' does not exist", 404)
                     else:
@@ -229,9 +294,9 @@ async def post_data(tenant_id, objects=Body(...)):
                 column_placeholders = ','.join(cp)
                 sql = f'insert into "{schema_name}"."{table_name}" ({column_names}) values ({column_placeholders})'
                 db.cur.executemany(sql, v['rows'])
-            db.con.commit()
+            db.cur.connection.commit()
         except DataError as e:
-            db.con.rollback()
+            db.cur.connection.rollback()
             handle_error(f'Data Error: {e.errortext}', 400)
 
     response = {}
@@ -265,7 +330,7 @@ def value_int_to_ext(typ, value):
 
 
 @app.post('/v1/read/{tenant_id}')
-async def read_data(tenant_id, objects=Body(...)):
+async def read_data(tenant_id:str, objects:dict=Body(...), type_annotation:bool = False):
     """READ Data"""
     if not isinstance(objects, dict):
         handle_error('provide dictionary of object types', 400)
@@ -306,7 +371,10 @@ async def read_data(tenant_id, objects=Body(...)):
                 else:
                     for row in db.cur:
                         i = 0
-                        res_obj = {}
+                        if table['level'] == 0 and type_annotation:
+                            res_obj = {'@type':object_type}
+                        else:
+                            res_obj = {}
                         for prop_name, prop in table['columns'].items():
                             if prop_name == table['pk']:
                                 sub_obj_key = row[i]
@@ -369,7 +437,7 @@ async def delete_data(tenant_id, objects=Body(...)):
             for table in table_sequence:
                 sql = table['sql']['delete'].format(schema_name = schema_name, id_list = id_list)
                 db.cur.execute(sql)
-        db.con.commit()
+        db.cur.connection.commit()
 
 def add_value(column, obj, path, value):
     if value is None:
@@ -616,7 +684,6 @@ def get_column_view(mapping, anchor_entity_name, schema_name, path_list):
 # Query v1
 @app.post('/v1/query/{tenant_id}/{esh_version:path}')
 async def query_v1(tenant_id, esh_version, queries=Body(...)):
-    ts = time.time()
     schema_name = get_tenant_schema_name(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
         mapping = get_mapping(tenant_id, schema_name)
@@ -627,8 +694,11 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
         requested_entity_types = []
         for query in queries:
             scopes, pathes = query_mapping.extract_pathes(query)
-            requested_entity_types.append(scopes[0])
-            cv = get_column_view(mapping, scopes[0], schema_name, pathes.keys())
+            scope = scopes[0]
+            if not scope in mapping['entities']:
+                handle_error(f'unknown entity {scope}', 400)
+            requested_entity_types.append(scope)
+            cv = get_column_view(mapping, scope, schema_name, pathes.keys())
             view_ddl, esh_config = cv.data_definition()
             configurations.append(esh_config['content'])
             for path in pathes.keys():
@@ -661,7 +731,7 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
                 data_request[requested_entity_type] = []
             for res_item in search_result['value']:
                 data_request[requested_entity_type].append({'id':res_item['ID']})
-    full_objects = await read_data(tenant_id, data_request)
+    full_objects = await read_data(tenant_id, data_request, True)
     full_objects_idx = {}
     for k, v in full_objects.items():
         full_objects_idx[k] = {}
@@ -676,7 +746,6 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
             for res_item in search_result['value']:
                 result.append(full_objects_idx[requested_entity_type][res_item['ID']])
         results.append(result)
-    print(f'############# {time.time() - ts}')
     return results
 
 

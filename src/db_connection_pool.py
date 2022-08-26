@@ -39,12 +39,12 @@ class ConnectionPool():
         self.idle_connections = []
         for _ in range(min_connections):
             self.idle_connections.append(SharedConnection(self.credentials))
-        self.num_used_connections = min_connections
+        self.num_used_connections = 0
     def get_connection(self):
+        self.num_used_connections += 1
         if len(self.idle_connections) == 0:
             return SharedConnection(self.credentials)
         else:
-            self.num_used_connections += 1
             return self.idle_connections.pop()
     def return_connection(self, connection: SharedConnection):
         self.idle_connections.append(connection)

@@ -374,13 +374,14 @@ def cson_to_mapping(cson, pk = DefaultPK):
                 if table['level'] != 0:
                     raise ModelException(f'{column_name}: Annotation @sap.esh.isVirtual is only allowed on root level')
                 referred_table = tables[column['rel']['table_name']]
-                backward_rel = [(r, is_many_rel(r['rel'])) for r in referred_table['columns'].values() \
+                backward_rel = [(k, r, is_many_rel(r['rel'])) for k, r in referred_table['columns'].items() \
                     if 'rel' in r and r['rel']['table_name'] == table_name]
                 if len(backward_rel) != 1:
                     msg = ( f'{column_name}: Annotation @sap.esh.isVirtual is only '
                     'allowed if exactly one backward association exists from referred entity ')
                     msg += referred_table['externalPath'][0]
                     raise ModelException(msg)
+                column['rel']['column_name'] = backward_rel[0][0]
                 column['isVirtual'] = True
 
         table['sql'] = {}

@@ -448,6 +448,12 @@ def get_search_metadata_entity_set(tenant_id, esh_version, path):
     return Response(\
         content=perform_search(get_esh_version(esh_version), tenant_id, '/$metadata/{}' + path, True)\
             , media_type='application/xml')
+            
+@app.get('/v1/search/{tenant_id:path}/{esh_version:path}/$all/{path:path}')
+def get_search_all_suggestion(tenant_id, esh_version, path):
+    return Response(\
+        content=perform_search(get_esh_version(esh_version), tenant_id, f'/$all/{path}', True)\
+            , media_type='application/json')
 
 @app.get('/v1/search/{tenant_id:path}/{esh_version:path}/{path:path}')
 def get_search(tenant_id, esh_version, path, req: Request):

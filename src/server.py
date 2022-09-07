@@ -396,8 +396,8 @@ def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
     #logging.info(search_query)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         tenant_schema_name = get_tenant_schema_name(tenant_id)
-        sql = f'''CALL ESH_SEARCH('["/{esh_version}/{tenant_schema_name}{esh_search_escape(esh_query)}"]',?)'''
-        _ = db.cur.execute(sql)
+        sql = 'CALL ESH_SEARCH(?,?)'
+        _ = db.cur.execute(sql,[json.dumps([f"/{esh_version}/{tenant_schema_name}{esh_query}"])])
         for row in db.cur.fetchall():
             if is_metadata:
                 return row[0]

@@ -24,4 +24,6 @@ RUN tar -xzf ./hana-esh-odata.tar.gz \
 
 WORKDIR ${APP_FOLDER}
 
+EXPOSE 8000
+
 CMD ["python3", "src/server.py"]

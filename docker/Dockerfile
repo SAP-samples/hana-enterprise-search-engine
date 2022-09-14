@@ -9,7 +9,9 @@ LABEL "origin"="https://github.com/SAP-samples/hana-enterprise-search-engine"
 
 ENV APP_FOLDER=/home/appowner/hana-esh-odata
 
-RUN adduser --disabled-login -q appowner
+RUN RUN addgroup --gid 1001 appowner \
+    && adduser --disabled-login -q -u 1001 --gid 1001 appowner
+
 USER appowner
 
 ADD --chown=appowner:appowner https://codeload.github.com/SAP-samples/hana-enterprise-search-engine/tar.gz/refs/heads/main /home/appowner/hana-esh-odata.tar.gz

@@ -32,18 +32,32 @@ Clone or download the [repository](https://github.com/SAP-samples/hana-enterpris
 ## Setup Python environment
 Then open a console and change to the download path:
 ```bat
-c:\ cd c:\devpath\hana-enterprise-search-engine
+cd hana-enterprise-search-engine
 ```
 
+## For Windows:
 Create a python virtual environment named .venv:
 ```bat
 c:\devpath\hana-enterprise-search-engine> python -m venv .venv
 ```
 
+ Activate the python virtual environment:
+ ```bat
+ c:\devpath\hana-enterprise-search-engine> .venv\scripts\activate
+ ```
+
+## For linux:
+Create a python virtual environment named .venv:
+```bat
+./hana-enterprise-search-engine> /bin/python3 -m venv .venv
+```
+
 Activate the python virtual environment:
 ```bat
-c:\devpath\hana-enterprise-search-engine> .venv\scripts\activate
+./hana-enterprise-search-engine> source .venv/bin/activate
 ```
+
+## For all plattforms:
 
 If the environment is activated correctly, a previx (.venv) is shown in the command line:
 ```bat
@@ -92,8 +106,11 @@ Attention: This will delete ALL data of this installation!
 ## Start server
 Start the server in the console with the activated virtual environment:
 ```bat
-c:\ cd c:\devpath\hana-enterprise-search-engine
-c:\devpath\hana-enterprise-search-engine> .venv\scripts\activate
+cd hana-enterprise-search-engine
+
+Windows: c:\devpath\hana-enterprise-search-engine> .venv\scripts\activate
+Linux:            ./hana-enterprise-search-engine> source .venv/bin/activate
+
 (.venv) c:\devpath\hana-enterprise-search-engine> python src\server.py
 ```
 

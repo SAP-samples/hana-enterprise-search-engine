@@ -20,8 +20,8 @@ CSON_TYPES = set(['cds.UUID','cds.String','cds.LargeString','cds.Varchar','cds.I
     ,'cds.Timestamp','cds.Boolean','cds.Date','cds.Integer','cds.Decimal','cds.Double'\
     ,'cds.Time','cds.DateTime','cds.Timestamp','cds.Binary','cds.LargeBinary'\
     ,'cds.hana.BINARY','cds.hana.VARCHAR','cds.hana.SMALLINT','cds.hana.TINYINT'\
-    ,'cds.hana.SMALLDECIMAL','cds.hana.REAL','cds.hana.CLOB','cds.hana.ST_POINT'\
-    ,'cds.hana.ST_GEOMETRY','cds.Association',
+    ,'cds.hana.SMALLDECIMAL','cds.hana.REAL','cds.hana.CLOB','cds.hana.NCHAR','cds.hana.CLOB'\
+    ,'cds.hana.ST_POINT','cds.hana.ST_GEOMETRY','cds.Association',
 ])
 
 class DBUserType(Enum):

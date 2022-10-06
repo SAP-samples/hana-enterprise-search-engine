@@ -1,4 +1,5 @@
 """Mapping between external objects and internal tables using 'tables' as internal runtime-format """
+from turtle import backward
 from uuid import uuid1
 from name_mapping import NameMapping
 import json
@@ -237,8 +238,9 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                 backward_rel = [k for k, v in cson['definitions'][referred_element]['elements'].items()\
                      if 'type' in v and v['type'] == 'cds.Association' and v['target'] == type_name]
                 if len(backward_rel) != 1:
-                    raise ModelException(f'{element_name_ext}: Annotation @sap.esh.isVirtual is only allowed if '
-                    f'exactly one backward association exists from referred entity {referred_element}',)
+                    if not (isinstance(element['@sap.esh.isVirtual'], str) and element['@sap.esh.isVirtual'] in backward_rel):
+                        raise ModelException(f'{element_name_ext}: Annotation @sap.esh.isVirtual must specify '
+                        f'which backward association should be used from referred entity {referred_element}',)
                 element['isVirtual'] = True
             if is_association:
                 element['target_table_name'], _ = table_name_mapping.register([element['target']], ENTITY_PREFIX)
@@ -376,12 +378,24 @@ def cson_to_mapping(cson, pk = DefaultPK):
                 referred_table = tables[column['rel']['table_name']]
                 backward_rel = [(k, r, is_many_rel(r['rel'])) for k, r in referred_table['columns'].items() \
                     if 'rel' in r and r['rel']['table_name'] == table_name]
-                if len(backward_rel) != 1:
-                    msg = ( f'{column_name}: Annotation @sap.esh.isVirtual is only '
-                    'allowed if exactly one backward association exists from referred entity ')
-                    msg += referred_table['externalPath'][0]
-                    raise ModelException(msg)
-                column['rel']['column_name'] = backward_rel[0][0]
+                if len(backward_rel) == 1:
+                    column['rel']['column_name'] = backward_rel[0][0]
+                else:
+                    external_path = None
+                    if isinstance(column['annotations']['@sap.esh.isVirtual'], list):
+                        external_path = column['annotations']['@sap.esh.isVirtual']
+                    elif isinstance(column['annotations']['@sap.esh.isVirtual'], str):
+                        external_path = [column['annotations']['@sap.esh.isVirtual']]
+                    rel_column_name = []
+                    if external_path:
+                        rel_column_name = [k for k,v,_ in backward_rel if v['external_path'] == external_path]
+                    if len(rel_column_name) == 1:
+                        column['rel']['column_name'] = rel_column_name[0]
+                    else:
+                        msg = ( f'{column_name}: Annotation @sap.esh.isVirtual must specify '
+                        'which backward association should be used from referred entity ')
+                        msg += referred_table['externalPath'][0]
+                        raise ModelException(msg)
                 column['isVirtual'] = True
 
         table['sql'] = {}
@@ -470,18 +484,26 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
             row = []
             if parent_object_id:
                 row.append(parent_object_id)
-            object_id = pk.get_pk(full_table_name, subtable_level)
+            #object_id = pk.get_pk(full_table_name, subtable_level)
             if subtable_level == 0:
-                if mapping['tables'][full_table_name]['pk'] == 'ID':
-                    obj['id'] = object_id
+                object_id = None
                 if 'source' in obj:
+                    if len(obj['source']) != 1:
+                        raise NotImplementedError
                     for source in obj['source']:
                         hashable_key = json.dumps(source)
                         if hashable_key in idmapping:
+                            object_id = idmapping[hashable_key]['id']
                             idmapping[hashable_key]['resolved'] = True
                         else:
+                            object_id = pk.get_pk(full_table_name, subtable_level)
                             idmapping[hashable_key] = {'id':object_id, 'resolved':True}
+                if mapping['tables'][full_table_name]['pk'] == 'ID':
+                    if not object_id:
+                        object_id = pk.get_pk(full_table_name, subtable_level)
+                    obj['id'] = object_id
             else:
+                object_id = pk.get_pk(full_table_name, subtable_level)
                 row.append(object_id)
                 if not full_table_name in inserts:
                     _, _, key_columns = get_key_columns(subtable_level, pk)

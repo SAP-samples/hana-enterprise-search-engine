@@ -9,7 +9,7 @@ import json
 import uuid
 from column_view import ColumnView
 import consistency_check
-from db_connection_pool import DBConnection, ConnectionPool, Credentials
+from db_connection_pool import DBConnection, ConnectionPool, Credentials, SharedConnection
 import convert
 import sqlcreate
 from esh_objects import IESSearchOptions
@@ -27,7 +27,8 @@ from request_mapping import map_request
 #import esh_objects
 import query_mapping
 import time
-from asyncio import gather
+from asyncio import gather, get_event_loop
+from functools import partial
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
@@ -145,10 +146,15 @@ def get_tenants_sync():
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
 
 
-async def execute_async(db, sql):
+def execute_sync(db: SharedConnection, sql: str):
     db.cur.execute(sql)
 
-'''
+
+async def execute_async(db: SharedConnection, sql: str):
+    loop = get_event_loop()
+    return await loop.run_in_executor(None, partial(execute_sync, db, sql))
+
+
 def bulkify(sqls, dbs):
     block_size = len(dbs)
     start = 0
@@ -185,11 +191,10 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
             handle_error(str(e), 400)
         try:
             block_size = CONCURRENT_CONNECTIONS if len(ddl['tables']) > CONCURRENT_CONNECTIONS else len(ddl['tables'])
-            connections = [glob.connection_pools[DBUserType.SCHEMA_MODIFY].get_connection()]*block_size
+            connections = [glob.connection_pools[DBUserType.SCHEMA_MODIFY].get_connection() for w in range(block_size)]
             for calls in bulkify(ddl['tables'], connections):
                 ts = time.time()
-                await gather(*calls)
-                print(f'####### Create Table Block took {time.time() - ts} seconds')
+                _ = await gather(*calls)
             for calls in bulkify(ddl['views'], connections):
                 await gather(*calls)
             _ = [db.cur.connection.commit() for db in connections]
@@ -205,7 +210,7 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
             if e.errorcode == 362:
                 handle_error(f"Tennant id '{tenant_id}' does not exist", 404)
             else:
-                handle_error(f'dbapi Error: {e.errorcode}, {e.errortext} for:\n\t{sql}')
+                handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
         return {'detail': 'Model successfully deployed'}
 
 
@@ -250,7 +255,7 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
             else:
                 handle_error('Model already deployed', 422)
 
-
+'''
 def get_mapping(tenant_id, schema_name):
     if schema_name in glob.mapping:
         return glob.mapping[schema_name]
@@ -318,7 +323,6 @@ async def post_data(tenant_id, objects=Body(...)):
                     response[object_type] = []
                 response[object_type].append(res)
     return response
-
 
 def value_int_to_ext(typ, value):
     if typ in TYPES_B64_ENCODE:

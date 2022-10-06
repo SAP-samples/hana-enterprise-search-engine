@@ -1,7 +1,14 @@
 """Classes to define a query"""
 from enum import Enum
+from lib2to3.pytree import Base
+from typing import List, Literal, Annotated
 import json
-from typing import Literal
+from pydantic import BaseModel, Field
+
+#class EshBaseModel(BaseModel):
+#    class Config:
+#        extra = 'forbid'
+
 
 reservedCharacters = ['\\', '-', '(', ')', '~', '^', '?', '\'', ':', "'", '[', ']']
 reservedWords = ['AND', 'OR', 'NOT']
@@ -173,11 +180,23 @@ class IToStatement:
     def to_dict(self):
         return {Constants.type: self.type, **self.__dict__}
 
-class Property(IToStatement):
-    def __init__(self, item: dict):
-        super().__init__()
-        self.property = item[Constants.property]
-        self.prefixOperator = item[Constants.prefixOperator] if Constants.prefixOperator in item.keys() else None
+class OrderBySorting(str, Enum):
+    asc = "ASC"
+    desc = "DESC"
+
+class OrderBy(BaseModel):
+    key: str
+    order: OrderBySorting | None = None
+
+    def to_statement(self):
+        if self.order:
+            return f'{self.key} {self.order}'
+        else:
+            return self.key
+class Property(BaseModel):
+    type: Literal['Property'] = 'Property'
+    property: str
+    prefixOperator: str | None = None
 
     def to_statement(self):
         property_value = self.property if not type(self.property) is list else ".".join(self.property)
@@ -186,9 +205,14 @@ class Property(IToStatement):
         else:
             return property_value
 
-class Term(IToStatement):
+class Term(BaseModel):
+    type: Literal['Term'] = 'Term'
+    term: str 
+    isQuoted: bool | None = False
+    doEshEscaping: bool | None = False
+    searchOptions: str | None = None
 
-    def __init__(self, item):
+    def from_dict(self, item):
         super().__init__()
         keys = item.keys()
         self.term = item[Constants.term]
@@ -203,14 +227,11 @@ class Term(IToStatement):
             final_term = f'"{self.term}"' if self.isQuoted else self.term
         return addFuzzySearchOptions(final_term, self.searchOptions)
 
-class Phrase(IToStatement):
-
-    def __init__(self, item: dict):
-        super().__init__()
-        keys = item.keys()
-        self.phrase = item['phrase']
-        self.searchOptions = item[Constants.searchOptions] if Constants.searchOptions in keys else None
-        self.doEshEscaping = item[Constants.doEshEscaping] if Constants.doEshEscaping in keys else True
+class Phrase(BaseModel):
+    type: Literal['Phrase'] = 'Phrase'
+    phrase: str
+    searchOptions: str = None
+    doEshEscaping: bool = True
 
     def to_statement(self):
         if self.doEshEscaping:
@@ -220,15 +241,12 @@ class Phrase(IToStatement):
         return addFuzzySearchOptions('\"' + final_phrase + '\"', self.searchOptions)
 
 
-class StringValue(IToStatement):
-
-    def __init__(self, item: dict):
-        super().__init__()
-        keys = item.keys()
-        self.value = item['value']
-        self.isQuoted = item[Constants.isQuoted] if Constants.isQuoted in keys else False
-        self.isSingleQuoted = item[Constants.isSingleQuoted] if Constants.isSingleQuoted in keys else False
-        self.withoutEnclosing = item[Constants.withoutEnclosing] if Constants.withoutEnclosing in keys else False
+class StringValue(BaseModel):
+    type: Literal['StringValue'] = 'StringValue'
+    value: str
+    isQuoted: bool = False
+    isSingleQuoted: bool = False
+    withoutEnclosing: bool = False
 
     def to_statement(self):
         #if self.withoutEnclosing:
@@ -241,45 +259,68 @@ class StringValue(IToStatement):
 
 
 
-class NumberValue(IToStatement):
-
-    def __init__(self, item: dict):
-        super().__init__()
-        self.value = item[Constants.value]
+class NumberValue(BaseModel):
+    type: Literal['NumberValue'] = 'NumberValue'
+    value: int | float
 
     def to_statement(self):
         return f'{self.value}'
 
-class BooleanValue(IToStatement):
-
-    def __init__(self, item: dict):
-        super().__init__()
-        self.value = item[Constants.value]
+class BooleanValue(BaseModel):
+    type: Literal['BooleanValue'] = 'BooleanValue'
+    value: bool
 
     def to_statement(self):
         return json.dumps(self.value)
 
-class ScopeComparison(IToStatement):
-
-    def __init__(self, item: dict):
-        super().__init__()
-        self.values = item[Constants.values]
+class ScopeComparison(BaseModel):
+    type: Literal['ScopeComparison'] = 'ScopeComparison'
+    values: str | List[str]
 
     def to_statement(self):
-        if len(self.values) == 1:
+        if isinstance(self.values, str):
+            return f'SCOPE:{scope_values}'
+        elif len(self.values) == 1:
             return f'SCOPE:{self.values[0]}'
         else:
             scope_values = ' OR '.join(self.values)
             return f'SCOPE:({scope_values})'
 
+class Comparison(BaseModel):
+    type: Literal['Comparison'] = 'Comparison'
+    property: str | Property
+    operator: str
+    value: str | StringValue | None = None
 
+    def to_statement(self):
+        property_to_statement = getattr(self.property, "to_statement", None)
+        if callable(property_to_statement):
+            property = self.property.to_statement()
+        else:
+            property = self.property
+        value_to_statement = getattr(self.value, "to_statement", None)
+        if callable(value_to_statement):
+            value = self.value.to_statement()
+        else:
+            value = self.value
+        return f'{property}{self.operator}{value}'
+        
+
+    def to_dict(self):
+        return {
+            Constants.type: self.type,
+            Constants.property: self.property.to_dict(),
+            Constants.operator: self.operator,
+            Constants.value: self.value.to_dict()
+        }
+
+ 
             
-class Expression(IToStatement):
+class Expression(BaseModel):
+    type: Literal['Expression'] = 'Expression'
+    operator: str = ''
+    items: List[Annotated[Comparison | Term | StringValue,  Field(discriminator='type')]] | None = None
 
-    def __init__(self, item: dict ):
-        super().__init__()
-        self.items = list(map(deserialize_objects, item[Constants.items])) if 'items' in item else []
-        self.operator = item[Constants.operator] if Constants.operator in item.keys() else ''
     
     def get_expression_statement(self, expression_item):
         if isinstance(expression_item, Expression): 
@@ -307,43 +348,10 @@ class Expression(IToStatement):
             Constants.operator: self.operator
         }
 
-class Comparison(IToStatement):
+'''
+class SpatialReferenceSystemsOperator(EshBaseModel):
 
-    def __init__(self, item: dict):
-        super().__init__()
-        keys = item.keys()
-        self.property = deserialize_objects(item[Constants.property])
-        self.operator = item[Constants.operator]
-        self.value = deserialize_objects(item[Constants.value]) if Constants.value in keys else None
-
-
-    def to_statement(self):
-        property_to_statement = getattr(self.property, "to_statement", None)
-        if callable(property_to_statement):
-            property = self.property.to_statement()
-        else:
-            property = self.property
-        value_to_statement = getattr(self.value, "to_statement", None)
-        if callable(value_to_statement):
-            value = self.value.to_statement()
-        else:
-            value = self.value
-        return f'{property}{self.operator}{value}'
-        
-
-    def to_dict(self):
-        return {
-            Constants.type: self.type,
-            Constants.property: self.property.to_dict(),
-            Constants.operator: self.operator,
-            Constants.value: self.value.to_dict()
-        }
-
-class SpatialReferenceSystemsOperator(IToStatement):
-
-    def __init__(self, item: dict):
-        super().__init__()
-        self.id = item[Constants.id] if Constants.id in item.keys() else None
+    id: int = None
 
     def to_statement(self):
         statement_value = ''
@@ -353,43 +361,50 @@ class SpatialReferenceSystemsOperator(IToStatement):
 
 
 class SpatialReferenceSystemsOperatorBase(IToStatement):
-    def __init__(self, functionName: str, id_ = None):
-        self.functionName = functionName
-        self.id = id_
+
+    functionName: str
+    id: int = None
 
     def to_statement(self) -> str:
         if self.id:
             return f':{self.functionName}({str(self.id)}):'
         else:
             return f':{self.functionName}:'
+'''
+class WithinOperator(BaseModel):
+    type: Literal['WithinOperator'] = 'WithinOperator'
+    id: int = None
 
-class WithinOperator(SpatialReferenceSystemsOperatorBase):
-    def __init__(self, item: dict):
-        if Constants.id in item.keys():
-            super().__init__('WITHIN', item[Constants.id])
+    def to_statement(self) -> str:
+        if self.id:
+            return f':WITHIN({str(self.id)}):'
         else:
-            super().__init__('WITHIN')
+            return ':WITHIN:'
 
 
-class CoveredByOperator(SpatialReferenceSystemsOperatorBase):
-    def __init__(self, item: dict):
-        if Constants.id in item.keys():
-            super().__init__('COVERED_BY', item[Constants.id])
+class CoveredByOperator(BaseModel):
+    type: Literal['CoveredByOperator'] = 'CoveredByOperator'
+    id: int = None
+
+    def to_statement(self) -> str:
+        if self.id:
+            return f':COVERED_BY({str(self.id)}):'
         else:
-            super().__init__('COVERED_BY')
+            return ':COVERED_BY:'
 
-class IntersectsOperator(SpatialReferenceSystemsOperatorBase):
-    def __init__(self, item: dict):
-        if Constants.id in item.keys():
-            super().__init__('INTERSECTS', item[Constants.id])
+class IntersectsOperator(BaseModel):
+    type: Literal['IntersectsOperator'] = 'IntersectsOperator'
+    id: int = None
+
+    def to_statement(self) -> str:
+        if self.id:
+            return f':INTERSECTS({str(self.id)}):'
         else:
-            super().__init__('INTERSECTS')
+            return ':INTERSECTS:'
 
-class GeometryBase(IToStatement):
-    def __init__(self, type: str, coordinates: list, searchOptions: dict | None):
-        self.type = type
-        self.coordinates = coordinates
-        self.searchOptions = searchOptions
+class GeometryBase(BaseModel):
+    coordinates: list
+    searchOptions: dict | None = None
 
     def to_statement(self):
         try:
@@ -400,34 +415,29 @@ class GeometryBase(IToStatement):
             return addFuzzySearchOptions(f'{self.__class__.__name__.upper()}({serialize_geometry_collection(self.coordinates)})', self.searchOptions)
 
 class Point(GeometryBase):
-    def __init__(self, item: dict):
-        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+    type: Literal['Point'] = 'Point'
 
 class LineString(GeometryBase):
-    def __init__(self, item: dict):
-        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+    type: Literal['LineString'] = 'LineString'
 
 class CircularString(GeometryBase):
-    def __init__(self, item: dict):
-        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+    type: Literal['CircularString'] = 'CircularString'
 
 class Polygon(GeometryBase):
-    def __init__(self, item: dict):
-        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+    type: Literal['Polygon'] = 'Polygon'
 
 class MultiPoint(GeometryBase):
-    def __init__(self, item: dict):
-        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+    type: Literal['MultiPoint'] = 'MultiPoint'
 
 class MultiLineString(GeometryBase):
-    def __init__(self, item: dict):
-        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+    type: Literal['MultiLineString'] = 'MultiLineString'
 
 class MultiPolygon(GeometryBase):
-    def __init__(self, item: dict):
-        super().__init__(self.__class__.__name__, item[Constants.coordinates], item[Constants.searchOptions] if Constants.searchOptions in item.keys() else None)
+    type: Literal['MultiPolygon'] = 'MultiPolygon'
 
-class GeometryCollection(IToStatement):
+class GeometryCollection(BaseModel):
+    type: Literal['GeometryCollection'] = 'GeometryCollection'
+    geometries: list[GeometryBase]
     def __init__(self, item: dict):
         super().__init__()
         self.geometries = item[Constants.geometries]
@@ -439,29 +449,28 @@ class GeometryCollection(IToStatement):
         return {Constants.type: self.type, Constants.geometries: list(map(lambda geometry: geometry.to_dict(), self.geometries))}
 
 
-class Path(IToStatement):
-    def __init__(self, item: dict):
-        super().__init__()
-        keys = item.keys()
-        self.entity = item[Constants.entity] if Constants.entity in keys else None
-        self.namespace = item[Constants.namespace] if Constants.namespace in keys else None
-        self.alias = item[Constants.alias] if Constants.alias in keys else None
-        self.attribute = item[Constants.attribute] if Constants.attribute in keys else None
+class Path(BaseModel):
+    type: Literal['Path'] = 'Path'
+    entity: str | None = None
+    namespace: str | None = None
+    alias: str | None = None
+    attribute: str | None = None
+
 
     def to_statement(self) -> str:
         return f'Path({self.namespace},{self.entity},{self.alias},{self.attribute})'
 
-class MultiValues(IToStatement):
-    def __init__(self, item: dict):
-        super().__init__()
-        self.items = item[Constants.items]
-
+class MultiValues(BaseModel):
+    type: Literal['MultiValues'] = 'MultiValues'    
+    items: List[BaseModel] = []
+    
     def to_dict(self) -> dict:
        return {Constants.type: self.type, Constants.items: list(map(lambda item: item.to_dict(), self.items)) }
 
     def to_statement(self) -> str:
         return json.dumps(self.to_dict())
 
+'''
 class IESSearchOptions(IToStatement):
     def __init__(self, item: dict = {}):
         keys = item.keys()
@@ -556,6 +565,70 @@ class IESSearchOptions(IToStatement):
         if self.filteredgroupby: return_object[Constants.filteredgroupby] = self.filteredgroupby
         if self.suggestTerm: return_object[Constants.suggestTerm] = self.suggestTerm
         return return_object
+'''
+class EshObject(BaseModel):
+    top: int | None = 10
+    skip: int | None = None
+    count: bool | None = None
+    searchQueryFilter: Expression | None = None
+    odataFilter:  Expression | Comparison | None = None
+    whyfound: bool | None = None
+    select: list[str] | None = None
+    orderby: List[OrderBy] | None = None
+    estimate: bool | None = None
+    wherefound: bool | None = None
+    facetlimit: int | None = None
+    facets: list[str] | None = None
+    filteredgroupby: bool | None = None
+    suggestTerm: str | None = None
+    resourcePath:str | None = None
+
+    class Config:
+        extra = 'forbid'
+
+    def to_statement(self):
+        esh = '/$all' if self.resourcePath is None else self.resourcePath
+        searchQueryFilter = self.searchQueryFilter.to_statement() if self.searchQueryFilter else ''
+        odataFilter = self.odataFilter.to_statement() if self.odataFilter else ''
+        if self.suggestTerm is not None:
+            escaped_suggested_term = self.suggestTerm.replace("'","''")
+            esh += f"/GetSuggestion(term='{escaped_suggested_term}')"
+        if esh.startswith('/$all'):
+            esh += '?'
+            if self.top is not None:
+                esh += f'${Constants.top}={self.top}'
+            if self.skip is not None:
+                esh += f'&${Constants.skip}={self.skip}'
+            if self.count is not None:
+                esh += f'&${Constants.count}={json.dumps(self.count)}'
+            if searchQueryFilter != '' or odataFilter != '':
+                if odataFilter != '':
+                    esh += f"&$apply=filter(Search.search(query='{searchQueryFilter}')) and {odataFilter}"
+                else:
+                    esh += f"&$apply=filter(Search.search(query='{searchQueryFilter}'))"
+            if self.whyfound is not None:
+                esh += f'&{Constants.whyfound}={json.dumps(self.whyfound)}'
+            if self.select is not None:
+                select_value = ','.join(self.select)
+                esh += f'&${Constants.select}={select_value}'
+            if self.orderby is not None:
+                #order_by_value = ','.join(list(map(lambda x: f'{x[Constants.key]} {x[Constants.order]}' \
+                #    if x.order is not None  else x[Constants.key], self.orderby)))
+
+                order_by_value = ','.join(list(map(lambda x: x.to_statement(), self.orderby)))
+                esh += f'&${Constants.orderby}={order_by_value}'
+            if self.estimate is not None:
+                esh += f'&{Constants.estimate}={json.dumps(self.estimate)}'
+            if self.wherefound is not None:
+                esh += f'&{Constants.wherefound}={json.dumps(self.wherefound)}'
+            if self.facetlimit is not None:
+                esh += f'&{Constants.facetlimit}={json.dumps(self.facetlimit)}'
+            if self.facets is not None:
+                facets_value = ','.join(self.facets)
+                esh += f'&{Constants.facets}={facets_value}'
+            if self.filteredgroupby is not None:
+                esh += f'&{Constants.filteredgroupby}={json.dumps(self.filteredgroupby)}'
+        return esh
 
 
 if __name__ == '__main__':

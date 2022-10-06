@@ -12,7 +12,7 @@ import consistency_check
 from db_connection_pool import DBConnection, ConnectionPool, Credentials
 import convert
 import sqlcreate
-from esh_objects import IESSearchOptions
+from esh_objects import EshObject
 import httpx
 import uvicorn
 from hdbcli.dbapi import Error as HDBException
@@ -454,6 +454,12 @@ def get_search_all_suggestion(tenant_id, esh_version, path):
     return Response(\
         content=perform_search(get_esh_version(esh_version), tenant_id, f'/$all/{path}', True)\
             , media_type='application/json')
+
+@app.post("/eshobject")
+async def update_eshobject(esh_object: EshObject):
+# async def update_eshobject(esh_object: EshObject, points: Point | LineString):
+    # print(esh_object)
+    return {'query': esh_object.to_statement(), 'eshobject': esh_object}
 
 @app.get('/v1/search/{tenant_id:path}/{esh_version:path}/{path:path}')
 def get_search(tenant_id, esh_version, path, req: Request):

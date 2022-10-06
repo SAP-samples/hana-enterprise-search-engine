@@ -106,6 +106,10 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
             sql_type['type'] = 'REAL'
         case 'cds.hana.CLOB':
             sql_type['type'] = 'CLOB'
+        case 'cds.hana.CHAR':
+            sql_type['type'] = 'CHAR'
+        case 'cds.hana.NCHAR':
+            sql_type['type'] = 'NCHAR'
         case 'cds.hana.ST_POINT':
             sql_type['type'] = 'ST_POINT'
             if 'srid' in cap_type:

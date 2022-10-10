@@ -426,7 +426,7 @@ def cson_to_mapping(cson, pk = DefaultPK):
             for i, parent in enumerate(parents):
                 joins.append(f'inner join "{{schema_name}}"."{parent}" L{i+1} on L{i+2}._ID{i+1} = L{i+1}._ID{i+1}')
                 if i == len(parents) - 1:
-                    del_subselect.append(f'select _ID{i+1} from "{parent}" L{i+1}')
+                    del_subselect.append(f'select _ID{i+1} from "{{schema_name}}"."{parent}" L{i+1}')
                 else:
                     del_subselect.append(f'inner join "{{schema_name}}"."{parent}" L{i+1} on L{i+2}._ID{i+1} = L{i+1}._ID{i+1}')
             joins.reverse()

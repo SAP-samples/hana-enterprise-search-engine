@@ -15,7 +15,7 @@ TYPES_B64_ENCODE = set(['VARBINARY', 'BLOB', 'BINARY'])
 TYPES_SPATIAL = set(['ST_POINT', 'ST_GEOMETRY'])
 
 SPATIAL_DEFAULT_SRID = 4326
-CONCURRENT_CONNECTIONS = 15
+CONCURRENT_CONNECTIONS = 12
 
 CSON_TYPES = set(['cds.UUID','cds.String','cds.LargeString','cds.Varchar','cds.Integer64'\
     ,'cds.Timestamp','cds.Boolean','cds.Date','cds.Integer','cds.Decimal','cds.Double'\

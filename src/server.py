@@ -2,6 +2,7 @@
 Provides HTTP(S) interfaces
 '''
 from datetime import datetime
+from tkinter import constants
 from fastapi import FastAPI, Request, Body, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import RedirectResponse
@@ -9,14 +10,14 @@ import json
 import uuid
 from column_view import ColumnView
 import consistency_check
-from db_connection_pool import DBConnection, ConnectionPool, Credentials, SharedConnection
+from db_connection_pool import DBConnection, ConnectionPool, Credentials, SharedConnection, DBBulkProcessing
 import convert
 import sqlcreate
 from esh_objects import IESSearchOptions
 import httpx
 import uvicorn
 from hdbcli.dbapi import Error as HDBException
-from hdbcli.dbapi import DataError
+from hdbcli.dbapi import DataError, IntegrityError, Error
 import logging
 from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH, TYPES_B64_ENCODE, TYPES_SPATIAL, CONCURRENT_CONNECTIONS
 from config import get_user_name
@@ -145,31 +146,10 @@ def get_tenants_sync():
         except HDBException as e:
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
 
-
-def execute_sync(db: SharedConnection, sql: str):
-    db.cur.execute(sql)
-
-
-async def execute_async(db: SharedConnection, sql: str):
-    loop = get_event_loop()
-    return await loop.run_in_executor(None, partial(execute_sync, db, sql))
-
-
-def bulkify(sqls, dbs):
-    block_size = len(dbs)
-    start = 0
-    while True:
-        calls = []
-        for i, sql in enumerate(sqls[start:start + block_size]):
-            calls.append(execute_async(dbs[i], sql))
-        yield calls
-        start += block_size
-        if start >= len(sqls):
-            return
-
-
 @app.post('/v1/deploy/{tenant_id}')
-async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
+async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False, threads: int = 0):
+    conf = ''
+    t1 = time.time()
     """ Deploy model """
     errors = consistency_check.check_cson(cson)
     if errors:
@@ -190,19 +170,27 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
         except convert.ModelException as e:
             handle_error(str(e), 400)
         try:
-            block_size = CONCURRENT_CONNECTIONS if len(ddl['tables']) > CONCURRENT_CONNECTIONS else len(ddl['tables'])
-            connections = [glob.connection_pools[DBUserType.SCHEMA_MODIFY].get_connection() for w in range(block_size)]
-            for calls in bulkify(ddl['tables'], connections):
-                ts = time.time()
-                _ = await gather(*calls)
-            for calls in bulkify(ddl['views'], connections):
-                await gather(*calls)
-            _ = [db.cur.connection.commit() for db in connections]
-            _ = [glob.connection_pools[DBUserType.SCHEMA_MODIFY].return_connection(db) for db in connections]
+            t2 = time.time()
+            #block_size = CONCURRENT_CONNECTIONS if len(ddl['tables']) > CONCURRENT_CONNECTIONS else len(ddl['tables'])
+            with DBBulkProcessing(glob.connection_pools[DBUserType.SCHEMA_MODIFY], threads) as db_bulk:
+                try:
+                    t3 = time.time()
+                    await db_bulk.execute(ddl['tables'])
+                    t4 = time.time()
+                    await db_bulk.execute(ddl['views'])
+                    t5 = time.time()
+                    await db_bulk.commit()
+                    t6 = time.time()
+                except HDBException as e:
+                    await db_bulk.rollback()
+                    handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
             with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
-                db.cur.execute(f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}',?)")
+                conf = json.dumps(ddl['eshConfig'])
+                db.cur.execute(f"CALL ESH_CONFIG('{conf}',?)")
+                t7 = time.time()
                 sql = f'insert into "{tenant_schema_name}"._MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
                 db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(mapping)))
+                t8 = time.time()
                 db.cur.connection.commit()
                 glob.mapping[tenant_schema_name] = mapping
         except HDBException as e:
@@ -211,51 +199,11 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
                 handle_error(f"Tennant id '{tenant_id}' does not exist", 404)
             else:
                 handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
+        te = time.time()
+        print(f'{threads}, {te-t1}, {t2-t1}, {t3-t2}, {t4-t3}, {t5-t4}, {t6-t5}, {t7-t6}, {t8-t7}, {te-t8}, {len(conf)}')
         return {'detail': 'Model successfully deployed'}
 
 
-'''
-@app.post('/v1/deploy/{tenant_id}')
-async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
-    """ Deploy model """
-    errors = consistency_check.check_cson(cson)
-    if errors:
-        raise HTTPException(422, errors)
-    if simulate:
-        return {'detail': 'Model is consistent'}
-    else:
-        with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
-            tenant_schema_name = get_tenant_schema_name(tenant_id)
-            db.cur.execute(f'select count(*) from "{tenant_schema_name}"."_MODEL"')
-            num_deployments = db.cur.fetchone()[0]
-            if num_deployments == 0:
-                created_at = datetime.now()
-                try:
-                    mapping = convert.cson_to_mapping(cson)
-                    ddl = sqlcreate.mapping_to_ddl(mapping, tenant_schema_name)
-                except convert.ModelException as e:
-                    handle_error(str(e), 400)
-                try:
-                    for sql in ddl['tables']:
-                        db.cur.execute(sql)
-                    for sql in ddl['views']:
-                        db.cur.execute(sql)
-                    db.cur.execute(f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}',?)")
-                    sql = f'insert into "{tenant_schema_name}"._MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
-                    db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(mapping)))
-                    db.cur.connection.commit()
-                    glob.mapping[tenant_schema_name] = mapping
-                except HDBException as e:
-                    db.cur.connection.rollback()
-                    if e.errorcode == 362:
-                        handle_error(f"Tennant id '{tenant_id}' does not exist", 404)
-                    else:
-                        handle_error(f'dbapi Error: {e.errorcode}, {e.errortext} for:\n\t{sql}')
-                return {'detail': 'Model successfully deployed'}
-            else:
-                handle_error('Model already deployed', 422)
-
-'''
 def get_mapping(tenant_id, schema_name):
     if schema_name in glob.mapping:
         return glob.mapping[schema_name]
@@ -277,33 +225,36 @@ async def post_data(tenant_id, objects=Body(...)):
     """CREATE Data"""
     if not isinstance(objects, dict):
         handle_error('provide dictionary of object types', 400)
-    with DBConnection(glob.connection_pools[DBUserType.DATA_WRITE]) as db:
-        schema_name = get_tenant_schema_name(tenant_id)
-        mapping = get_mapping(tenant_id, schema_name)
-        db.cur.execute(f'set schema "{schema_name}"')
-        try:
-            dml = convert.objects_to_dml(mapping, objects)
-        except convert.DataException as e:
-            handle_error(str(e), 400)
-        try:
-            for table_name, v in dml['inserts'].items():
-                column_names = ','.join([f'"{k}"' for k in v['columns'].keys()])
-                cp = []
-                table = mapping['tables'][table_name]
-                for column_name in v['columns'].keys():
-                    if table['columns'][column_name]['type'] in TYPES_SPATIAL:
-                        srid = table['columns'][column_name]['srid']
-                        cp.append(f'ST_GeomFromGeoJSON(?, {srid})')
-                    else:
-                        cp.append('?')
-                column_placeholders = ','.join(cp)
-                sql = f'insert into "{schema_name}"."{table_name}" ({column_names}) values ({column_placeholders})'
-                db.cur.executemany(sql, v['rows'])
-            db.cur.connection.commit()
-        except DataError as e:
-            db.cur.connection.rollback()
-            handle_error(f'Data Error: {e.errortext}', 400)
+    schema_name = get_tenant_schema_name(tenant_id)
+    mapping = get_mapping(tenant_id, schema_name)
+    try:
+        dml = convert.objects_to_dml(mapping, objects)
+    except convert.DataException as e:
+        handle_error(str(e), 400)
 
+    operations = []
+    for table_name, v in dml['inserts'].items():
+        column_names = ','.join([f'"{k}"' for k in v['columns'].keys()])
+        cp = []
+        table = mapping['tables'][table_name]
+        for column_name in v['columns'].keys():
+            if table['columns'][column_name]['type'] in TYPES_SPATIAL:
+                srid = table['columns'][column_name]['srid']
+                cp.append(f'ST_GeomFromGeoJSON(?, {srid})')
+            else:
+                cp.append('?')
+        column_placeholders = ','.join(cp)
+        sql = f'insert into "{schema_name}"."{table_name}" ({column_names}) values ({column_placeholders})'
+        operations.append((sql, v['rows']))
+
+    parallel_count = len(operations) if len(operations) < CONCURRENT_CONNECTIONS else CONCURRENT_CONNECTIONS
+    with DBBulkProcessing(glob.connection_pools[DBUserType.DATA_WRITE], parallel_count) as db_bulk:
+        try:
+            await db_bulk.executemany(operations)
+            await db_bulk.commit()
+        except Error as e:
+            await db_bulk.rollback()
+            handle_error(f'Data Error: {e.errortext}', 400)
     response = {}
     for object_type, obj_list in objects.items():
         if not isinstance(obj_list, list):
@@ -330,7 +281,6 @@ def value_int_to_ext(typ, value):
     elif typ in TYPES_SPATIAL:
         return json.loads(value)
     return value
-
 
 
 @app.post('/v1/read/{tenant_id}')
@@ -757,8 +707,6 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
                 result.append(full_objects_idx[requested_entity_type][res_item['ID']])
         results.append(result)
     return results
-
-
 
 @app.get('/{path:path}')
 async def tile_request(path: str, response: Response):

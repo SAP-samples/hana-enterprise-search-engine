@@ -477,7 +477,9 @@ def post_search(tenant_id, esh_version, body=Body(...)):
 # v2 Search
 @app.post('/v2/search/{tenant_id}/{esh_version:path}')
 async def search_v2(tenant_id, esh_version, query=Body(...)):
-    esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
+    # esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
+    esh_query = [EshObject.parse_obj(w).to_statement()[1:] for w in query]
+    search_object = EshObject.parse_obj(query)
     return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
 
 def get_list_of_substrings_term_found(string_subject):
@@ -552,7 +554,10 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
                 db.cur.execute(f"CALL ESH_CONFIG('{json.dumps([esh_config])}', ?)")
 
         # esh_mapped_queries = map_request(mapping, query)
-        esh_query = [IESSearchOptions(w).to_statement()[1:] for w in esh_mapped_queries['incoming_requests']]
+        for w in esh_mapped_queries['incoming_requests']:
+            a = EshObject.parse_obj(w)
+            print(a.to_statement())
+        esh_query = [EshObject.parse_obj(w).to_statement()[1:] for w in esh_mapped_queries['incoming_requests']]
 
 
         # esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
@@ -562,10 +567,11 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
             if 'value' in search_result:
                 for matched_object in search_result['value']:
                     odata_name = matched_object['@odata.context'][LENGTH_ODATA_METADATA_PREFIX:]
-                    for view_value in mapping['views'].values():
-                        if view_value['odata_name'] == odata_name:
-                            entity_name = view_value['entity_name']
-                            break
+                    if 'views' in mapping:
+                        for view_value in mapping['views'].values():
+                            if view_value['odata_name'] == odata_name:
+                                entity_name = view_value['entity_name']
+                                break
                     data_request = {
                         entity_name: [
                             {
@@ -648,7 +654,8 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
             query_mapping.map_query(query, [cv.odata_name], pathes)
             view_ddls.append(view_ddl)
             dynmaic_views.append(cv.view_name)
-            search_object = IESSearchOptions(query)
+            # search_object = IESSearchOptions(query)
+            search_object = EshObject.parse_obj(query)
             search_object.select = ['ID']
             esh_query = search_object.to_statement()[1:]
             uris.append(f'/{get_esh_version(esh_version)}/{schema_name}/{esh_query}')

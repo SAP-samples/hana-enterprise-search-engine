@@ -1,14 +1,21 @@
 """Classes to define a query"""
+from dataclasses import dataclass
 from enum import Enum
 from lib2to3.pytree import Base
-from typing import List, Literal, Annotated
+from typing import ForwardRef, List, Literal, Annotated, Union
 import json
 from pydantic import BaseModel, Field
 
-#class EshBaseModel(BaseModel):
-#    class Config:
-#        extra = 'forbid'
+'''
+class EshBaseModel(BaseModel):
+    #class Config:
+    #    extra = 'forbid'
+    def to_statement(self):
+        raise NotImplementedError
 
+    def to_dict(self):
+        return {Constants.type: self.type, **self.__dict__}
+'''
 
 reservedCharacters = ['\\', '-', '(', ')', '~', '^', '?', '\'', ':', "'", '[', ']']
 reservedWords = ['AND', 'OR', 'NOT']
@@ -71,6 +78,25 @@ def serialize_geometry_collection(collection):
     except TypeError:
         return f"{' '.join(list(map(lambda i: str(i), collection)))}"
 
+class SearchOptions(BaseModel):
+    # type: Literal['SearchOptions'] = 'SearchOptions'
+    fuzzinessThreshold: float | int | None = None
+    fuzzySearchOptions:  str | None = None  
+    weight: float | int | None = None
+
+    def to_statement(self) -> str:
+        returnStatement = ""
+        if self.fuzzinessThreshold:
+            returnStatement = returnStatement + '~' + str(self.fuzzinessThreshold)
+        if self.fuzzySearchOptions:
+            if not self.fuzzinessThreshold:
+                returnStatement = returnStatement + '~0.8'
+            returnStatement = returnStatement + '[' + self.fuzzySearchOptions + ']'
+        if self.weight:
+            returnStatement = returnStatement + '^' + str(self.weight)
+        return returnStatement
+
+'''
 def deserialize_objects(item):
     # print(item)
     if type(item) is dict:
@@ -123,7 +149,7 @@ def deserialize_objects(item):
             raise Exception('missing mandatory property type: ' + json.dumps(item))
     else:
         return item
-
+'''
 def escapeQuery(query: str) -> str:
     escapedQuery = query if query.strip() else ''
     if escapedQuery != '':
@@ -156,20 +182,12 @@ def escapeDoubleQuoteAndBackslash(value: str) -> str:
 def escapePhrase(value: str) -> str:
     return value.replace('\\','\\\\').replace('"','\\"').replace('*','\\*').replace('?','\\?').replace("'","''")
 
-def addFuzzySearchOptions(item: str, searchOptions: dict) -> str:
-    returnStatement = item
+def addFuzzySearchOptions(item: str, searchOptions: SearchOptions) -> str:
     if searchOptions:
-        keys = searchOptions.keys()
-        if Constants.fuzzinessThreshold in keys:
-            returnStatement = returnStatement + '~' + str(searchOptions[Constants.fuzzinessThreshold])
-        if Constants.fuzzySearchOptions in keys:
-            if Constants.fuzzinessThreshold not in keys:
-                returnStatement = returnStatement + '~0.8'
-            returnStatement = returnStatement + '[' + searchOptions[Constants.fuzzySearchOptions] + ']'
-        if Constants.weight in keys:
-            returnStatement = returnStatement + '^' + str(searchOptions[Constants.weight])
-    return returnStatement
+        return item + searchOptions.to_statement()
+    return item
 
+'''
 class IToStatement:
     def __init__(self):
         self.type = self.__class__.__name__
@@ -179,6 +197,7 @@ class IToStatement:
 
     def to_dict(self):
         return {Constants.type: self.type, **self.__dict__}
+'''
 
 class OrderBySorting(str, Enum):
     asc = "ASC"
@@ -210,8 +229,9 @@ class Term(BaseModel):
     term: str 
     isQuoted: bool | None = False
     doEshEscaping: bool | None = False
-    searchOptions: str | None = None
+    searchOptions: SearchOptions | None = None
 
+    '''
     def from_dict(self, item):
         super().__init__()
         keys = item.keys()
@@ -219,7 +239,7 @@ class Term(BaseModel):
         self.isQuoted = item[Constants.isQuoted] if Constants.isQuoted in keys else False
         self.doEshEscaping = item[Constants.doEshEscaping] if Constants.doEshEscaping in keys else False
         self.searchOptions = item[Constants.searchOptions] if Constants.searchOptions in keys else None
-
+    '''
     def to_statement(self):
         if self.doEshEscaping:
             final_term = f'"{escapePhrase(self.term)}"'if self.isQuoted else escapeQuery(self.term)
@@ -230,7 +250,7 @@ class Term(BaseModel):
 class Phrase(BaseModel):
     type: Literal['Phrase'] = 'Phrase'
     phrase: str
-    searchOptions: str = None
+    searchOptions: SearchOptions | None = None
     doEshEscaping: bool = True
 
     def to_statement(self):
@@ -247,6 +267,9 @@ class StringValue(BaseModel):
     isQuoted: bool = False
     isSingleQuoted: bool = False
     withoutEnclosing: bool = False
+
+    def to_dict(self):
+        return {Constants.type: self.type, **self.__dict__}
 
     def to_statement(self):
         #if self.withoutEnclosing:
@@ -314,12 +337,13 @@ class Comparison(BaseModel):
             Constants.value: self.value.to_dict()
         }
 
- 
-            
+
+# Expression = ForwardRef('Expression')       
+ExpressionValue = Union[Annotated[Union["Expression", "Comparison","ScopeComparison", "WithinOperator", "CoveredByOperator", "IntersectsOperator", "Term", "Point", "LineString", "CircularString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection", "NumberValue", "BooleanValue", "StringValue", "Phrase", "Property", "Path", "MultiValues"], Field(discriminator="type")], str]
 class Expression(BaseModel):
     type: Literal['Expression'] = 'Expression'
     operator: str = ''
-    items: List[Annotated[Comparison | Term | StringValue,  Field(discriminator='type')]] | None = None
+    items: List[ExpressionValue] | None = []
 
     
     def get_expression_statement(self, expression_item):
@@ -348,6 +372,8 @@ class Expression(BaseModel):
             Constants.operator: self.operator
         }
 
+# Expression.update_forward_refs()
+
 '''
 class SpatialReferenceSystemsOperator(EshBaseModel):
 
@@ -373,7 +399,7 @@ class SpatialReferenceSystemsOperatorBase(IToStatement):
 '''
 class WithinOperator(BaseModel):
     type: Literal['WithinOperator'] = 'WithinOperator'
-    id: int = None
+    id: int | None = None
 
     def to_statement(self) -> str:
         if self.id:
@@ -384,7 +410,7 @@ class WithinOperator(BaseModel):
 
 class CoveredByOperator(BaseModel):
     type: Literal['CoveredByOperator'] = 'CoveredByOperator'
-    id: int = None
+    id: int | None = None
 
     def to_statement(self) -> str:
         if self.id:
@@ -394,7 +420,7 @@ class CoveredByOperator(BaseModel):
 
 class IntersectsOperator(BaseModel):
     type: Literal['IntersectsOperator'] = 'IntersectsOperator'
-    id: int = None
+    id: int | None = None
 
     def to_statement(self) -> str:
         if self.id:
@@ -403,8 +429,9 @@ class IntersectsOperator(BaseModel):
             return ':INTERSECTS:'
 
 class GeometryBase(BaseModel):
+    type: str
     coordinates: list
-    searchOptions: dict | None = None
+    searchOptions: SearchOptions | None = None
 
     def to_statement(self):
         try:
@@ -438,9 +465,6 @@ class MultiPolygon(GeometryBase):
 class GeometryCollection(BaseModel):
     type: Literal['GeometryCollection'] = 'GeometryCollection'
     geometries: list[GeometryBase]
-    def __init__(self, item: dict):
-        super().__init__()
-        self.geometries = item[Constants.geometries]
 
     def to_statement(self):
         return f"{self.__class__.__name__.upper()}({','.join(list(map(lambda i: i.to_statement(), self.geometries)))})" 
@@ -456,13 +480,17 @@ class Path(BaseModel):
     alias: str | None = None
     attribute: str | None = None
 
+    def to_dict(self):
+        return { **self.__dict__}
+
 
     def to_statement(self) -> str:
         return f'Path({self.namespace},{self.entity},{self.alias},{self.attribute})'
 
+
 class MultiValues(BaseModel):
     type: Literal['MultiValues'] = 'MultiValues'    
-    items: List[BaseModel] = []
+    items: List[ExpressionValue] = []
     
     def to_dict(self) -> dict:
        return {Constants.type: self.type, Constants.items: list(map(lambda item: item.to_dict(), self.items)) }
@@ -566,6 +594,8 @@ class IESSearchOptions(IToStatement):
         if self.suggestTerm: return_object[Constants.suggestTerm] = self.suggestTerm
         return return_object
 '''
+
+Expression.update_forward_refs()
 class EshObject(BaseModel):
     top: int | None = 10
     skip: int | None = None
@@ -633,34 +663,31 @@ class EshObject(BaseModel):
 
 if __name__ == '__main__':
 
-    m_items = [StringValue({'value':'www'}),StringValue({'value':'222'}),StringValue({'value':'333'})]
-    #bbb = list(map(lambda x: x.to_statement(), m_items))
-    #print(json.dumps(bbb))
-    #connect_operator = '_'
-    #print(connect_operator.join(bbb))
+    m_items = [StringValue(value='www'),StringValue(value='222'),StringValue(value='333')]
 
-    comp = {Constants.type: 'Comparison', 'property': {'type':'Property', 'property': 'language'}, \
+    comp = {'property': "language", \
         'operator': ':EQ:', 'value': { Constants.type: 'StringValue', 'value': 'Python'}}
-    aas = deserialize_objects(comp)
+    aas = Comparison.parse_obj(comp)
     assert aas.to_statement() == 'language:EQ:Python'
 
-
-    aa = IESSearchOptions({})
-    aa.top=23
-    aa.searchQueryFilter=deserialize_objects({Constants.type: 'Expression', 'items' : [{'type': 'StringValue', \
-        'value': 'aaa'},{'type': 'StringValue', 'value': 'bbb'}], 'operator': 'AND'})
-    assert aa.to_statement() == "/$all?$top=23&$apply=filter(Search.search(query='(aaa AND bbb)'))"
+    comp1 = {'property': {'type':"Property", "property": "language"}, \
+        'operator': ':EQ:', 'value': { Constants.type: 'StringValue', 'value': 'Python'}}
+    aas1 = Comparison.parse_obj(comp)
+    assert aas1.to_statement() == 'language:EQ:Python'
 
 
+    aa = EshObject.parse_obj({'searchQueryFilter': {Constants.type: 'Expression', 'items' : [{'type': 'StringValue', \
+       'value': 'aaa'},{'type': 'StringValue', 'value': 'bbb'}], 'operator': 'AND'}})
+    assert aa.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='(aaa AND bbb)'))"
 
-    exp1 = Expression({'items': [{Constants.type: 'StringValue', 'value': 'MMMM'},\
-        {Constants.type: 'StringValue', 'value': 'KKK'}], 'operator': 'OR'})
+    exp1 = Expression(items=[StringValue(value='MMMM'),\
+        StringValue(value='KKK')], operator='OR')
     assert exp1.to_statement() == '(MMMM OR KKK)'
 
-    exp2 = Expression({})
+    exp2 = Expression()
     exp2.operator = 'AND'
-    exp2.items.append(StringValue({'value':'mannheim'}))
-    exp2.items.append(StringValue({'value':'heidelberg'}))
+    exp2.items.append(StringValue(value='mannheim'))
+    exp2.items.append(StringValue(value='heidelberg'))
     assert exp2.to_statement() == '(mannheim AND heidelberg)'
 
 
@@ -703,21 +730,17 @@ if __name__ == '__main__':
         }
 
 
-    es_objects = IESSearchOptions(json_body)
+    es_objects = EshObject.parse_obj(json_body)
     print(es_objects.to_statement())
-    #print(json.dumps(es_objects.searchQueryFilter.to_dict(), indent=4))
-    print(json.dumps(es_objects.to_dict(), indent=4))
+    # print(json.dumps(es_objects.searchQueryFilter.to_dict(), indent=4))
+    # print(json.dumps(es_objects.to_dict(), indent=4))
     expected_statement = '/$all?$top=10&$count=true&$apply=filter(' \
         'Search.search(query=\'SCOPE:S1 AND ((test OR function))' \
         ' AND aaa AND bbb\')) and flag eq \'ACTIVE\'&whyfound=true&$select=id,name&$orderby=city ASC,language DESC,' \
         'land&estimate=true&wherefound=true&facetlimit=4&facets=city,land&filteredgroupby=false'
     assert es_objects.to_statement() == expected_statement
 
-    string_value_dict={
-        'value': 'sss',
-        Constants.isQuoted: True
-    }
-    sv = StringValue(string_value_dict)
+    sv = StringValue(value='sss', isQuoted=True)
     # print(sv.__dict__)
 
     # print(json.dumps(sv.__dict__))
@@ -735,17 +758,24 @@ if __name__ == '__main__':
             Constants.fuzzinessThreshold:0.5,\
             Constants.weight:0.9,\
             Constants.fuzzySearchOptions:'search=typeahead'}}
-    term = Term(term_definition)
+
+
+    searchOpts = SearchOptions(fuzzinessThreshold=0.5,fuzzySearchOptions='search=typeahead',weight=0.9)
+    assert searchOpts.to_statement() == '~0.5[search=typeahead]^0.9'
+        
+    term = Term(term='mannh"eim', doEshEscaping=True,\
+        searchOptions=SearchOptions(fuzzinessThreshold=0.5,fuzzySearchOptions='search=typeahead',weight=0.9))
     print(term.to_statement())
     assert term.to_statement() == 'mannh"eim~0.5[search=typeahead]^0.9'
 
 
-    phrase_definition = {'phrase': 'heidelberg', \
+    phrase_definition = {'type': 'Phrase','phrase': 'heidelberg', \
         Constants.searchOptions: {\
+            'type': 'SearchOptions',\
             Constants.fuzzinessThreshold:0.5,\
             Constants.weight:0.9,\
             Constants.fuzzySearchOptions:'search=typeahead'}}
-    phrase = Phrase(phrase_definition)
+    phrase = Phrase.parse_obj(phrase_definition)
     assert phrase.to_statement() == '"heidelberg"~0.5[search=typeahead]^0.9'
 
 
@@ -753,7 +783,7 @@ if __name__ == '__main__':
     suggest_json_body={
         'suggestTerm': 'bas'
     }
-    suggest_es_objects = IESSearchOptions(suggest_json_body)
+    suggest_es_objects = EshObject.parse_obj(suggest_json_body)
     print(suggest_es_objects.to_statement())
     assert suggest_es_objects.to_statement() == "/$all/GetSuggestion(term='bas')?$top=10"
 
@@ -761,52 +791,52 @@ if __name__ == '__main__':
     metadata_json_body={
         'resourcePath': '/$metadata'
     }
-    metadata_es_objects = IESSearchOptions(metadata_json_body)
+    metadata_es_objects = EshObject.parse_obj(metadata_json_body)
     print(metadata_es_objects.to_statement())
     assert metadata_es_objects.to_statement() == '/$metadata'
 
 
 
-    assert WithinOperator({}).to_statement() == ':WITHIN:'
-    assert WithinOperator({'id':4}).to_statement() == ':WITHIN(4):'
+    assert WithinOperator().to_statement() == ':WITHIN:'
+    assert WithinOperator(id=4).to_statement() == ':WITHIN(4):'
 
-    assert CoveredByOperator({}).to_statement() == ':COVERED_BY:'
-    assert CoveredByOperator({'id':5}).to_statement() == ':COVERED_BY(5):'
+    assert CoveredByOperator().to_statement() == ':COVERED_BY:'
+    assert CoveredByOperator(id=5).to_statement() == ':COVERED_BY(5):'
 
-    assert IntersectsOperator({}).to_statement() == ':INTERSECTS:'
-    assert IntersectsOperator({'id':6}).to_statement() == ':INTERSECTS(6):'
+    assert IntersectsOperator().to_statement() == ':INTERSECTS:'
+    assert IntersectsOperator(id=6).to_statement() == ':INTERSECTS(6):'
 
-    print(StringValue({'value':'aaa'}).to_dict())
-    print(NumberValue({'value':3.2}).to_dict())
-    print(BooleanValue({'value':True}).to_dict())
-    print(Term({'term':'mannheim'}).to_dict())
-    print(Phrase({'phrase':'to be'}).to_dict())
-    print(Property({'property':'language'}).to_dict())
+    #print(StringValue(value='aaa').to_dict())
+    #print(NumberValue({'value=3.2}).to_dict())
+    #print(BooleanValue({'value':True}).to_dict())
+    #print(Term({'term':'mannheim'}).to_dict())
+    #print(Phrase({'phrase':'to be'}).to_dict())
+    #print(Property({'property':'language'}).to_dict())
 
-    comparison_object = deserialize_objects({Constants.type: 'Comparison','property':  \
-        {Constants.type:'Property', 'property':'flag'}, 'operator': ':EQ(S):', \
-            'value': { Constants.type: 'StringValue', 'value': 'ACTIVE'}})
-    print(comparison_object.to_statement())
-    print(comparison_object.to_dict())
+    #123 comparison_object = deserialize_objects({Constants.type: 'Comparison','property':  \
+    #    {Constants.type:'Property', 'property':'flag'}, 'operator': ':EQ(S):', \
+    #        'value': { Constants.type: 'StringValue', 'value': 'ACTIVE'}})
+    #print(comparison_object.to_statement())
+    #print(comparison_object.to_dict())
 
     assert escapePhrase('aaa?bbb') == 'aaa\\?bbb'
 
-    person = Path({'entity': "Person"})
+    person = Path(entity="Person")
     print(person.to_statement())
     # json_path_person = {'type': 'Path', 'value':{'type': 'StringValue', 'value': 'mannheim'}}
-    json_path_person = {'type': 'Path', 'entity': 'Person','attribute':['m1','m2']}
-    print(deserialize_objects(json_path_person).to_statement())
-    print(json.dumps(deserialize_objects(json_path_person).to_dict()))
-    assert deserialize_objects(json_path_person).to_statement() == "Path(None,Person,None,['m1', 'm2'])"
-    multiValuesA = MultiValues({'items':[person,deserialize_objects(json_path_person)]})
-    print(multiValuesA.to_statement())
+    #json_path_person = {'type': 'Path', 'entity': 'Person','attribute':['m1','m2']}
+    # print(deserialize_objects(json_path_person).to_statement())
+    # print(json.dumps(deserialize_objects(json_path_person).to_dict()))
+    # assert EshObject.parse_obj(json_path_person).to_statement() == "Path(None,Person,None,['m1', 'm2'])"
+   # multiValuesA = MultiValues(items=[person,deserialize_objects(json_path_person)]})
+    #print(multiValuesA.to_statement())
 
-    multi_values = MultiValues({'items': [StringValue({"value":"one"}),StringValue({"value":"two"})]})
+    #multi_values = MultiValues({'items': [StringValue({"value":"one"}),StringValue({"value":"two"})]})
     # multi_values_json = json.dumps(multi_values.to_dict())
-    deserialized_object_multi_values = deserialize_objects(multi_values.to_dict())
-    assert deserialized_object_multi_values.type == "MultiValues"
-    assert deserialized_object_multi_values.items[0].type == "StringValue"
-    assert deserialized_object_multi_values.items[1].type == "StringValue"
+    #deserialized_object_multi_values = deserialize_objects(multi_values.to_dict())
+    #assert deserialized_object_multi_values.type == "MultiValues"
+    #assert deserialized_object_multi_values.items[0].type == "StringValue"
+    #assert deserialized_object_multi_values.items[1].type == "StringValue"
     # print(multiValues.to_statement())
     # print(json.dumps(StringValue({'value':'vv'}).to_dict()))
     json_expression = '''
@@ -823,10 +853,11 @@ if __name__ == '__main__':
             ]
         }
     '''
-    deserialized_object_expression = deserialize_objects(json.loads(json_expression))
+    deserialized_object_expression = Expression.parse_obj(json.loads(json_expression))
     assert deserialized_object_expression.type == Expression.__name__
-    print(json.dumps(deserialized_object_expression.to_dict()))
-    print(deserialized_object_expression.to_statement())
+    # print(json.dumps(deserialized_object_expression.to_dict()))
+    # print(deserialized_object_expression.to_statement())
+    assert deserialized_object_expression.to_statement() == '(city country)'
 
     json_property = '''
         {
@@ -834,19 +865,9 @@ if __name__ == '__main__':
             "property": "city"
         }
     '''
-    deserialized_object_property = deserialize_objects(json.loads(json_property))
-    assert deserialized_object_property.type == Property.__name__
-    print(json.dumps(deserialized_object_property.to_dict()))
-
-    json_property_with_array = '''
-        {
-            "type": "Property",
-            "property": ["city", "ok"]
-        }
-    '''
-    deserialized_object_property_with_array = deserialize_objects(json.loads(json_property_with_array))
-    assert deserialized_object_property_with_array.type == Property.__name__
-    print(json.dumps(deserialized_object_property_with_array.to_dict()))
+    deserialized_object_property_city = Property.parse_obj(json.loads(json_property))
+    assert deserialized_object_property_city.type == Property.__name__
+    assert deserialized_object_property_city.to_statement() == 'city'
 
     json_comparison = '''
             {
@@ -862,10 +883,11 @@ if __name__ == '__main__':
                 }
             }
         '''
-    deserialized_object_comparison = deserialize_objects(json.loads(json_comparison))
+    deserialized_object_comparison = Comparison.parse_obj(json.loads(json_comparison))
     assert deserialized_object_comparison.type == Comparison.__name__
+    assert deserialized_object_comparison.to_statement() == 'city:Mannheim'
 
-    print(json.dumps(deserialized_object_comparison.to_dict()))
+    # print(json.dumps(deserialized_object_comparison.to_dict()))
 
     json_multi_values = '''
         {
@@ -888,17 +910,19 @@ if __name__ == '__main__':
             ]
         }
     '''
-    des_obj = deserialize_objects(json.loads(json_multi_values))
+    des_obj = MultiValues.parse_obj(json.loads(json_multi_values))
     assert des_obj.type == "MultiValues"
-    print(json.dumps(des_obj.to_dict()))
+    # print(json.dumps(des_obj.to_dict()))
 
 
-    pathEntity1 = Path({'namespace':'N1','entity':'E1','path_index': 1,'attribute':'a1'})
-    pathEntity2 = Path({'namespace':'N1','entity':'E2','path_index': 2,'attribute':['a1','a2']})
+    pathDict1 = {'type': 'Path','namespace':'N1','entity':'E1','path_index': 1,'attribute':'a1'}
+    pathDict2 = {'type': 'Path','namespace':'N1','entity':'E1','path_index': 1,'attribute':'a2'}
 
-    print(json.dumps(pathEntity1.to_dict()))
-    print(json.dumps(pathEntity2.to_dict()))
-    multiValuesPath = MultiValues({'items': [pathEntity1, pathEntity2]})
+    pathEntity1 = Path.parse_obj(pathDict1)
+    pathEntity2 = Path.parse_obj(pathDict2)
+
+
+    multiValuesPath = MultiValues.parse_obj({'type': 'MultiValues','items': [pathDict1, pathDict2]})
     print(multiValuesPath.to_statement())
 
     point_json = '''
@@ -910,10 +934,9 @@ if __name__ == '__main__':
             "searchOptions": {"weight": 3.2}
         }
     '''
-    deserialized_object_point = deserialize_objects(json.loads(point_json))
+    deserialized_object_point = Point.parse_obj(json.loads(point_json))
     assert deserialized_object_point.type == "Point"
-    print(deserialized_object_point.to_statement())
-    print(json.dumps(deserialized_object_point.to_dict()))
+    assert deserialized_object_point.to_statement() == "POINT(1.1 2.2)^3.2"
 
     circular_string_json = '''
         {
@@ -923,10 +946,9 @@ if __name__ == '__main__':
             ]
         }
     '''
-    deserialized_object_circular_string = deserialize_objects(json.loads(circular_string_json))
+    deserialized_object_circular_string = CircularString.parse_obj(json.loads(circular_string_json))
     assert deserialized_object_circular_string.type == "CircularString"
-    print(deserialized_object_circular_string.to_statement())
-    print(json.dumps(deserialized_object_circular_string.to_dict()))
+    assert deserialized_object_circular_string.to_statement()  == "CIRCULARSTRING(33.3 11.1,11.1 33.3,44.4 44.4)"
 
     linestring_json = '''
         {
@@ -936,10 +958,9 @@ if __name__ == '__main__':
             ]
         }
     '''
-    deserialized_object_linestring = deserialize_objects(json.loads(linestring_json))
+    deserialized_object_linestring = LineString.parse_obj(json.loads(linestring_json))
     assert deserialized_object_linestring.type == "LineString"
-    print(deserialized_object_linestring.to_statement())
-    print(json.dumps(deserialized_object_linestring.to_dict()))
+    assert deserialized_object_linestring.to_statement() == "LINESTRING(33.3 11.1,11.1 33.3,44.4 44.4)"
 
     polygon_json = '''
         {
@@ -954,10 +975,9 @@ if __name__ == '__main__':
             ]
         }
     '''
-    deserialized_object_polygon = deserialize_objects(json.loads(polygon_json))
+    deserialized_object_polygon = Polygon.parse_obj(json.loads(polygon_json))
     assert deserialized_object_polygon.type == Polygon.__name__
-    print(deserialized_object_polygon.to_statement())
-    print(json.dumps(deserialized_object_polygon.to_dict()))
+    assert deserialized_object_polygon.to_statement() == "POLYGON((30.3 10.1,40.4 40.4,10.1 30.3,30.3 10.1))"
 
     multipoint_json = '''
         {
@@ -967,10 +987,9 @@ if __name__ == '__main__':
             ]
         }
     '''
-    deserialized_object_multipoint = deserialize_objects(json.loads(multipoint_json))
+    deserialized_object_multipoint = MultiPoint.parse_obj(json.loads(multipoint_json))
     assert deserialized_object_multipoint.type == "MultiPoint"
-    print(deserialized_object_multipoint.to_statement())
-    print(json.dumps(deserialized_object_multipoint.to_dict()))
+    assert deserialized_object_multipoint.to_statement() == "MULTIPOINT(11.1 44.4,44.4 33.3,22.2 22.2,33.3 11.1)"
 
     multilinestring_json = '''
         {
@@ -981,10 +1000,9 @@ if __name__ == '__main__':
             ]
         }
     '''
-    deserialized_object_multilinestring = deserialize_objects(json.loads(multilinestring_json))
+    deserialized_object_multilinestring = MultiLineString.parse_obj(json.loads(multilinestring_json))
     assert deserialized_object_multilinestring.type == "MultiLineString"
-    print(deserialized_object_multilinestring.to_statement())
-    print(json.dumps(deserialized_object_multilinestring.to_dict()))
+    assert deserialized_object_multilinestring.to_statement() == "MULTILINESTRING((11.1 11.1,22.2 22.2,11.1 44.4),(44.4 44.4,33.3 33.3,44.4 22.2,33.3 11.1))"
 
     multipolygon_json = '''
         {
@@ -999,10 +1017,9 @@ if __name__ == '__main__':
             ]
         }
     '''
-    deserialized_object_multipolygon = deserialize_objects(json.loads(multipolygon_json))
+    deserialized_object_multipolygon = MultiPolygon.parse_obj(json.loads(multipolygon_json))
     assert deserialized_object_multipolygon.type == "MultiPolygon"
-    print(deserialized_object_multipolygon.to_statement())
-    print(json.dumps(deserialized_object_multipolygon.to_dict()))
+    assert deserialized_object_multipolygon.to_statement() == "MULTIPOLYGON(((33.3 22.2,45.4 44.4,11.1 44.4,33.3 22.2)),((15.4 5.4,44.4 11.1,11.1 22.2,5.4 11.1,15.4 5.4)))"
 
     multipolygon2_json = '''
         {
@@ -1018,10 +1035,9 @@ if __name__ == '__main__':
             ]
         }
     '''
-    deserialized_object_multipolygon2 = deserialize_objects(json.loads(multipolygon2_json))
+    deserialized_object_multipolygon2 = MultiPolygon.parse_obj(json.loads(multipolygon2_json))
     assert deserialized_object_multipolygon2.type == "MultiPolygon"
-    print(deserialized_object_multipolygon2.to_statement())
-    print(json.dumps(deserialized_object_multipolygon2.to_dict()))
+    assert deserialized_object_multipolygon2.to_statement() == "MULTIPOLYGON(((44.4 44.4,22.2 45.4,45.4 33.3,44.4 44.4)),((22.2 35.4,11.1 33.3,11.1 11.1,33.3 5.4,45.4 22.2,22.2 35.4),(33.3 22.2,22.2 15.4,22.2 25.4,33.3 22.2)))"
 
     multigeometry_collection_json = '''
         {
@@ -1044,30 +1060,17 @@ if __name__ == '__main__':
             ]
         }
     '''
-    deserialized_object_multigeometry_collection = deserialize_objects(json.loads(multigeometry_collection_json))
+    deserialized_object_multigeometry_collection = GeometryCollection.parse_obj(json.loads(multigeometry_collection_json))
     assert deserialized_object_multigeometry_collection.type == "GeometryCollection"
     assert deserialized_object_multigeometry_collection.geometries[0].type == "Point"
     assert deserialized_object_multigeometry_collection.geometries[1].type == "LineString"
     assert deserialized_object_multigeometry_collection.geometries[2].type == "Polygon"
-    print(deserialized_object_multigeometry_collection.to_statement())
-    print(json.dumps(deserialized_object_multigeometry_collection.to_dict()))
+    assert deserialized_object_multigeometry_collection.to_statement() == "GEOMETRYCOLLECTION(GEOMETRYBASE(44.4 11.1),GEOMETRYBASE(11.1 11.1,22.2 22.2,11.1 44.4),GEOMETRYBASE((30.3 10.1,40.4 40.4,10.1 30.3,30.3 10.1)))"
 
+    assert serialize_geometry_collection([1.1,2.2]) == "1.1 2.2"
+    assert serialize_geometry_collection([[1.1,2.2],[3.3,4.4]]) == "(1.1 2.2,3.3 4.4)"
+    assert serialize_geometry_collection([[[1.1,2.2],[3.3,4.4]],[[5.5,6.6],[7.7,8.8]]]) == "((1.1 2.2,3.3 4.4),(5.5 6.6,7.7 8.8))"
 
-    print(deserialized_object_point.to_statement())
-
-
-    print(serialize_geometry_collection([1.1,2.2]))
-    print(serialize_geometry_collection([[1.1,2.2],[3.3,4.4]]))
-    print(serialize_geometry_collection([[[1.1,2.2],[3.3,4.4]],[[5.5,6.6],[7.7,8.8]]]))
-
-    #print(deserialized_object_point.to_statement())
-    #print(deserialized_object_linestring.to_statement())
-    #print(deserialized_object_circular_string.to_statement())
-    #print(deserialized_object_polygon.to_statement())
-    #print(deserialized_object_multipoint.to_statement())
-    #print(deserialized_object_multilinestring.to_statement())
-    #print(deserialized_object_multipolygon.to_statement())
-    #print(deserialized_object_multigeometry_collection.to_statement())
     for i in [  deserialized_object_point,
                 deserialized_object_linestring,
                 deserialized_object_circular_string,
@@ -1077,8 +1080,5 @@ if __name__ == '__main__':
                 deserialized_object_multipolygon,
                 deserialized_object_multigeometry_collection]:
         print(i.to_statement())
-        print(json.dumps(i.to_dict()))
     print(deserialized_object_expression.to_statement())
-    print(json.dumps(deserialized_object_property_with_array.to_dict()))
-    print(deserialized_object_property_with_array.to_statement())
     print(' -----> everything fine <----- ')

@@ -2,7 +2,6 @@
 Provides HTTP(S) interfaces
 '''
 from datetime import datetime
-from tkinter import constants
 from fastapi import FastAPI, Request, Body, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import RedirectResponse
@@ -147,9 +146,7 @@ def get_tenants_sync():
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
 
 @app.post('/v1/deploy/{tenant_id}')
-async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False, threads: int = 0):
-    conf = ''
-    t1 = time.time()
+async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
     """ Deploy model """
     errors = consistency_check.check_cson(cson)
     if errors:
@@ -170,27 +167,19 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False, t
         except convert.ModelException as e:
             handle_error(str(e), 400)
         try:
-            t2 = time.time()
-            #block_size = CONCURRENT_CONNECTIONS if len(ddl['tables']) > CONCURRENT_CONNECTIONS else len(ddl['tables'])
-            with DBBulkProcessing(glob.connection_pools[DBUserType.SCHEMA_MODIFY], threads) as db_bulk:
+            block_size = CONCURRENT_CONNECTIONS if len(ddl['tables']) > CONCURRENT_CONNECTIONS else len(ddl['tables'])
+            with DBBulkProcessing(glob.connection_pools[DBUserType.SCHEMA_MODIFY], block_size) as db_bulk:
                 try:
-                    t3 = time.time()
                     await db_bulk.execute(ddl['tables'])
-                    t4 = time.time()
                     await db_bulk.execute(ddl['views'])
-                    t5 = time.time()
                     await db_bulk.commit()
-                    t6 = time.time()
                 except HDBException as e:
                     await db_bulk.rollback()
                     handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
             with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
-                conf = json.dumps(ddl['eshConfig'])
-                db.cur.execute(f"CALL ESH_CONFIG('{conf}',?)")
-                t7 = time.time()
+                db.cur.execute(f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}',?)")
                 sql = f'insert into "{tenant_schema_name}"._MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
                 db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(mapping)))
-                t8 = time.time()
                 db.cur.connection.commit()
                 glob.mapping[tenant_schema_name] = mapping
         except HDBException as e:
@@ -199,8 +188,6 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False, t
                 handle_error(f"Tennant id '{tenant_id}' does not exist", 404)
             else:
                 handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
-        te = time.time()
-        print(f'{threads}, {te-t1}, {t2-t1}, {t3-t2}, {t4-t3}, {t5-t4}, {t6-t5}, {t7-t6}, {t8-t7}, {te-t8}, {len(conf)}')
         return {'detail': 'Model successfully deployed'}
 
 
@@ -654,6 +641,8 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
         requested_entity_types = []
         for query in queries:
             scopes, pathes = query_mapping.extract_pathes(query)
+            if len(scopes) != 1:
+                handle_error('Exactly one scope is needed', 400)
             scope = scopes[0]
             if not scope in mapping['entities']:
                 handle_error(f'unknown entity {scope}', 400)

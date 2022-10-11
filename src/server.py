@@ -2,7 +2,6 @@
 Provides HTTP(S) interfaces
 '''
 from datetime import datetime
-from tkinter import constants
 from fastapi import FastAPI, Request, Body, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import RedirectResponse
@@ -642,6 +641,8 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
         requested_entity_types = []
         for query in queries:
             scopes, pathes = query_mapping.extract_pathes(query)
+            if len(scopes) != 1:
+                handle_error('Exactly one scope is needed', 400)
             scope = scopes[0]
             if not scope in mapping['entities']:
                 handle_error(f'unknown entity {scope}', 400)

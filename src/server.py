@@ -3,6 +3,7 @@ Provides HTTP(S) interfaces
 '''
 from datetime import datetime
 from tkinter import constants
+from typing import List
 from fastapi import FastAPI, Request, Body, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import RedirectResponse
@@ -655,7 +656,7 @@ def get_column_view(mapping, anchor_entity_name, schema_name, path_list):
 
 # Query v1
 @app.post('/v1/query/{tenant_id}/{esh_version:path}')
-async def query_v1(tenant_id, esh_version, queries=Body(...)):
+async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
     schema_name = get_tenant_schema_name(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
         mapping = get_mapping(tenant_id, schema_name)
@@ -665,6 +666,7 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
         view_ddls = []
         requested_entity_types = []
         for query in queries:
+            # query_object = EshObject.parse_obj(query)
             scopes, pathes = query_mapping.extract_pathes(query)
             scope = scopes[0]
             if not scope in mapping['entities']:

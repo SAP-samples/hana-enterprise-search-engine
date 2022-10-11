@@ -598,7 +598,7 @@ class IESSearchOptions(IToStatement):
 Expression.update_forward_refs()
 class EshObject(BaseModel):
     top: int | None = 10
-    skip: int | None = None
+    skip: int | None
     count: bool | None = None
     searchQueryFilter: Expression | None = None
     odataFilter:  Expression | Comparison | None = None

@@ -54,9 +54,6 @@ def get_tenant_schema_name(tenant_id: str):
     validate_tenant_id(tenant_id)
     return f'{glob.db_tenant_prefix}{tenant_id}'
 
-def esh_search_escape(s):
-    return s.replace("'","''")
-
 def cleanse_output(res_in):
     res_out = []
     for res in res_in:

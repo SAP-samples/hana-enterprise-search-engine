@@ -1,8 +1,7 @@
 """Classes to define a query"""
 from dataclasses import dataclass
 from enum import Enum
-from lib2to3.pytree import Base
-from typing import ForwardRef, List, Literal, Annotated, Union
+from typing import List, Literal, Annotated, Union
 import json
 from pydantic import BaseModel, Field
 
@@ -77,6 +76,40 @@ def serialize_geometry_collection(collection):
         return f"({','.join(list(map(lambda i: serialize_geometry_collection(i), collection)))})"
     except TypeError:
         return f"{' '.join(list(map(lambda i: str(i), collection)))}"
+
+class ComparisonOperator(str, Enum):
+    Search = ":"
+    EqualCaseInsensitive = ":EQ:"
+    NotEqualCaseInsensitive = ":NE:"
+    LessThanCaseInsensitive = ":LT:"
+    LessThanOrEqualCaseInsensitive = ":LE:"
+    GreaterThanCaseInsensitive = ":GT:"
+    GreaterThanOrEqualCaseInsensitive = ":GE:"
+    EqualCaseSensitive = ":EQ(S):"
+    NotEqualCaseSensitive = ":NE(S):"
+    LessThanCaseSensitive = ":LT(S):"
+    LessThanOrEqualCaseSensitive = ":LE(S):"
+    GreaterThanCaseSensitive = ":GT(S):"
+    GreaterThanOrEqualCaseSensitive = ":GE(S):"
+    IsNull = ":IS:NULL"
+    BetweenCaseInsensitive = ":BT:"
+    BetweenCaseSensitive = ":BT(S):"
+    DescendantOf = ":DESCENDANT_OF:"
+    ChildOf = ":CHILD_OF:"
+
+class ODataFilterComparisonOperator(str, Enum):
+  Equal = " eq "
+  NotEqual = " ne "
+  GreaterThan = " gt "
+  LessThan = " lt "
+  GreaterThanOrEqualTo = " ge "
+  LessThanOrEqualTo = " le "
+  Is = " is "
+  In = " in "
+  IsNot = " is not "
+
+# Expression = ForwardRef('Expression')       
+ExpressionValue = Union[Annotated[Union["ODataFilterComparison", "Expression", "Comparison","ScopeComparison", "WithinOperator", "CoveredByOperator", "IntersectsOperator", "Term", "Point", "LineString", "CircularString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection", "NumberValue", "BooleanValue", "StringValue", "Phrase", "Property", "Path", "MultiValues"], Field(discriminator="type")], str]
 
 class SearchOptions(BaseModel):
     # type: Literal['SearchOptions'] = 'SearchOptions'
@@ -311,9 +344,9 @@ class ScopeComparison(BaseModel):
 
 class Comparison(BaseModel):
     type: Literal['Comparison'] = 'Comparison'
-    property: str | Property
-    operator: str
-    value: str | StringValue | None = None
+    property: str | ExpressionValue
+    operator: str | ComparisonOperator
+    value: str | ExpressionValue | None = None
 
     def to_statement(self):
         property_to_statement = getattr(self.property, "to_statement", None)
@@ -337,9 +370,12 @@ class Comparison(BaseModel):
             Constants.value: self.value.to_dict()
         }
 
+class ODataFilterComparison(Comparison):
+    type: Literal['ODataFilterComparison'] = 'ODataFilterComparison'
+    operator: str | ODataFilterComparisonOperator
 
-# Expression = ForwardRef('Expression')       
-ExpressionValue = Union[Annotated[Union["Expression", "Comparison","ScopeComparison", "WithinOperator", "CoveredByOperator", "IntersectsOperator", "Term", "Point", "LineString", "CircularString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection", "NumberValue", "BooleanValue", "StringValue", "Phrase", "Property", "Path", "MultiValues"], Field(discriminator="type")], str]
+
+
 class Expression(BaseModel):
     type: Literal['Expression'] = 'Expression'
     operator: str = ''
@@ -594,7 +630,7 @@ class IESSearchOptions(IToStatement):
         if self.suggestTerm: return_object[Constants.suggestTerm] = self.suggestTerm
         return return_object
 '''
-
+Comparison.update_forward_refs()
 Expression.update_forward_refs()
 class EshObject(BaseModel):
     top: int | None = 10
@@ -1081,4 +1117,14 @@ if __name__ == '__main__':
                 deserialized_object_multigeometry_collection]:
         print(i.to_statement())
     print(deserialized_object_expression.to_statement())
+
+
+
+
+    odataComp = ODataFilterComparison(property='abc',operator=ODataFilterComparisonOperator.Equal,value='something')
+    assert odataComp.to_statement() == 'abc eq something'
+
+    comparison = Comparison(property=Property(property='abc'),operator=ComparisonOperator.EqualCaseSensitive,value='something')
+    assert odataComp.to_statement() == 'abc eq something'
+    
     print(' -----> everything fine <----- ')

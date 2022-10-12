@@ -177,7 +177,7 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
                     await db_bulk.rollback()
                     handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
             with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
-                db.cur.execute(f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}',?)")
+                db.cur.callproc('ESH_CONFIG', (json.dumps(ddl['eshConfig']),None))
                 sql = f'insert into "{tenant_schema_name}"._MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
                 db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(mapping)))
                 db.cur.connection.commit()
@@ -405,8 +405,8 @@ def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
     #logging.info(search_query)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         tenant_schema_name = get_tenant_schema_name(tenant_id)
-        sql = 'CALL ESH_SEARCH(?,?)'
-        _ = db.cur.execute(sql,[json.dumps([f"/{esh_version}/{tenant_schema_name}{esh_query}"])])
+        params = (json.dumps([f"/{esh_version}/{tenant_schema_name}{esh_query}"]), None)
+        db.cur.callproc('esh_search', params)
         for row in db.cur.fetchall():
             if is_metadata:
                 return row[0]
@@ -418,11 +418,8 @@ def perform_bulk_search(esh_version, tenant_id, esh_query):
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         tenant_schema_name = get_tenant_schema_name(tenant_id)
         payload = [f'/{esh_version}/{tenant_schema_name}/{w}' for w in esh_query]
-        bulk_request = esh_search_escape(json.dumps([{'URI': payload}]))
-        sql = f"CALL ESH_SEARCH('{bulk_request}',?)"
-        _ = db.cur.execute(sql)
-        #res = '[' + ','.join([w[0] for w in db.cur.fetchall()]) + ']'
-        #return Response(content=res, media_type="application/json")
+        params = (json.dumps([{'URI': payload}]), None)
+        db.cur.callproc('esh_search', params)
         res = [json.loads(w[0]) for w in db.cur.fetchall()]
         return cleanse_output(res)
 
@@ -552,7 +549,8 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
                 print(esh_config)
                 print(cv.selector)
                 db.cur.execute(view)
-                db.cur.execute(f"CALL ESH_CONFIG('{json.dumps([esh_config])}', ?)")
+                #db.cur.execute(f"CALL ESH_CONFIG('{json.dumps([esh_config])}', ?)")
+                db.cur.callproc('ESH_CONFIG', (json.dumps([esh_config]), None))
 
         # esh_mapped_queries = map_request(mapping, query)
         esh_query = [IESSearchOptions(w).to_statement()[1:] for w in esh_mapped_queries['incoming_requests']]
@@ -662,9 +660,8 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
         for view_ddl in view_ddls:
             db.cur.execute(view_ddl)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
-        bulk_request = [{'Configuration': configurations, 'URI': uris}]
-        sql = f"CALL ESH_SEARCH('{esh_search_escape(json.dumps(bulk_request))}',?)"
-        _ = db.cur.execute(sql)
+        params = (json.dumps([{'Configuration': configurations, 'URI': uris}]), None)
+        db.cur.callproc('esh_search', params)
         #search_results = cleanse_output([json.loads(w[0]) for w in db.cur.fetchall()])
         search_results = [json.loads(w[0]) for w in db.cur.fetchall()]
     with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
@@ -764,12 +761,11 @@ if __name__ == '__main__':
                 json.dump(config, fr, indent = 4)
 
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db_read:
-        r = [ { 'URI': [ '/$apiversion' ] } ]
-        search_query = f'''CALL ESH_SEARCH('{json.dumps(r)}',?)'''
-        _ = db_read.cur.execute(search_query)
+        params = (json.dumps([ { 'URI': [ '/$apiversion' ] } ]), None)
+        db_read.cur.callproc('esh_search', params)
         glob.esh_apiversion = 'v' + str(json.loads(db_read.cur.fetchone()[0])['apiversion'])
         #logging.info('ESH_SEARCH calls will use API-version %s', glob.esh_apiversion)
 
-    #ui_default_tenant = config['UIDefaultTenant']
+    #ui_default_tenant = config['UIDefaultTenant']  
     cs = config['server']
     uvicorn.run('server:app', host = cs['host'], port = cs['port'], log_level = cs['logLevel'], reload = cs['reload'])

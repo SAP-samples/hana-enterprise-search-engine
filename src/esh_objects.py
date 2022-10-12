@@ -109,7 +109,7 @@ class ODataFilterComparisonOperator(str, Enum):
   IsNot = " is not "
 
 # Expression = ForwardRef('Expression')       
-ExpressionValue = Union[Annotated[Union["ODataFilterComparison", "Expression", "Comparison","ScopeComparison", "WithinOperator", "CoveredByOperator", "IntersectsOperator", "Term", "Point", "LineString", "CircularString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection", "NumberValue", "BooleanValue", "StringValue", "Phrase", "Property", "Path", "MultiValues"], Field(discriminator="type")], str]
+ExpressionValue = Union[Annotated[Union["ODataFilterComparison", "Expression", "Comparison","ScopeComparison", "WithinOperator", "CoveredByOperator", "IntersectsOperator", "Term", "Point", "LineString", "CircularString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection", "NumberValue", "BooleanValue", "StringValue", "Phrase", "Property",  "MultiValues"], Field(discriminator="type")], str]
 
 class SearchOptions(BaseModel):
     # type: Literal['SearchOptions'] = 'SearchOptions'
@@ -247,7 +247,7 @@ class OrderBy(BaseModel):
             return self.key
 class Property(BaseModel):
     type: Literal['Property'] = 'Property'
-    property: str
+    property: str | list[str]
     prefixOperator: str | None = None
 
     def to_statement(self):
@@ -508,7 +508,7 @@ class GeometryCollection(BaseModel):
     def to_dict(self):
         return {Constants.type: self.type, Constants.geometries: list(map(lambda geometry: geometry.to_dict(), self.geometries))}
 
-
+'''
 class Path(BaseModel):
     type: Literal['Path'] = 'Path'
     entity: str | None = None
@@ -522,7 +522,7 @@ class Path(BaseModel):
 
     def to_statement(self) -> str:
         return f'Path({self.namespace},{self.entity},{self.alias},{self.attribute})'
-
+'''
 
 class MultiValues(BaseModel):
     type: Literal['MultiValues'] = 'MultiValues'    
@@ -857,15 +857,15 @@ if __name__ == '__main__':
 
     assert escapePhrase('aaa?bbb') == 'aaa\\?bbb'
 
-    person = Path(entity="Person")
-    print(person.to_statement())
+    # person = Path(entity="Person")
+    # print(person.to_statement())
     # json_path_person = {'type': 'Path', 'value':{'type': 'StringValue', 'value': 'mannheim'}}
-    #json_path_person = {'type': 'Path', 'entity': 'Person','attribute':['m1','m2']}
+    # json_path_person = {'type': 'Path', 'entity': 'Person','attribute':['m1','m2']}
     # print(deserialize_objects(json_path_person).to_statement())
     # print(json.dumps(deserialize_objects(json_path_person).to_dict()))
     # assert EshObject.parse_obj(json_path_person).to_statement() == "Path(None,Person,None,['m1', 'm2'])"
-   # multiValuesA = MultiValues(items=[person,deserialize_objects(json_path_person)]})
-    #print(multiValuesA.to_statement())
+    # multiValuesA = MultiValues(items=[person,deserialize_objects(json_path_person)]})
+    # print(multiValuesA.to_statement())
 
     #multi_values = MultiValues({'items': [StringValue({"value":"one"}),StringValue({"value":"two"})]})
     # multi_values_json = json.dumps(multi_values.to_dict())
@@ -951,15 +951,15 @@ if __name__ == '__main__':
     # print(json.dumps(des_obj.to_dict()))
 
 
-    pathDict1 = {'type': 'Path','namespace':'N1','entity':'E1','path_index': 1,'attribute':'a1'}
-    pathDict2 = {'type': 'Path','namespace':'N1','entity':'E1','path_index': 1,'attribute':'a2'}
+    # pathDict1 = {'type': 'Path','namespace':'N1','entity':'E1','path_index': 1,'attribute':'a1'}
+    # pathDict2 = {'type': 'Path','namespace':'N1','entity':'E1','path_index': 1,'attribute':'a2'}
 
-    pathEntity1 = Path.parse_obj(pathDict1)
-    pathEntity2 = Path.parse_obj(pathDict2)
+    # pathEntity1 = Path.parse_obj(pathDict1)
+    # pathEntity2 = Path.parse_obj(pathDict2)
 
 
-    multiValuesPath = MultiValues.parse_obj({'type': 'MultiValues','items': [pathDict1, pathDict2]})
-    print(multiValuesPath.to_statement())
+    # multiValuesPath = MultiValues.parse_obj({'type': 'MultiValues','items': [pathDict1, pathDict2]})
+    # print(multiValuesPath.to_statement())
 
     point_json = '''
         {
@@ -1126,5 +1126,11 @@ if __name__ == '__main__':
 
     comparison = Comparison(property=Property(property='abc'),operator=ComparisonOperator.EqualCaseSensitive,value='something')
     assert odataComp.to_statement() == 'abc eq something'
+
+    property_simple = Property(property="someText")
+    assert property_simple.to_statement() == 'someText'
+
+    property_array = Property(property=["one", "two"])
+    assert property_array.to_statement() == 'one.two'
     
     print(' -----> everything fine <----- ')

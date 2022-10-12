@@ -480,10 +480,11 @@ def post_search(tenant_id, esh_version, body=Body(...)):
 
 # v2 Search
 @app.post('/v2/search/{tenant_id}/{esh_version:path}')
-async def search_v2(tenant_id, esh_version, query=Body(...)):
+async def search_v2(tenant_id, esh_version, queries: List[EshObject]):
     # esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
-    esh_query = [EshObject.parse_obj(w).to_statement()[1:] for w in query]
-    search_object = EshObject.parse_obj(query)
+    #esh_query = [EshObject.parse_obj(w).to_statement()[1:] for w in queries]
+    #search_object = EshObject.parse_obj(queries)
+    esh_query = [w.to_statement()[1:] for w in queries]
     return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
 
 def get_list_of_substrings_term_found(string_subject):

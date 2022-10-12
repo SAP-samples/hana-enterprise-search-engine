@@ -36,7 +36,10 @@ def extract_property_path(obj, scope, pathes):
             case esh.ScopeComparison:
                 scope.extend(obj.values)
             case esh.Comparison:
-                pathes[tuple([obj.property])] = ''
+                if isinstance(obj.property.property, str):
+                    pathes[(obj.property.property,)] = ''
+                else:
+                    pathes[tuple(obj.property.property)] = ''
 
 def map_query(query, scope, pathes):
     if query.orderby:
@@ -71,7 +74,11 @@ def map_property(obj, scope, pathes):
             case esh.ScopeComparison:
                 obj.values = scope
             case esh.Comparison:
-                obj.property = pathes[tuple([obj.property])] = ''
+                if isinstance(obj.property.property, str):
+                    obj.property.property = pathes[(obj.property.property,)]
+                else:
+                    obj.property.property = pathes[tuple(obj.property.property)]
+
 
 
 '''

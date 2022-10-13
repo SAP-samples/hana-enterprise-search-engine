@@ -568,14 +568,22 @@ class Path(BaseModel):
 class MultiValues(BaseModel):
     type: Literal['MultiValues'] = 'MultiValues'    
     items: List[ExpressionValue] = []
-    separator: str | None = " "
+    separator: str | None
+    encloseStart: str | None
+    encloseEnd: str | None
     
     # def to_dict(self) -> dict:
     #   return {Constants.type: self.type, Constants.items: list(map(lambda item: item.to_dict(), self.items)) }
 
     def to_statement(self) -> str:
         # return json.dumps(self.to_dict())
-        return self.separator.join(list(map(lambda i: i.to_statement(), self.items)))
+        separator = " " if self.separator is None else self.separator
+        return_value = separator.join(list(map(lambda item: item if isinstance(item, str) else item.to_statement(), self.items)))
+        if self.encloseStart is not None:
+            return_value = f'{self.encloseStart}{return_value}'
+        if self.encloseEnd is not None:
+            return_value = f'{return_value}{self.encloseEnd}'
+        return return_value
 
 '''
 class IESSearchOptions(IToStatement):
@@ -1218,6 +1226,7 @@ if __name__ == '__main__':
     assert so.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='SCOPE:Person AND lastName:Doe AND firstName:Jane')) and (language eq 'de' and land eq 'Germany')"
 
 
-    
+    mv = MultiValues(items=["one", "two"], separator=",", encloseStart="[", encloseEnd="]")
+    print(mv.to_statement())
     
     print(' -----> everything fine <----- ')

@@ -77,6 +77,17 @@ def serialize_geometry_collection(collection):
     except TypeError:
         return f"{' '.join(list(map(lambda i: str(i), collection)))}"
 
+
+class LogicalOperator(str, Enum):
+  AND = "AND"
+  TIGHT_AND = ""
+  OR = "OR"
+  NOT = "NOT"
+  ROW = "ROW"
+  AUTH = "AUTH"
+  FILTER = "FILTER"
+  FILTERWF = "FILTERWF"
+  BOOST = "BOOST"
 class ComparisonOperator(str, Enum):
     Search = ":"
     EqualCaseInsensitive = ":EQ:"
@@ -97,6 +108,10 @@ class ComparisonOperator(str, Enum):
     DescendantOf = ":DESCENDANT_OF:"
     ChildOf = ":CHILD_OF:"
 
+class ODataFilterLogicalOperator(str, Enum):
+    AND = "and"
+    OR = "or"
+    NOT = "not"
 class ODataFilterComparisonOperator(str, Enum):
   Equal = " eq "
   NotEqual = " ne "
@@ -335,7 +350,7 @@ class ScopeComparison(BaseModel):
 
     def to_statement(self):
         if isinstance(self.values, str):
-            return f'SCOPE:{scope_values}'
+            return f'SCOPE:{self.values}'
         elif len(self.values) == 1:
             return f'SCOPE:{self.values[0]}'
         else:
@@ -372,13 +387,13 @@ class Comparison(BaseModel):
 
 class ODataFilterComparison(Comparison):
     type: Literal['ODataFilterComparison'] = 'ODataFilterComparison'
-    operator: str | ODataFilterComparisonOperator
+    operator: ODataFilterComparisonOperator
 
 
 
 class Expression(BaseModel):
     type: Literal['Expression'] = 'Expression'
-    operator: str = ''
+    operator: LogicalOperator = LogicalOperator.TIGHT_AND
     items: List[ExpressionValue] | None = []
 
     
@@ -407,6 +422,10 @@ class Expression(BaseModel):
             Constants.items: list(map(lambda x: x.to_dict(), self.items)),
             Constants.operator: self.operator
         }
+
+class ODataFilterExpression(Expression):
+    type: Literal['ODataFilterExpression'] = 'ODataFilterExpression'
+    operator: ODataFilterLogicalOperator
 
 # Expression.update_forward_refs()
 
@@ -632,6 +651,8 @@ class IESSearchOptions(IToStatement):
 '''
 Comparison.update_forward_refs()
 Expression.update_forward_refs()
+ODataFilterComparison.update_forward_refs()
+ODataFilterExpression.update_forward_refs()
 class EshObject(BaseModel):
     top: int | None = 10
     skip: int | None
@@ -1132,5 +1153,38 @@ if __name__ == '__main__':
 
     property_array = Property(property=["one", "two"])
     assert property_array.to_statement() == 'one.two'
+
+    so = EshObject(
+        searchQueryFilter=Expression(
+            operator='AND',
+            items= [
+                ScopeComparison(values='Person'),
+                Comparison(
+                    property= Property(property='lastName'),
+                    operator= ComparisonOperator.Search,
+                    value= StringValue(value='Doe')),
+                Comparison(
+                    property= Property(property='firstName'),
+                    operator= ComparisonOperator.Search,
+                    value= StringValue(value='Jane'))
+                ]
+            ),
+        odataFilter=ODataFilterExpression(
+            operator=ODataFilterLogicalOperator.AND,
+            items= [
+                ODataFilterComparison(
+                    property= Property(property='language'),
+                    operator= ODataFilterComparisonOperator.Equal,
+                    value= StringValue(value='de', isSingleQuoted=True)),
+                ODataFilterComparison(
+                    property= Property(property='land'),
+                    operator= ODataFilterComparisonOperator.Equal,
+                    value= StringValue(value='Germany', isSingleQuoted=True))
+                ])
+    )
+    print(so.to_statement())
+
+    assert so.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='SCOPE:Person AND lastName:Doe AND firstName:Jane')) and (language eq 'de' and land eq 'Germany')"
+
     
     print(' -----> everything fine <----- ')

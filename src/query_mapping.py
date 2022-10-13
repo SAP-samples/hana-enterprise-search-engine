@@ -1,5 +1,7 @@
+'''
+External to internal mapping of query
+'''
 import esh_objects as esh
-
 
 def extract_pathes(query: esh.EshObject):
     pathes = {tuple(['id']):''}
@@ -34,7 +36,10 @@ def extract_property_path(obj, scope, pathes):
             case esh.Expression:
                 extract_property_path(obj.items, scope, pathes)
             case esh.ScopeComparison:
-                scope.extend(obj.values)
+                if isinstance(obj.values, list):
+                    scope.extend(obj.values)
+                else:
+                    scope.extend([obj.values])
             case esh.Comparison:
                 if isinstance(obj.property.property, str):
                     pathes[(obj.property.property,)] = ''
@@ -60,7 +65,7 @@ def map_query(query, scope, pathes):
             else:
                 raise NotImplementedError
         query.select = select_int
-    if query.searchQueryFilter:        
+    if query.searchQueryFilter:
         map_property(query.searchQueryFilter.items, scope, pathes)
 
 def map_property(obj, scope, pathes):
@@ -78,22 +83,3 @@ def map_property(obj, scope, pathes):
                     obj.property.property = pathes[(obj.property.property,)]
                 else:
                     obj.property.property = pathes[tuple(obj.property.property)]
-
-
-
-'''
-        if obj.type:
-            if obj.type == 'Path':
-                obj.type = 'Property'
-                obj.property = pathes[tuple(obj.attribute)]
-                return
-            elif obj.type == 'Property':
-                obj.property = pathes[tuple([obj.property])]
-                return
-            elif obj.type == 'ScopeComparison':
-                obj.values = scope
-                return
-        for o in obj.values():
-            map_property(o, scope, pathes)
-
-'''

@@ -127,7 +127,6 @@ class ODataFilterComparisonOperator(str, Enum):
 ExpressionValue = Union[Annotated[Union["ODataFilterComparison", "Expression", "Comparison","ScopeComparison", "WithinOperator", "CoveredByOperator", "IntersectsOperator", "Term", "Point", "LineString", "CircularString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection", "NumberValue", "BooleanValue", "StringValue", "Phrase", "Property",  "MultiValues"], Field(discriminator="type")], str]
 
 class SearchOptions(BaseModel):
-    # type: Literal['SearchOptions'] = 'SearchOptions'
     fuzzinessThreshold: float | int | None
     fuzzySearchOptions:  str | None  
     weight: float | int | None

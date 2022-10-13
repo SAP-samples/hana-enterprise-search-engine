@@ -699,11 +699,13 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
 
     results = []
     for i, search_result in enumerate(search_results):
-        result = []
+        result = {'value': []}
         if 'value' in search_result and search_result['value']:
             requested_entity_type = requested_entity_types[i]
             for res_item in search_result['value']:
-                result.append(full_objects_idx[requested_entity_type][res_item['ID']])
+                result['value'].append(full_objects_idx[requested_entity_type][res_item['ID']])
+        if '@odata.count' in search_result:
+            result['@odata.count'] = search_result['@odata.count']
         results.append(result)
     return results
 

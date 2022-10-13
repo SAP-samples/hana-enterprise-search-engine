@@ -508,7 +508,7 @@ class IntersectsOperator(BaseModel):
 class GeometryBase(BaseModel):
     type: str
     coordinates: list
-    searchOptions: SearchOptions | None = None
+    searchOptions: SearchOptions | None
 
     def to_statement(self):
         try:
@@ -678,21 +678,21 @@ Expression.update_forward_refs()
 ODataFilterComparison.update_forward_refs()
 ODataFilterExpression.update_forward_refs()
 class EshObject(BaseModel):
-    top: int | None = 10
+    top: int | None
     skip: int | None
-    count: bool | None = None
-    searchQueryFilter: Expression | None = None
-    odataFilter:  Expression | Comparison | None = None
-    whyfound: bool | None = None
-    select: list[str] | None = None
-    orderby: List[OrderBy] | None = None
-    estimate: bool | None = None
-    wherefound: bool | None = None
-    facetlimit: int | None = None
-    facets: list[str] | None = None
-    filteredgroupby: bool | None = None
-    suggestTerm: str | None = None
-    resourcePath:str | None = None
+    count: bool | None
+    searchQueryFilter: Expression | None
+    odataFilter:  Expression | Comparison | None
+    whyfound: bool | None
+    select: list[str] | None
+    orderby: List[OrderBy] | None
+    estimate: bool | None
+    wherefound: bool | None
+    facetlimit: int | None
+    facets: list[str] | None
+    filteredgroupby: bool | None
+    suggestTerm: str | None
+    resourcePath:str | None
 
     class Config:
         extra = 'forbid'
@@ -706,8 +706,11 @@ class EshObject(BaseModel):
             esh += f"/GetSuggestion(term='{escaped_suggested_term}')"
         if esh.startswith('/$all'):
             esh += '?'
-            if self.top is not None:
-                esh += f'${Constants.top}={self.top}'
+            if self.top is None:
+                top = 10
+            else:
+                top = self.top
+            esh += f'${Constants.top}={top}'
             if self.skip is not None:
                 esh += f'&${Constants.skip}={self.skip}'
             if self.count is not None:

@@ -77,6 +77,17 @@ def serialize_geometry_collection(collection):
     except TypeError:
         return f"{' '.join(list(map(lambda i: str(i), collection)))}"
 
+
+class LogicalOperator(str, Enum):
+  AND = "AND"
+  TIGHT_AND = ""
+  OR = "OR"
+  NOT = "NOT"
+  ROW = "ROW"
+  AUTH = "AUTH"
+  FILTER = "FILTER"
+  FILTERWF = "FILTERWF"
+  BOOST = "BOOST"
 class ComparisonOperator(str, Enum):
     Search = ":"
     EqualCaseInsensitive = ":EQ:"
@@ -97,6 +108,10 @@ class ComparisonOperator(str, Enum):
     DescendantOf = ":DESCENDANT_OF:"
     ChildOf = ":CHILD_OF:"
 
+class ODataFilterLogicalOperator(str, Enum):
+    AND = "and"
+    OR = "or"
+    NOT = "not"
 class ODataFilterComparisonOperator(str, Enum):
   Equal = " eq "
   NotEqual = " ne "
@@ -113,9 +128,9 @@ ExpressionValue = Union[Annotated[Union["ODataFilterComparison", "Expression", "
 
 class SearchOptions(BaseModel):
     # type: Literal['SearchOptions'] = 'SearchOptions'
-    fuzzinessThreshold: float | int | None = None
-    fuzzySearchOptions:  str | None = None  
-    weight: float | int | None = None
+    fuzzinessThreshold: float | int | None
+    fuzzySearchOptions:  str | None  
+    weight: float | int | None
 
     def to_statement(self) -> str:
         returnStatement = ""
@@ -238,7 +253,7 @@ class OrderBySorting(str, Enum):
 
 class OrderBy(BaseModel):
     key: str
-    order: OrderBySorting | None = None
+    order: OrderBySorting | None
 
     def to_statement(self):
         if self.order:
@@ -248,7 +263,7 @@ class OrderBy(BaseModel):
 class Property(BaseModel):
     type: Literal['Property'] = 'Property'
     property: str | list[str]
-    prefixOperator: str | None = None
+    prefixOperator: str | None
 
     def to_statement(self):
         property_value = self.property if not type(self.property) is list else ".".join(self.property)
@@ -256,13 +271,23 @@ class Property(BaseModel):
             return self.prefixOperator + ' ' + property_value
         else:
             return property_value
+    
+    '''
+    def to_dict(self):
+        # return {Constants.type: self.type, **self.__dict__}
+        return_value = {}
+        for property_name, property_value in self.__dict__.items():
+            if property_value is not None:
+                return_value[property_name] = property_value
+        return return_value
+    '''
 
 class Term(BaseModel):
     type: Literal['Term'] = 'Term'
     term: str 
-    isQuoted: bool | None = False
-    doEshEscaping: bool | None = False
-    searchOptions: SearchOptions | None = None
+    isQuoted: bool | None
+    doEshEscaping: bool | None
+    searchOptions: SearchOptions | None
 
     '''
     def from_dict(self, item):
@@ -280,11 +305,20 @@ class Term(BaseModel):
             final_term = f'"{self.term}"' if self.isQuoted else self.term
         return addFuzzySearchOptions(final_term, self.searchOptions)
 
+    '''
+    def to_dict(self):
+        # return {Constants.type: self.type, **self.__dict__}
+        return_value = {}
+        for property_name, property_value in self.__dict__.items():
+            if property_value is not None:
+                return_value[property_name] = property_value
+        return return_value
+    '''
 class Phrase(BaseModel):
     type: Literal['Phrase'] = 'Phrase'
     phrase: str
-    searchOptions: SearchOptions | None = None
-    doEshEscaping: bool = True
+    searchOptions: SearchOptions | None
+    doEshEscaping: bool | None = True
 
     def to_statement(self):
         if self.doEshEscaping:
@@ -297,12 +331,12 @@ class Phrase(BaseModel):
 class StringValue(BaseModel):
     type: Literal['StringValue'] = 'StringValue'
     value: str
-    isQuoted: bool = False
-    isSingleQuoted: bool = False
-    withoutEnclosing: bool = False
+    isQuoted: bool | None
+    isSingleQuoted: bool | None
+    withoutEnclosing: bool | None
 
-    def to_dict(self):
-        return {Constants.type: self.type, **self.__dict__}
+    #def to_dict(self):
+    #    return {Constants.type: self.type, **self.__dict__}
 
     def to_statement(self):
         #if self.withoutEnclosing:
@@ -335,7 +369,7 @@ class ScopeComparison(BaseModel):
 
     def to_statement(self):
         if isinstance(self.values, str):
-            return f'SCOPE:{scope_values}'
+            return f'SCOPE:{self.values}'
         elif len(self.values) == 1:
             return f'SCOPE:{self.values[0]}'
         else:
@@ -346,7 +380,7 @@ class Comparison(BaseModel):
     type: Literal['Comparison'] = 'Comparison'
     property: str | ExpressionValue
     operator: str | ComparisonOperator
-    value: str | ExpressionValue | None = None
+    value: str | ExpressionValue | None
 
     def to_statement(self):
         property_to_statement = getattr(self.property, "to_statement", None)
@@ -361,7 +395,7 @@ class Comparison(BaseModel):
             value = self.value
         return f'{property}{self.operator}{value}'
         
-
+    '''
     def to_dict(self):
         return {
             Constants.type: self.type,
@@ -369,16 +403,17 @@ class Comparison(BaseModel):
             Constants.operator: self.operator,
             Constants.value: self.value.to_dict()
         }
+    '''
 
 class ODataFilterComparison(Comparison):
     type: Literal['ODataFilterComparison'] = 'ODataFilterComparison'
-    operator: str | ODataFilterComparisonOperator
+    operator: ODataFilterComparisonOperator
 
 
 
 class Expression(BaseModel):
     type: Literal['Expression'] = 'Expression'
-    operator: str = ''
+    operator: LogicalOperator = LogicalOperator.TIGHT_AND
     items: List[ExpressionValue] | None = []
 
     
@@ -401,12 +436,18 @@ class Expression(BaseModel):
             return f"({connect_operator.join(statements)})"
         return connect_operator.join(statements)
 
+    '''
     def to_dict(self):
         return {
             Constants.type: self.type,
             Constants.items: list(map(lambda x: x.to_dict(), self.items)),
             Constants.operator: self.operator
         }
+    '''
+
+class ODataFilterExpression(Expression):
+    type: Literal['ODataFilterExpression'] = 'ODataFilterExpression'
+    operator: ODataFilterLogicalOperator
 
 # Expression.update_forward_refs()
 
@@ -435,7 +476,7 @@ class SpatialReferenceSystemsOperatorBase(IToStatement):
 '''
 class WithinOperator(BaseModel):
     type: Literal['WithinOperator'] = 'WithinOperator'
-    id: int | None = None
+    id: int | None
 
     def to_statement(self) -> str:
         if self.id:
@@ -446,7 +487,7 @@ class WithinOperator(BaseModel):
 
 class CoveredByOperator(BaseModel):
     type: Literal['CoveredByOperator'] = 'CoveredByOperator'
-    id: int | None = None
+    id: int | None
 
     def to_statement(self) -> str:
         if self.id:
@@ -456,7 +497,7 @@ class CoveredByOperator(BaseModel):
 
 class IntersectsOperator(BaseModel):
     type: Literal['IntersectsOperator'] = 'IntersectsOperator'
-    id: int | None = None
+    id: int | None
 
     def to_statement(self) -> str:
         if self.id:
@@ -467,7 +508,7 @@ class IntersectsOperator(BaseModel):
 class GeometryBase(BaseModel):
     type: str
     coordinates: list
-    searchOptions: SearchOptions | None = None
+    searchOptions: SearchOptions | None
 
     def to_statement(self):
         try:
@@ -505,8 +546,8 @@ class GeometryCollection(BaseModel):
     def to_statement(self):
         return f"{self.__class__.__name__.upper()}({','.join(list(map(lambda i: i.to_statement(), self.geometries)))})" 
 
-    def to_dict(self):
-        return {Constants.type: self.type, Constants.geometries: list(map(lambda geometry: geometry.to_dict(), self.geometries))}
+    # def to_dict(self):
+    #    return {Constants.type: self.type, Constants.geometries: list(map(lambda geometry: geometry.to_dict(), self.geometries))}
 
 '''
 class Path(BaseModel):
@@ -527,12 +568,22 @@ class Path(BaseModel):
 class MultiValues(BaseModel):
     type: Literal['MultiValues'] = 'MultiValues'    
     items: List[ExpressionValue] = []
+    separator: str | None
+    encloseStart: str | None
+    encloseEnd: str | None
     
-    def to_dict(self) -> dict:
-       return {Constants.type: self.type, Constants.items: list(map(lambda item: item.to_dict(), self.items)) }
+    # def to_dict(self) -> dict:
+    #   return {Constants.type: self.type, Constants.items: list(map(lambda item: item.to_dict(), self.items)) }
 
     def to_statement(self) -> str:
-        return json.dumps(self.to_dict())
+        # return json.dumps(self.to_dict())
+        separator = " " if self.separator is None else self.separator
+        return_value = separator.join(list(map(lambda item: item if isinstance(item, str) else item.to_statement(), self.items)))
+        if self.encloseStart is not None:
+            return_value = f'{self.encloseStart}{return_value}'
+        if self.encloseEnd is not None:
+            return_value = f'{return_value}{self.encloseEnd}'
+        return return_value
 
 '''
 class IESSearchOptions(IToStatement):
@@ -632,22 +683,24 @@ class IESSearchOptions(IToStatement):
 '''
 Comparison.update_forward_refs()
 Expression.update_forward_refs()
+ODataFilterComparison.update_forward_refs()
+ODataFilterExpression.update_forward_refs()
 class EshObject(BaseModel):
-    top: int | None = 10
+    top: int | None
     skip: int | None
-    count: bool | None = None
-    searchQueryFilter: Expression | None = None
-    odataFilter:  Expression | Comparison | None = None
-    whyfound: bool | None = None
-    select: list[str] | None = None
-    orderby: List[OrderBy] | None = None
-    estimate: bool | None = None
-    wherefound: bool | None = None
-    facetlimit: int | None = None
-    facets: list[str] | None = None
-    filteredgroupby: bool | None = None
-    suggestTerm: str | None = None
-    resourcePath:str | None = None
+    count: bool | None
+    searchQueryFilter: Expression | None
+    odataFilter:  Expression | Comparison | None
+    whyfound: bool | None
+    select: list[str] | None
+    orderby: List[OrderBy] | None
+    estimate: bool | None
+    wherefound: bool | None
+    facetlimit: int | None
+    facets: list[str] | None
+    filteredgroupby: bool | None
+    suggestTerm: str | None
+    resourcePath:str | None
 
     class Config:
         extra = 'forbid'
@@ -661,8 +714,11 @@ class EshObject(BaseModel):
             esh += f"/GetSuggestion(term='{escaped_suggested_term}')"
         if esh.startswith('/$all'):
             esh += '?'
-            if self.top is not None:
-                esh += f'${Constants.top}={self.top}'
+            if self.top is None:
+                top = 10
+            else:
+                top = self.top
+            esh += f'${Constants.top}={top}'
             if self.skip is not None:
                 esh += f'&${Constants.skip}={self.skip}'
             if self.count is not None:
@@ -803,6 +859,8 @@ if __name__ == '__main__':
         searchOptions=SearchOptions(fuzzinessThreshold=0.5,fuzzySearchOptions='search=typeahead',weight=0.9))
     print(term.to_statement())
     assert term.to_statement() == 'mannh"eim~0.5[search=typeahead]^0.9'
+    termHD = Term(term='Heidelberg')
+    print(json.dumps(termHD.dict()))
 
 
     phrase_definition = {'type': 'Phrase','phrase': 'heidelberg', \
@@ -1132,5 +1190,43 @@ if __name__ == '__main__':
 
     property_array = Property(property=["one", "two"])
     assert property_array.to_statement() == 'one.two'
+    
+
+    so = EshObject(
+        searchQueryFilter=Expression(
+            operator='AND',
+            items= [
+                ScopeComparison(values='Person'),
+                Comparison(
+                    property= Property(property='lastName'),
+                    operator= ComparisonOperator.Search,
+                    value= StringValue(value='Doe')),
+                Comparison(
+                    property= Property(property='firstName'),
+                    operator= ComparisonOperator.Search,
+                    value= StringValue(value='Jane'))
+                ]
+            ),
+        odataFilter=ODataFilterExpression(
+            operator=ODataFilterLogicalOperator.AND,
+            items= [
+                ODataFilterComparison(
+                    property= Property(property='language'),
+                    operator= ODataFilterComparisonOperator.Equal,
+                    value= StringValue(value='de', isSingleQuoted=True)),
+                ODataFilterComparison(
+                    property= Property(property='land'),
+                    operator= ODataFilterComparisonOperator.Equal,
+                    value= StringValue(value='Germany', isSingleQuoted=True))
+                ])
+    )
+    print(so.to_statement())
+    print(json.dumps(so.dict(exclude_none=True), indent = 4))
+
+    assert so.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='SCOPE:Person AND lastName:Doe AND firstName:Jane')) and (language eq 'de' and land eq 'Germany')"
+
+
+    mv = MultiValues(items=["one", "two"], separator=",", encloseStart="[", encloseEnd="]")
+    print(mv.to_statement())
     
     print(' -----> everything fine <----- ')

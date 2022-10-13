@@ -318,7 +318,7 @@ class Phrase(BaseModel):
     type: Literal['Phrase'] = 'Phrase'
     phrase: str
     searchOptions: SearchOptions | None
-    doEshEscaping: bool | None = True
+    doEshEscaping: bool | None
 
     def to_statement(self):
         if self.doEshEscaping:
@@ -326,7 +326,17 @@ class Phrase(BaseModel):
         else:
             final_phrase = self.phrase
         return addFuzzySearchOptions('\"' + final_phrase + '\"', self.searchOptions)
-
+    '''
+    def dict(self, exclude_none: bool = True):
+        return_value = {}
+        for property_name, property_value in self.__dict__.items():
+            if property_value is not None:
+                if not property_name == 'doEshEscaping':
+                    return_value[property_name] = property_value
+                elif property_value == False:
+                    return_value[property_name] = property_value
+        return return_value
+    '''
 
 class StringValue(BaseModel):
     type: Literal['StringValue'] = 'StringValue'
@@ -334,6 +344,7 @@ class StringValue(BaseModel):
     isQuoted: bool | None
     isSingleQuoted: bool | None
     withoutEnclosing: bool | None
+    searchOptions: SearchOptions | None
 
     #def to_dict(self):
     #    return {Constants.type: self.type, **self.__dict__}
@@ -341,11 +352,14 @@ class StringValue(BaseModel):
     def to_statement(self):
         #if self.withoutEnclosing:
         #    return String(Number.parseFloat(this.value));
+        return_value = None
         if self.isQuoted:
             return f'"{escapeDoubleQuoteAndBackslash(self.value)}"'
         if self.isSingleQuoted:
             return f"'{escapeSingleQuote(self.value)}'"
-        return self.value
+        if return_value is None:
+            return_value = self.value
+        return addFuzzySearchOptions(return_value, self.searchOptions)
 
 
 
@@ -413,8 +427,8 @@ class ODataFilterComparison(Comparison):
 
 class Expression(BaseModel):
     type: Literal['Expression'] = 'Expression'
-    operator: LogicalOperator = LogicalOperator.TIGHT_AND
-    items: List[ExpressionValue] | None = []
+    operator: LogicalOperator | None
+    items: List[ExpressionValue] | None
 
     
     def get_expression_statement(self, expression_item):
@@ -427,8 +441,11 @@ class Expression(BaseModel):
                 return f'{expression_item}'
 
     def to_statement(self):
-        if self.operator != '':
-            connect_operator = f' {self.operator} '
+        if self.items is None:
+            raise Exception("Expression: Missing mandatory parameter 'items'")
+        operator = self.operator if self.operator is not None else LogicalOperator.TIGHT_AND
+        if operator != '':
+            connect_operator = f' {operator} '
         else:
             connect_operator = ' '
         statements = list(map(lambda item: self.get_expression_statement(item), self.items))
@@ -778,6 +795,7 @@ if __name__ == '__main__':
 
     exp2 = Expression()
     exp2.operator = 'AND'
+    exp2.items = []
     exp2.items.append(StringValue(value='mannheim'))
     exp2.items.append(StringValue(value='heidelberg'))
     assert exp2.to_statement() == '(mannheim AND heidelberg)'

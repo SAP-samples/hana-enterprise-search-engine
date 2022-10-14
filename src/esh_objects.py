@@ -1,4 +1,5 @@
 """Classes to define a query"""
+from ast import operator
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Literal, Annotated, Union
@@ -478,7 +479,10 @@ class UnaryExpression(BaseModel):
             raise Exception("UnaryExpression: Missing mandatory parameter 'item'")
         if self.operator is None:
             raise Exception("UnaryExpression: Missing mandatory parameter 'operator'")
-        return f"{self.operator}({self.item.to_statement()})"
+        item_statement = self.item.to_statement()
+        if item_statement.startswith("(") and item_statement.endswith(")"):
+            return f"{self.operator}{item_statement}"
+        return f"{self.operator}({item_statement})"
 
 class ODataFilterExpression(Expression):
     type: Literal['ODataFilterExpression'] = 'ODataFilterExpression'
@@ -1266,7 +1270,22 @@ if __name__ == '__main__':
     mv = MultiValues(items=["one", "two"], separator=",", encloseStart="[", encloseEnd="]")
     print(mv.to_statement())
 
-    unary_expression = UnaryExpression(operator=UnaryOperator.ROW, item=StringValue(value="Mannheim"))
+    unary_expression = UnaryExpression(
+        operator=UnaryOperator.ROW, 
+        item=Expression(
+            operator=LogicalOperator.AND,
+            items=[
+                Comparison(
+                    property="city",
+                    operator=ComparisonOperator.EqualCaseInsensitive,
+                    value=StringValue(value="Mannheim")),
+                Comparison(
+                    property="company",
+                    operator=ComparisonOperator.EqualCaseInsensitive,
+                    value=StringValue(value="SAP")),  
+            ]
+            )
+        )
     print(unary_expression.to_statement())
     
     print(' -----> everything fine <----- ')

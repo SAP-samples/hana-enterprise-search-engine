@@ -120,6 +120,62 @@ class TestStringMethods(unittest.TestCase):
         print(so.to_statement())
         self.assertEqual(so.to_statement(),"/$all?$top=1&$count=true&$apply=filter(Search.search(query='SCOPE:Person AND firstName:Jane~0.7'))")
 
+    def test_row(self):
+        so = esh.EshObject(
+            count=True,
+            top=10,
+            searchQueryFilter=esh.Expression(
+                operator=esh.LogicalOperator.AND,
+                items= [
+                    esh.ScopeComparison(values='Person'),
+                    esh.Expression(
+                        operator=esh.LogicalOperator.OR,
+                        items=[
+                            esh.Expression(
+                                operator=esh.LogicalOperator.ROW,
+                                items=[
+                                    esh.Expression(
+                                        operator=esh.LogicalOperator.AND,
+                                        items= [
+                                            esh.Comparison(
+                                                property= esh.Property(property='lastName'),
+                                                operator= esh.ComparisonOperator.Search,
+                                                value= esh.StringValue(value='Doe')),
+                                            esh.Comparison(
+                                                property= esh.Property(property='firstName'),
+                                                operator= esh.ComparisonOperator.Search,
+                                                value= esh.StringValue(value='John'))
+                                                ]
+                                    )
+                                ]
+                            ),
+                            esh.Expression(
+                                operator=esh.LogicalOperator.ROW,
+                                items=[
+                                    esh.Expression(
+                                        operator=esh.LogicalOperator.AND,
+                                        items= [
+                                            esh.Comparison(
+                                                property= esh.Property(property='lastName'),
+                                                operator= esh.ComparisonOperator.Search,
+                                                value= esh.StringValue(value='Doe')),
+                                            esh.Comparison(
+                                                property= esh.Property(property='firstName'),
+                                                operator= esh.ComparisonOperator.Search,
+                                                value= esh.StringValue(value='Jane'))
+                                                ]
+                                    )
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
+        )
+        
+        print(f'ESH query statement: {so.to_statement()}')
+        
+
     ''' 
     def test_isupper(self):
         self.assertTrue('FOO'.isupper())

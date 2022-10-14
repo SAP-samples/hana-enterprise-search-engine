@@ -83,11 +83,7 @@ class LogicalOperator(str, Enum):
   TIGHT_AND = ""
   OR = "OR"
   NOT = "NOT"
-  ROW = "ROW"
-  AUTH = "AUTH"
-  FILTER = "FILTER"
-  FILTERWF = "FILTERWF"
-  BOOST = "BOOST"
+
 class ComparisonOperator(str, Enum):
     Search = ":"
     EqualCaseInsensitive = ":EQ:"
@@ -124,7 +120,12 @@ class ODataFilterComparisonOperator(str, Enum):
   IsNot = " is not "
 
 # Expression = ForwardRef('Expression')       
-ExpressionValue = Union[Annotated[Union["ODataFilterComparison", "Expression", "Comparison","ScopeComparison", "WithinOperator", "CoveredByOperator", "IntersectsOperator", "Term", "Point", "LineString", "CircularString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection", "NumberValue", "BooleanValue", "StringValue", "Phrase", "Property",  "MultiValues"], Field(discriminator="type")], str]
+ExpressionValue = Union[Annotated[Union["UnaryExpression", "ODataFilterComparison", \
+    "Expression", "Comparison","ScopeComparison", "WithinOperator", "CoveredByOperator", \
+    "IntersectsOperator", "Term", "Point", "LineString", "CircularString", "Polygon", \
+    "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection", "NumberValue", \
+    "BooleanValue", "StringValue", "Phrase", "Property",  "MultiValues"], \
+    Field(discriminator="type")], str]
 
 class SearchOptions(BaseModel):
     # type: Literal['SearchOptions'] = 'SearchOptions'
@@ -461,6 +462,24 @@ class Expression(BaseModel):
             Constants.operator: self.operator
         }
     '''
+class UnaryOperator(str, Enum):
+  NOT = "NOT"
+  ROW = "ROW"
+  AUTH = "AUTH"
+  FILTER = "FILTER"
+  FILTERWF = "FILTERWF"
+  BOOST = "BOOST"
+class UnaryExpression(BaseModel):
+    type: Literal['UnaryExpression'] = 'UnaryExpression'
+    operator: UnaryOperator
+    item: ExpressionValue
+
+    def to_statement(self):
+        if self.item is None:
+            raise Exception("UnaryExpression: Missing mandatory parameter 'item'")
+        if self.operator is None:
+            raise Exception("UnaryExpression: Missing mandatory parameter 'operator'")
+        return f"{self.operator}({self.item.to_statement()})"
 
 class ODataFilterExpression(Expression):
     type: Literal['ODataFilterExpression'] = 'ODataFilterExpression'
@@ -702,6 +721,7 @@ Comparison.update_forward_refs()
 Expression.update_forward_refs()
 ODataFilterComparison.update_forward_refs()
 ODataFilterExpression.update_forward_refs()
+UnaryExpression.update_forward_refs()
 class EshObject(BaseModel):
     top: int | None
     skip: int | None
@@ -1246,5 +1266,8 @@ if __name__ == '__main__':
 
     mv = MultiValues(items=["one", "two"], separator=",", encloseStart="[", encloseEnd="]")
     print(mv.to_statement())
+
+    unary_expression = UnaryExpression(operator=UnaryOperator.ROW, item=StringValue(value="Mannheim"))
+    print(unary_expression.to_statement())
     
     print(' -----> everything fine <----- ')

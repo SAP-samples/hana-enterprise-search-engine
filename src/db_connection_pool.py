@@ -96,8 +96,6 @@ class DBBulkProcessing():
     def __init__(self, connection_pool: ConnectionPool, block_size: int) -> None:
         self.connection_pool = connection_pool
         self.block_size = block_size
-        if block_size == 0:
-            block_size = 1
         self.connections = [connection_pool.get_connection() for w in range(block_size)]
     def __enter__(self):
         return self
@@ -110,26 +108,26 @@ class DBBulkProcessing():
             if start >= len(operations):
                 return
     async def execute(self, operations:List[str]):
-        if self.block_size == 0:
+        if self.block_size == 1:
             for operation in operations:
                 self.connections[0].cur.execute(operation)
         else:
             for block in DBBulkProcessing.blockify(operations, self.block_size):
                 await gather(*[self.connections[i].cur.execute_async(sql) for i, sql in enumerate(block)])
     async def executemany(self, operations:List[Tuple[str, dict]]):
-        if self.block_size == 0:
+        if self.block_size == 1:
             for operation in operations:
                 self.connections[0].cur.executemany(operation[0], operation[1])
         else:
             for block in DBBulkProcessing.blockify(operations, self.block_size):
                 await gather(*[self.connections[i].cur.executemany_async(operation) for i, operation in enumerate(block)])
     async def commit(self):
-        if self.block_size == 0:
+        if self.block_size == 1:
             self.connections[0].con.commit()
         else:
             await gather(*[c.con.commit_async() for c in self.connections])
     async def rollback(self):
-        if self.block_size == 0:
+        if self.block_size == 1:
             self.connections[0].con.commit()
         else:
             await gather(*[c.con.rollback_async() for c in self.connections])

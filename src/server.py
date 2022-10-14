@@ -2,7 +2,6 @@
 Provides HTTP(S) interfaces
 '''
 from datetime import datetime
-from tkinter import constants
 from typing import List
 from fastapi import FastAPI, Request, Body, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
@@ -55,9 +54,6 @@ def validate_tenant_id(tenant_id: str):
 def get_tenant_schema_name(tenant_id: str):
     validate_tenant_id(tenant_id)
     return f'{glob.db_tenant_prefix}{tenant_id}'
-
-def esh_search_escape(s):
-    return s.replace("'","''")
 
 def cleanse_output(res_in):
     res_out = []
@@ -148,9 +144,7 @@ def get_tenants_sync():
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
 
 @app.post('/v1/deploy/{tenant_id}')
-async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False, threads: int = 0):
-    conf = ''
-    t1 = time.time()
+async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
     """ Deploy model """
     errors = consistency_check.check_cson(cson)
     if errors:
@@ -171,27 +165,19 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False, t
         except convert.ModelException as e:
             handle_error(str(e), 400)
         try:
-            t2 = time.time()
-            #block_size = CONCURRENT_CONNECTIONS if len(ddl['tables']) > CONCURRENT_CONNECTIONS else len(ddl['tables'])
-            with DBBulkProcessing(glob.connection_pools[DBUserType.SCHEMA_MODIFY], threads) as db_bulk:
+            block_size = CONCURRENT_CONNECTIONS if len(ddl['tables']) > CONCURRENT_CONNECTIONS else len(ddl['tables'])
+            with DBBulkProcessing(glob.connection_pools[DBUserType.SCHEMA_MODIFY], block_size) as db_bulk:
                 try:
-                    t3 = time.time()
                     await db_bulk.execute(ddl['tables'])
-                    t4 = time.time()
                     await db_bulk.execute(ddl['views'])
-                    t5 = time.time()
                     await db_bulk.commit()
-                    t6 = time.time()
                 except HDBException as e:
                     await db_bulk.rollback()
                     handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
             with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
-                conf = json.dumps(ddl['eshConfig'])
-                db.cur.execute(f"CALL ESH_CONFIG('{conf}',?)")
-                t7 = time.time()
+                db.cur.callproc('ESH_CONFIG', (json.dumps(ddl['eshConfig']),None))
                 sql = f'insert into "{tenant_schema_name}"._MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
                 db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(mapping)))
-                t8 = time.time()
                 db.cur.connection.commit()
                 glob.mapping[tenant_schema_name] = mapping
         except HDBException as e:
@@ -200,8 +186,6 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False, t
                 handle_error(f"Tennant id '{tenant_id}' does not exist", 404)
             else:
                 handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
-        te = time.time()
-        print(f'{threads}, {te-t1}, {t2-t1}, {t3-t2}, {t4-t3}, {t5-t4}, {t6-t5}, {t7-t6}, {t8-t7}, {te-t8}, {len(conf)}')
         return {'detail': 'Model successfully deployed'}
 
 
@@ -419,8 +403,8 @@ def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
     #logging.info(search_query)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         tenant_schema_name = get_tenant_schema_name(tenant_id)
-        sql = 'CALL ESH_SEARCH(?,?)'
-        _ = db.cur.execute(sql,[json.dumps([f"/{esh_version}/{tenant_schema_name}{esh_query}"])])
+        params = (json.dumps([f"/{esh_version}/{tenant_schema_name}{esh_query}"]), None)
+        db.cur.callproc('esh_search', params)
         for row in db.cur.fetchall():
             if is_metadata:
                 return row[0]
@@ -432,11 +416,8 @@ def perform_bulk_search(esh_version, tenant_id, esh_query):
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         tenant_schema_name = get_tenant_schema_name(tenant_id)
         payload = [f'/{esh_version}/{tenant_schema_name}/{w}' for w in esh_query]
-        bulk_request = esh_search_escape(json.dumps([{'URI': payload}]))
-        sql = f"CALL ESH_SEARCH('{bulk_request}',?)"
-        _ = db.cur.execute(sql)
-        #res = '[' + ','.join([w[0] for w in db.cur.fetchall()]) + ']'
-        #return Response(content=res, media_type="application/json")
+        params = (json.dumps([{'URI': payload}]), None)
+        db.cur.callproc('esh_search', params)
         res = [json.loads(w[0]) for w in db.cur.fetchall()]
         return cleanse_output(res)
 
@@ -499,10 +480,11 @@ def post_search(tenant_id, esh_version, body=Body(...)):
 
 # v2 Search
 @app.post('/v2/search/{tenant_id}/{esh_version:path}')
-async def search_v2(tenant_id, esh_version, query=Body(...)):
+async def search_v2(tenant_id, esh_version, queries: List[EshObject]):
     # esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
-    esh_query = [EshObject.parse_obj(w).to_statement()[1:] for w in query]
-    search_object = EshObject.parse_obj(query)
+    #esh_query = [EshObject.parse_obj(w).to_statement()[1:] for w in queries]
+    #search_object = EshObject.parse_obj(queries)
+    esh_query = [w.to_statement()[1:] for w in queries]
     return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
 
 def get_list_of_substrings_term_found(string_subject):
@@ -574,7 +556,8 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
                 print(esh_config)
                 print(cv.selector)
                 db.cur.execute(view)
-                db.cur.execute(f"CALL ESH_CONFIG('{json.dumps([esh_config])}', ?)")
+                #db.cur.execute(f"CALL ESH_CONFIG('{json.dumps([esh_config])}', ?)")
+                db.cur.callproc('ESH_CONFIG', (json.dumps([esh_config]), None))
 
         # esh_mapped_queries = map_request(mapping, query)
         for w in esh_mapped_queries['incoming_requests']:
@@ -668,6 +651,8 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
         for query in queries:
             # query_object = EshObject.parse_obj(query)
             scopes, pathes = query_mapping.extract_pathes(query)
+            if len(scopes) != 1:
+                handle_error('Exactly one scope is needed', 400)
             scope = scopes[0]
             if not scope in mapping['entities']:
                 handle_error(f'unknown entity {scope}', 400)
@@ -688,9 +673,8 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
         for view_ddl in view_ddls:
             db.cur.execute(view_ddl)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
-        bulk_request = [{'Configuration': configurations, 'URI': uris}]
-        sql = f"CALL ESH_SEARCH('{esh_search_escape(json.dumps(bulk_request))}',?)"
-        _ = db.cur.execute(sql)
+        params = (json.dumps([{'Configuration': configurations, 'URI': uris}]), None)
+        db.cur.callproc('esh_search', params)
         #search_results = cleanse_output([json.loads(w[0]) for w in db.cur.fetchall()])
         search_results = [json.loads(w[0]) for w in db.cur.fetchall()]
     with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
@@ -715,11 +699,13 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
 
     results = []
     for i, search_result in enumerate(search_results):
-        result = []
+        result = {'value': []}
         if 'value' in search_result and search_result['value']:
             requested_entity_type = requested_entity_types[i]
             for res_item in search_result['value']:
-                result.append(full_objects_idx[requested_entity_type][res_item['ID']])
+                result['value'].append(full_objects_idx[requested_entity_type][res_item['ID']])
+        if '@odata.count' in search_result:
+            result['@odata.count'] = search_result['@odata.count']
         results.append(result)
     return results
 
@@ -790,12 +776,11 @@ if __name__ == '__main__':
                 json.dump(config, fr, indent = 4)
 
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db_read:
-        r = [ { 'URI': [ '/$apiversion' ] } ]
-        search_query = f'''CALL ESH_SEARCH('{json.dumps(r)}',?)'''
-        _ = db_read.cur.execute(search_query)
+        params = (json.dumps([ { 'URI': [ '/$apiversion' ] } ]), None)
+        db_read.cur.callproc('esh_search', params)
         glob.esh_apiversion = 'v' + str(json.loads(db_read.cur.fetchone()[0])['apiversion'])
         #logging.info('ESH_SEARCH calls will use API-version %s', glob.esh_apiversion)
 
-    #ui_default_tenant = config['UIDefaultTenant']
+    #ui_default_tenant = config['UIDefaultTenant']  
     cs = config['server']
     uvicorn.run('server:app', host = cs['host'], port = cs['port'], log_level = cs['logLevel'], reload = cs['reload'])

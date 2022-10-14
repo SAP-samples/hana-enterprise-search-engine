@@ -128,7 +128,6 @@ ExpressionValue = Union[Annotated[Union["UnaryExpression", "ODataFilterCompariso
     Field(discriminator="type")], str]
 
 class SearchOptions(BaseModel):
-    # type: Literal['SearchOptions'] = 'SearchOptions'
     fuzzinessThreshold: float | int | None
     fuzzySearchOptions:  str | None  
     weight: float | int | None

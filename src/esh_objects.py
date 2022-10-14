@@ -481,8 +481,8 @@ class UnaryExpression(BaseModel):
             raise Exception("UnaryExpression: Missing mandatory parameter 'operator'")
         item_statement = self.item.to_statement()
         if item_statement.startswith("(") and item_statement.endswith(")"):
-            return f"{self.operator}{item_statement}"
-        return f"{self.operator}({item_statement})"
+            return f"{self.operator}:{item_statement}"
+        return f"{self.operator}:({item_statement})"
 
 class ODataFilterExpression(Expression):
     type: Literal['ODataFilterExpression'] = 'ODataFilterExpression'
@@ -1286,6 +1286,6 @@ if __name__ == '__main__':
             ]
             )
         )
-    print(unary_expression.to_statement())
+    assert unary_expression.to_statement() == "ROW:(city:EQ:Mannheim AND company:EQ:SAP)"
     
     print(' -----> everything fine <----- ')

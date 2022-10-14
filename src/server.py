@@ -1,34 +1,38 @@
 '''
 Provides HTTP(S) interfaces
 '''
-from datetime import datetime
-from fastapi import FastAPI, Request, Body, HTTPException, Response
-from fastapi.staticfiles import StaticFiles
-from starlette.responses import RedirectResponse
+import base64
 import json
+import logging
+import sys
 import uuid
-from column_view import ColumnView
-import consistency_check
-from db_connection_pool import DBConnection, ConnectionPool, Credentials, SharedConnection, DBBulkProcessing
-import convert
-import sqlcreate
-from esh_objects import IESSearchOptions
+#from asyncio import gather, get_event_loop
+from datetime import datetime
+from typing import List
+
 import httpx
 import uvicorn
+from fastapi import Body, FastAPI, HTTPException, Request, Response
+from fastapi.staticfiles import StaticFiles
+#from hdbcli.dbapi import DataError
 from hdbcli.dbapi import Error as HDBException
-from hdbcli.dbapi import DataError, IntegrityError, Error
-import logging
-from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH, TYPES_B64_ENCODE, TYPES_SPATIAL, CONCURRENT_CONNECTIONS
-from config import get_user_name
-import sys
-import server_globals as glob
-import base64
-from request_mapping import map_request
-#import esh_objects
+#from hdbcli.dbapi import IntegrityError
+from starlette.responses import RedirectResponse
+
+import consistency_check
+import convert
 import query_mapping
-import time
-from asyncio import gather, get_event_loop
-from functools import partial
+import server_globals as glob
+import sqlcreate
+from column_view import ColumnView
+from config import get_user_name
+from constants import (CONCURRENT_CONNECTIONS, TENANT_ID_MAX_LENGTH,
+                       TENANT_PREFIX, TYPES_B64_ENCODE, TYPES_SPATIAL,
+                       DBUserType)
+from db_connection_pool import (ConnectionPool, Credentials, DBBulkProcessing,
+                                DBConnection)
+from esh_objects import EshObject
+from request_mapping import map_request
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
@@ -53,9 +57,6 @@ def validate_tenant_id(tenant_id: str):
 def get_tenant_schema_name(tenant_id: str):
     validate_tenant_id(tenant_id)
     return f'{glob.db_tenant_prefix}{tenant_id}'
-
-def esh_search_escape(s):
-    return s.replace("'","''")
 
 def cleanse_output(res_in):
     res_out = []
@@ -239,7 +240,7 @@ async def post_data(tenant_id, objects=Body(...)):
         try:
             await db_bulk.executemany(operations)
             await db_bulk.commit()
-        except Error as e:
+        except HDBException as e:
             await db_bulk.rollback()
             handle_error(f'Data Error: {e.errortext}', 400)
     response = {}
@@ -461,6 +462,12 @@ def get_search_all_suggestion(tenant_id, esh_version, path):
         content=perform_search(get_esh_version(esh_version), tenant_id, f'/$all/{path}', True)\
             , media_type='application/json')
 
+@app.post("/eshobject")
+async def update_eshobject(esh_object: EshObject):
+# async def update_eshobject(esh_object: EshObject, points: Point | LineString):
+    # print(esh_object)
+    return {'query': esh_object.to_statement(), 'eshobject': esh_object}
+
 @app.get('/v1/search/{tenant_id:path}/{esh_version:path}/{path:path}')
 def get_search(tenant_id, esh_version, path, req: Request):
     request_args = dict(req.query_params)
@@ -476,8 +483,11 @@ def post_search(tenant_id, esh_version, body=Body(...)):
 
 # v2 Search
 @app.post('/v2/search/{tenant_id}/{esh_version:path}')
-async def search_v2(tenant_id, esh_version, query=Body(...)):
-    esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
+async def search_v2(tenant_id, esh_version, queries: List[EshObject]):
+    # esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
+    #esh_query = [EshObject.parse_obj(w).to_statement()[1:] for w in queries]
+    #search_object = EshObject.parse_obj(queries)
+    esh_query = [w.to_statement()[1:] for w in queries]
     return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
 
 def get_list_of_substrings_term_found(string_subject):
@@ -553,7 +563,10 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
                 db.cur.callproc('ESH_CONFIG', (json.dumps([esh_config]), None))
 
         # esh_mapped_queries = map_request(mapping, query)
-        esh_query = [IESSearchOptions(w).to_statement()[1:] for w in esh_mapped_queries['incoming_requests']]
+        for w in esh_mapped_queries['incoming_requests']:
+            a = EshObject.parse_obj(w)
+            print(a.to_statement())
+        esh_query = [EshObject.parse_obj(w).to_statement()[1:] for w in esh_mapped_queries['incoming_requests']]
 
 
         # esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
@@ -563,10 +576,11 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
             if 'value' in search_result:
                 for matched_object in search_result['value']:
                     odata_name = matched_object['@odata.context'][LENGTH_ODATA_METADATA_PREFIX:]
-                    for view_value in mapping['views'].values():
-                        if view_value['odata_name'] == odata_name:
-                            entity_name = view_value['entity_name']
-                            break
+                    if 'views' in mapping:
+                        for view_value in mapping['views'].values():
+                            if view_value['odata_name'] == odata_name:
+                                entity_name = view_value['entity_name']
+                                break
                     data_request = {
                         entity_name: [
                             {
@@ -628,7 +642,7 @@ def get_column_view(mapping, anchor_entity_name, schema_name, path_list):
 
 # Query v1
 @app.post('/v1/query/{tenant_id}/{esh_version:path}')
-async def query_v1(tenant_id, esh_version, queries=Body(...)):
+async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
     schema_name = get_tenant_schema_name(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
         mapping = get_mapping(tenant_id, schema_name)
@@ -638,6 +652,7 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
         view_ddls = []
         requested_entity_types = []
         for query in queries:
+            # query_object = EshObject.parse_obj(query)
             scopes, pathes = query_mapping.extract_pathes(query)
             if len(scopes) != 1:
                 handle_error('Exactly one scope is needed', 400)
@@ -653,7 +668,8 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
             query_mapping.map_query(query, [cv.odata_name], pathes)
             view_ddls.append(view_ddl)
             dynmaic_views.append(cv.view_name)
-            search_object = IESSearchOptions(query)
+            # search_object = IESSearchOptions(query)
+            search_object = EshObject.parse_obj(query)
             search_object.select = ['ID']
             esh_query = search_object.to_statement()[1:]
             uris.append(f'/{get_esh_version(esh_version)}/{schema_name}/{esh_query}')
@@ -686,11 +702,13 @@ async def query_v1(tenant_id, esh_version, queries=Body(...)):
 
     results = []
     for i, search_result in enumerate(search_results):
-        result = []
+        result = {'value': []}
         if 'value' in search_result and search_result['value']:
             requested_entity_type = requested_entity_types[i]
             for res_item in search_result['value']:
-                result.append(full_objects_idx[requested_entity_type][res_item['ID']])
+                result['value'].append(full_objects_idx[requested_entity_type][res_item['ID']])
+        if '@odata.count' in search_result:
+            result['@odata.count'] = search_result['@odata.count']
         results.append(result)
     return results
 

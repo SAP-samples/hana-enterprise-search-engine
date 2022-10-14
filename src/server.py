@@ -668,7 +668,6 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
             query_mapping.map_query(query, [cv.odata_name], pathes)
             view_ddls.append(view_ddl)
             dynmaic_views.append(cv.view_name)
-            # search_object = IESSearchOptions(query)
             search_object = EshObject.parse_obj(query)
             search_object.select = ['ID']
             esh_query = search_object.to_statement()[1:]

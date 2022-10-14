@@ -394,7 +394,7 @@ class ScopeComparison(BaseModel):
 class Comparison(BaseModel):
     type: Literal['Comparison'] = 'Comparison'
     property: str | ExpressionValue
-    operator: str | ComparisonOperator
+    operator: ComparisonOperator
     value: str | ExpressionValue | None
 
     def to_statement(self):
@@ -852,9 +852,9 @@ if __name__ == '__main__':
                 {'type': 'StringValue', 'value': 'aaa'},{'type': 'StringValue', 'value': 'bbb'}\
             ], 'operator': 'AND'},
         'odataFilter': {Constants.type: 'Expression', 'items' : [\
-            {Constants.type: 'Comparison',\
+            {Constants.type: 'ODataFilterComparison',\
                 'property':  {Constants.type:'Property', 'property':'flag'}, \
-                'operator': ' eq ', \
+                'operator': ODataFilterComparisonOperator.Equal, \
                 'value': { Constants.type: 'StringValue', \
                     'value': 'ACTIVE','isSingleQuoted': True}}], 'operator': ''}
         }

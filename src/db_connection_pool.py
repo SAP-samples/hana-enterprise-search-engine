@@ -128,7 +128,7 @@ class DBBulkProcessing():
             await gather(*[c.con.commit_async() for c in self.connections])
     async def rollback(self):
         if self.block_size == 1:
-            self.connections[0].con.commit()
+            self.connections[0].con.rollback()
         else:
             await gather(*[c.con.rollback_async() for c in self.connections])
     def __exit__(self, exception_type, exception_value, traceback):

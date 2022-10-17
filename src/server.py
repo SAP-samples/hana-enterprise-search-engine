@@ -6,7 +6,6 @@ import json
 import logging
 import sys
 import uuid
-#from asyncio import gather, get_event_loop
 from datetime import datetime
 from typing import List
 
@@ -14,9 +13,7 @@ import httpx
 import uvicorn
 from fastapi import Body, FastAPI, HTTPException, Request, Response
 from fastapi.staticfiles import StaticFiles
-#from hdbcli.dbapi import DataError
 from hdbcli.dbapi import Error as HDBException
-#from hdbcli.dbapi import IntegrityError
 from starlette.responses import RedirectResponse
 
 import consistency_check
@@ -406,8 +403,8 @@ def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
     #logging.info(search_query)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         tenant_schema_name = get_tenant_schema_name(tenant_id)
-        params = (json.dumps([f"/{esh_version}/{tenant_schema_name}{esh_query}"]), None)
-        db.cur.callproc('esh_search', params)
+        search_params = (json.dumps([f'/{esh_version}/{tenant_schema_name}{esh_query}']), None)
+        db.cur.callproc('esh_search', search_params)
         for row in db.cur.fetchall():
             if is_metadata:
                 return row[0]
@@ -455,14 +452,14 @@ def get_search_metadata_entity_set(tenant_id, esh_version, path):
     return Response(\
         content=perform_search(get_esh_version(esh_version), tenant_id, '/$metadata/{}' + path, True)\
             , media_type='application/xml')
-            
+
 @app.get('/v1/search/{tenant_id:path}/{esh_version:path}/$all/{path:path}')
 def get_search_all_suggestion(tenant_id, esh_version, path):
     return Response(\
         content=perform_search(get_esh_version(esh_version), tenant_id, f'/$all/{path}', True)\
             , media_type='application/json')
 
-@app.post("/eshobject")
+@app.post('/eshobject')
 async def update_eshobject(esh_object: EshObject):
 # async def update_eshobject(esh_object: EshObject, points: Point | LineString):
     # print(esh_object)
@@ -652,7 +649,6 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
         view_ddls = []
         requested_entity_types = []
         for query in queries:
-            # query_object = EshObject.parse_obj(query)
             scopes, pathes = query_mapping.extract_pathes(query)
             if len(scopes) != 1:
                 handle_error('Exactly one scope is needed', 400)
@@ -677,7 +673,6 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         params = (json.dumps([{'Configuration': configurations, 'URI': uris}]), None)
         db.cur.callproc('esh_search', params)
-        #search_results = cleanse_output([json.loads(w[0]) for w in db.cur.fetchall()])
         search_results = [json.loads(w[0]) for w in db.cur.fetchall()]
     with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
         for view_name in dynmaic_views:
@@ -778,11 +773,10 @@ if __name__ == '__main__':
                 json.dump(config, fr, indent = 4)
 
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db_read:
-        params = (json.dumps([ { 'URI': [ '/$apiversion' ] } ]), None)
-        db_read.cur.callproc('esh_search', params)
+        db_read.cur.callproc('esh_search', (json.dumps([ { 'URI': [ '/$apiversion' ] } ]), None))
         glob.esh_apiversion = 'v' + str(json.loads(db_read.cur.fetchone()[0])['apiversion'])
         #logging.info('ESH_SEARCH calls will use API-version %s', glob.esh_apiversion)
 
-    #ui_default_tenant = config['UIDefaultTenant']  
+    #ui_default_tenant = config['UIDefaultTenant']
     cs = config['server']
     uvicorn.run('server:app', host = cs['host'], port = cs['port'], log_level = cs['logLevel'], reload = cs['reload'])

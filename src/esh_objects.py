@@ -451,7 +451,8 @@ class Expression(BaseModel):
             connect_operator = ' '
         statements = list(map(lambda item: self.get_expression_statement(item), self.items))
         if len(self.items) > 1 and not isinstance(self.items[0], Expression) and not isinstance(self.items[0], ScopeComparison):
-            return f"({connect_operator.join(statements)})"
+            # return f"({connect_operator.join(statements)})"
+            return f"{connect_operator.join(statements)}"
         return connect_operator.join(statements)
 
     '''
@@ -810,18 +811,18 @@ if __name__ == '__main__':
 
     aa = EshObject.parse_obj({'searchQueryFilter': {Constants.type: 'Expression', 'items' : [{'type': 'StringValue', \
        'value': 'aaa'},{'type': 'StringValue', 'value': 'bbb'}], 'operator': 'AND'}})
-    assert aa.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='(aaa AND bbb)'))"
+    assert aa.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='aaa AND bbb'))"
 
     exp1 = Expression(items=[StringValue(value='MMMM'),\
         StringValue(value='KKK')], operator='OR')
-    assert exp1.to_statement() == '(MMMM OR KKK)'
+    assert exp1.to_statement() == 'MMMM OR KKK'
 
     exp2 = Expression()
     exp2.operator = 'AND'
     exp2.items = []
     exp2.items.append(StringValue(value='mannheim'))
     exp2.items.append(StringValue(value='heidelberg'))
-    assert exp2.to_statement() == '(mannheim AND heidelberg)'
+    assert exp2.to_statement() == 'mannheim AND heidelberg'
 
 
     json_body={
@@ -868,7 +869,7 @@ if __name__ == '__main__':
     # print(json.dumps(es_objects.searchQueryFilter.to_dict(), indent=4))
     # print(json.dumps(es_objects.to_dict(), indent=4))
     expected_statement = '/$all?$top=10&$count=true&$apply=filter(' \
-        'Search.search(query=\'SCOPE:S1 AND ((test OR function))' \
+        'Search.search(query=\'SCOPE:S1 AND (test OR function)' \
         ' AND aaa AND bbb\')) and flag eq \'ACTIVE\'&whyfound=true&$select=id,name&$orderby=city ASC,language DESC,' \
         'land&estimate=true&wherefound=true&facetlimit=4&facets=city,land&filteredgroupby=false'
     assert es_objects.to_statement() == expected_statement
@@ -992,7 +993,7 @@ if __name__ == '__main__':
     assert deserialized_object_expression.type == Expression.__name__
     # print(json.dumps(deserialized_object_expression.to_dict()))
     # print(deserialized_object_expression.to_statement())
-    assert deserialized_object_expression.to_statement() == '(city country)'
+    assert deserialized_object_expression.to_statement() == 'city country'
 
     json_property = '''
         {
@@ -1262,9 +1263,9 @@ if __name__ == '__main__':
                 ])
     )
     print(so.to_statement())
-    print(json.dumps(so.dict(exclude_none=True), indent = 4))
+    # print(json.dumps(so.dict(exclude_none=True), indent = 4))
 
-    assert so.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='SCOPE:Person AND lastName:Doe AND firstName:Jane')) and (language eq 'de' and land eq 'Germany')"
+    assert so.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='SCOPE:Person AND lastName:Doe AND firstName:Jane')) and language eq 'de' and land eq 'Germany'"
 
 
     mv = MultiValues(items=["one", "two"], separator=",", encloseStart="[", encloseEnd="]")

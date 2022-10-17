@@ -132,10 +132,7 @@ class TestStringMethods(unittest.TestCase):
                         operator=esh.LogicalOperator.OR,
                         items=[
                             esh.Expression(
-                                operator=esh.LogicalOperator.ROW,
-                                items=[
-                                    esh.Expression(
-                                        operator=esh.LogicalOperator.AND,
+                                operator=esh.LogicalOperator.AND,
                                         items= [
                                             esh.Comparison(
                                                 property= esh.Property(property='lastName'),
@@ -146,26 +143,19 @@ class TestStringMethods(unittest.TestCase):
                                                 operator= esh.ComparisonOperator.Search,
                                                 value= esh.StringValue(value='John'))
                                                 ]
-                                    )
-                                ]
                             ),
                             esh.Expression(
-                                operator=esh.LogicalOperator.ROW,
-                                items=[
-                                    esh.Expression(
-                                        operator=esh.LogicalOperator.AND,
-                                        items= [
-                                            esh.Comparison(
-                                                property= esh.Property(property='lastName'),
-                                                operator= esh.ComparisonOperator.Search,
-                                                value= esh.StringValue(value='Doe')),
-                                            esh.Comparison(
-                                                property= esh.Property(property='firstName'),
-                                                operator= esh.ComparisonOperator.Search,
-                                                value= esh.StringValue(value='Jane'))
-                                                ]
-                                    )
-                                ]
+                                operator=esh.LogicalOperator.AND,
+                                items= [
+                                        esh.Comparison(
+                                            property= esh.Property(property='lastName'),
+                                            operator= esh.ComparisonOperator.Search,
+                                            value= esh.StringValue(value='Doe')),
+                                        esh.Comparison(
+                                            property= esh.Property(property='firstName'),
+                                            operator= esh.ComparisonOperator.Search,
+                                            value= esh.StringValue(value='Jane'))
+                                    ]
                             )
                         ]
                     )
@@ -174,6 +164,8 @@ class TestStringMethods(unittest.TestCase):
         )
         
         print(f'ESH query statement: {so.to_statement()}')
+        print(so.to_statement())
+        assert so.to_statement() == "/$all?$top=10&$count=true&$apply=filter(Search.search(query='SCOPE:Person AND ((lastName:Doe AND firstName:John) OR (lastName:Doe AND firstName:Jane))'))"
         
 
     ''' 

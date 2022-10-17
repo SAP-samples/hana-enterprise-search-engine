@@ -629,11 +629,11 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
     except Exception as e:
         return {'error': f'{e}'}
 
-def get_column_view(mapping, anchor_entity_name, schema_name, path_list):
+def get_column_view(mapping, anchor_entity_name, schema_name, path_list, auto_default_search_element):
     view_id = str(uuid.uuid4()).replace('-', '').upper()
-    view_name = f'VIEW/{view_id}'
-    odata_name = f'VIEW_{view_id}'
-    cv = ColumnView(mapping, anchor_entity_name, schema_name)
+    view_name = f'DYNAMICVIEW/{view_id}'
+    odata_name = f'DYNAMICVIEW_{view_id}'
+    cv = ColumnView(mapping, anchor_entity_name, schema_name, auto_default_search_element)
     cv.by_path_list(path_list, view_name, odata_name)
     return cv
 
@@ -656,7 +656,7 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
             if not scope in mapping['entities']:
                 handle_error(f'unknown entity {scope}', 400)
             requested_entity_types.append(scope)
-            cv = get_column_view(mapping, scope, schema_name, pathes.keys())
+            cv = get_column_view(mapping, scope, schema_name, pathes.keys(), False)
             view_ddl, esh_config = cv.data_definition()
             configurations.append(esh_config['content'])
             for path in pathes.keys():

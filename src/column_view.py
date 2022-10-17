@@ -30,7 +30,7 @@ def sequence_int(i = 10, step = 10):
 
 class ColumnView:
     """Column view definition"""
-    def __init__(self, mapping, anchor_entity_name, schema_name) -> None:
+    def __init__(self, mapping, anchor_entity_name, schema_name, auto_default_search_element = True) -> None:
         self.mapping = mapping
         self.anchor_entity = mapping['entities'][anchor_entity_name]
         self.schema_name = schema_name
@@ -43,6 +43,7 @@ class ColumnView:
         self.join_path_id_gen = sequence(1, 'JP', 3)
         self.join_condition_id_gen = sequence(1, 'JC', 3)
         self.ui_position_gen = sequence_int()
+        self.auto_default_search_element = auto_default_search_element
 
     def by_selector(self, view_name, odata_name, selector):
         self.view_name = view_name
@@ -110,7 +111,7 @@ class ColumnView:
         if is_enteprise_search_key:
             col_conf['@EnterpriseSearch.key'] = True
             col_conf['@UI.hidden'] = True
-        else:
+        if is_enteprise_search_key ^ self.auto_default_search_element:
             col_conf['@Search.defaultSearchElement'] = True
         if annotations and '@EndUserText.Label' in annotations and '@SAP.Common.Label' not in annotations:
             col_conf['@SAP.Common.Label'] = annotations['@EndUserText.Label']

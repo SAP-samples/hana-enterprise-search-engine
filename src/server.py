@@ -1,35 +1,38 @@
 '''
 Provides HTTP(S) interfaces
 '''
+import base64
+import json
+import logging
+import sys
+import uuid
+#from asyncio import gather, get_event_loop
 from datetime import datetime
 from typing import List
-from fastapi import FastAPI, Request, Body, HTTPException, Response
-from fastapi.staticfiles import StaticFiles
-from starlette.responses import RedirectResponse
-import json
-import uuid
-from column_view import ColumnView
-import consistency_check
-from db_connection_pool import DBConnection, ConnectionPool, Credentials, SharedConnection, DBBulkProcessing
-import convert
-import sqlcreate
-from esh_objects import EshObject
+
 import httpx
 import uvicorn
+from fastapi import Body, FastAPI, HTTPException, Request, Response
+from fastapi.staticfiles import StaticFiles
+#from hdbcli.dbapi import DataError
 from hdbcli.dbapi import Error as HDBException
-from hdbcli.dbapi import DataError, IntegrityError, Error
-import logging
-from constants import DBUserType, TENANT_PREFIX, TENANT_ID_MAX_LENGTH, TYPES_B64_ENCODE, TYPES_SPATIAL, CONCURRENT_CONNECTIONS
-from config import get_user_name
-import sys
-import server_globals as glob
-import base64
-from request_mapping import map_request
-#import esh_objects
+#from hdbcli.dbapi import IntegrityError
+from starlette.responses import RedirectResponse
+
+import consistency_check
+import convert
 import query_mapping
-import time
-from asyncio import gather, get_event_loop
-from functools import partial
+import server_globals as glob
+import sqlcreate
+from column_view import ColumnView
+from config import get_user_name
+from constants import (CONCURRENT_CONNECTIONS, TENANT_ID_MAX_LENGTH,
+                       TENANT_PREFIX, TYPES_B64_ENCODE, TYPES_SPATIAL,
+                       DBUserType)
+from db_connection_pool import (ConnectionPool, Credentials, DBBulkProcessing,
+                                DBConnection)
+from esh_objects import EshObject
+from request_mapping import map_request
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
@@ -237,7 +240,7 @@ async def post_data(tenant_id, objects=Body(...)):
         try:
             await db_bulk.executemany(operations)
             await db_bulk.commit()
-        except Error as e:
+        except HDBException as e:
             await db_bulk.rollback()
             handle_error(f'Data Error: {e.errortext}', 400)
     response = {}
@@ -665,7 +668,6 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
             query_mapping.map_query(query, [cv.odata_name], pathes)
             view_ddls.append(view_ddl)
             dynmaic_views.append(cv.view_name)
-            # search_object = IESSearchOptions(query)
             search_object = EshObject.parse_obj(query)
             search_object.select = ['ID']
             esh_query = search_object.to_statement()[1:]

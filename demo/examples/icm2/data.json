@@ -8,7 +8,6 @@
                     "sid": "GUIDR00001"
                 }
             ],
-            "relationshipGuid": "GUIDR00001",
             "sourceRefId": "GUIDLE00001",
             "targetRefId": "GUIDC00001",
             "relTypeCode": "S010",
@@ -23,7 +22,6 @@
                     "sid": "GUIDR00002"
                 }
             ],
-            "relationshipGuid": "GUIDR00002",
             "sourceRefId": "GUIDLE00002",
             "targetRefId": "GUIDP00001",
             "relTypeCode": "S002",
@@ -38,7 +36,6 @@
                     "sid": "GUIDR00003"
                 }
             ],
-            "relationshipGuid": "GUIDR00003",
             "sourceRefId": "GUIDLE00003",
             "targetRefId": "GUIDP00001",
             "relTypeCode": "S002",
@@ -53,7 +50,6 @@
                     "sid": "GUIDR00004"
                 }
             ],
-            "relationshipGuid": "GUIDR00004",
             "sourceRefId": "GUIDC00002",
             "targetRefId": "GUIDP00001",
             "relTypeCode": "S001",
@@ -68,7 +64,6 @@
                     "sid": "GUIDR00005"
                 }
             ],
-            "relationshipGuid": "GUIDR00005",
             "sourceRefId": "GUIDO00001",
             "targetRefId": "GUIDP00001",
             "relTypeCode": "S012",
@@ -83,7 +78,6 @@
                     "sid": "GUIDR00006"
                 }
             ],
-            "relationshipGuid": "GUIDR00006",
             "sourceRefId": "GUIDO00001",
             "targetRefId": "GUIDL00002",
             "relTypeCode": "V003",
@@ -98,7 +92,6 @@
                     "sid": "GUIDR00007"
                 }
             ],
-            "relationshipGuid": "GUIDR00007",
             "sourceRefId": "GUIDL00003",
             "targetRefId": "GUIDP00001",
             "relTypeCode": "S012",
@@ -113,7 +106,6 @@
                     "sid": "GUIDR00008"
                 }
             ],
-            "relationshipGuid": "GUIDR00008",
             "sourceRefId": "GUIDO00001",
             "targetRefId": "GUIDO00003",
             "relTypeCode": "S900",
@@ -128,7 +120,6 @@
                     "sid": "GUIDR00009"
                 }
             ],
-            "relationshipGuid": "GUIDR00009",
             "sourceRefId": "GUIDO00003",
             "targetRefId": "GUIDL00004",
             "relTypeCode": "V003",
@@ -143,7 +134,6 @@
                     "sid": "GUIDR00010"
                 }
             ],
-            "relationshipGuid": "GUIDR00010",
             "sourceRefId": "GUIDO00003",
             "targetRefId": "GUIDP00008",
             "relTypeCode": "S012",
@@ -158,7 +148,6 @@
                     "sid": "GUIDR00011"
                 }
             ],
-            "relationshipGuid": "GUIDR00011",
             "sourceRefId": "GUIDO00001",
             "targetRefId": "GUIDO00007",
             "relTypeCode": "S900",
@@ -173,7 +162,6 @@
                     "sid": "GUIDR00012"
                 }
             ],
-            "relationshipGuid": "GUIDR00012",
             "sourceRefId": "GUIDO00007",
             "targetRefId": "GUIDL00005",
             "relTypeCode": "V003",
@@ -188,7 +176,6 @@
                     "sid": "GUIDR00013"
                 }
             ],
-            "relationshipGuid": "GUIDR00013",
             "sourceRefId": "GUIDO00007",
             "targetRefId": "GUIDP00007",
             "relTypeCode": "S012",
@@ -203,7 +190,6 @@
                     "sid": "GUIDR00014"
                 }
             ],
-            "relationshipGuid": "GUIDR00014",
             "sourceRefId": "GUIDO00001",
             "targetRefId": "GUIDO00006",
             "relTypeCode": "S900",
@@ -218,7 +204,6 @@
                     "sid": "GUIDR00015"
                 }
             ],
-            "relationshipGuid": "GUIDR00015",
             "sourceRefId": "GUIDO00006",
             "targetRefId": "GUIDL00006",
             "relTypeCode": "V003",
@@ -233,7 +218,6 @@
                     "sid": "GUIDR00016"
                 }
             ],
-            "relationshipGuid": "GUIDR00016",
             "sourceRefId": "GUIDO00006",
             "targetRefId": "GUIDP00006",
             "relTypeCode": "S012",
@@ -248,7 +232,6 @@
                     "sid": "GUIDR00017"
                 }
             ],
-            "relationshipGuid": "GUIDR00017",
             "sourceRefId": "GUIDO00001",
             "targetRefId": "GUIDO00004",
             "relTypeCode": "S900",
@@ -263,7 +246,6 @@
                     "sid": "GUIDR00018"
                 }
             ],
-            "relationshipGuid": "GUIDR00018",
             "sourceRefId": "GUIDO00004",
             "targetRefId": "GUIDL00007",
             "relTypeCode": "V003",
@@ -278,7 +260,6 @@
                     "sid": "GUIDR00019"
                 }
             ],
-            "relationshipGuid": "GUIDR00019",
             "sourceRefId": "GUIDO00004",
             "targetRefId": "GUIDP00005",
             "relTypeCode": "S012",
@@ -293,7 +274,6 @@
                     "sid": "GUIDR00020"
                 }
             ],
-            "relationshipGuid": "GUIDR00020",
             "sourceRefId": "GUIDO00001",
             "targetRefId": "GUIDO00005",
             "relTypeCode": "S900",
@@ -308,7 +288,6 @@
                     "sid": "GUIDR00021"
                 }
             ],
-            "relationshipGuid": "GUIDR00021",
             "sourceRefId": "GUIDO00005",
             "targetRefId": "GUIDL00008",
             "relTypeCode": "V003",
@@ -323,7 +302,6 @@
                     "sid": "GUIDR00022"
                 }
             ],
-            "relationshipGuid": "GUIDR00022",
             "sourceRefId": "GUIDO00005",
             "targetRefId": "GUIDP00004",
             "relTypeCode": "S012",
@@ -338,7 +316,6 @@
                     "sid": "GUIDR00023"
                 }
             ],
-            "relationshipGuid": "GUIDR00023",
             "sourceRefId": "GUIDC00001",
             "targetRefId": "GUIDP00002",
             "relTypeCode": "V004",
@@ -353,7 +330,6 @@
                     "sid": "GUIDR00024"
                 }
             ],
-            "relationshipGuid": "GUIDR00024",
             "sourceRefId": "GUIDC00001",
             "targetRefId": "GUIDP00001",
             "relTypeCode": "S013",
@@ -368,7 +344,6 @@
                     "sid": "GUIDR00025"
                 }
             ],
-            "relationshipGuid": "GUIDR00025",
             "sourceRefId": "GUIDP00001",
             "targetRefId": "GUIDP00002",
             "relTypeCode": "S010",
@@ -383,7 +358,6 @@
                     "sid": "GUIDR00026"
                 }
             ],
-            "relationshipGuid": "GUIDR00026",
             "sourceRefId": "GUIDI00001",
             "targetRefId": "GUIDP00001",
             "relTypeCode": "S001",
@@ -398,7 +372,6 @@
                     "sid": "GUIDR00027"
                 }
             ],
-            "relationshipGuid": "GUIDR00027",
             "sourceRefId": "GUIDI00001",
             "targetRefId": "GUIDP00006",
             "relTypeCode": "S003",
@@ -413,7 +386,6 @@
                     "sid": "GUIDR00028"
                 }
             ],
-            "relationshipGuid": "GUIDR00028",
             "sourceRefId": "GUIDC00001",
             "targetRefId": "GUIDO00008",
             "relTypeCode": "S900",
@@ -428,7 +400,6 @@
                     "sid": "GUIDR00029"
                 }
             ],
-            "relationshipGuid": "GUIDR00029",
             "sourceRefId": "GUIDO00008",
             "targetRefId": "GUIDP00002",
             "relTypeCode": "S900",
@@ -443,7 +414,6 @@
                     "sid": "GUIDR00030"
                 }
             ],
-            "relationshipGuid": "GUIDR00030",
             "sourceRefId": "GUIDL00010",
             "targetRefId": "GUIDP00006",
             "relTypeCode": "S012",
@@ -458,7 +428,6 @@
                     "sid": "GUIDR00031"
                 }
             ],
-            "relationshipGuid": "GUIDR00031",
             "sourceRefId": "GUIDL00009",
             "targetRefId": "GUIDP00002",
             "relTypeCode": "S012",
@@ -473,7 +442,6 @@
                     "sid": "GUIDR00032"
                 }
             ],
-            "relationshipGuid": "GUIDR00032",
             "sourceRefId": "GUIDO00002",
             "targetRefId": "GUIDP00002",
             "relTypeCode": "S012",
@@ -488,7 +456,6 @@
                     "sid": "GUIDR00033"
                 }
             ],
-            "relationshipGuid": "GUIDR00033",
             "sourceRefId": "GUIDO00002",
             "targetRefId": "GUIDP00003",
             "relTypeCode": "S900",
@@ -503,7 +470,6 @@
                     "sid": "GUIDR00034"
                 }
             ],
-            "relationshipGuid": "GUIDR00034",
             "sourceRefId": "GUIDO00002",
             "targetRefId": "GUIDP00001",
             "relTypeCode": "S900",
@@ -518,7 +484,6 @@
                     "sid": "GUIDR00035"
                 }
             ],
-            "relationshipGuid": "GUIDR00035",
             "sourceRefId": "GUIDO00002",
             "targetRefId": "GUIDL00001",
             "relTypeCode": "V003",
@@ -533,7 +498,6 @@
                     "sid": "GUIDR00036"
                 }
             ],
-            "relationshipGuid": "GUIDR00036",
             "sourceRefId": "GUIDO00001",
             "targetRefId": "GUIDP00010",
             "relTypeCode": "S900",
@@ -548,7 +512,6 @@
                     "sid": "GUIDR00037"
                 }
             ],
-            "relationshipGuid": "GUIDR00037",
             "sourceRefId": "GUIDO00001",
             "targetRefId": "GUIDP00009",
             "relTypeCode": "S900",
@@ -563,7 +526,6 @@
                     "sid": "GUIDR00038"
                 }
             ],
-            "relationshipGuid": "GUIDR00038",
             "sourceRefId": "GUIDA00001",
             "targetRefId": "GUIDP00008",
             "relTypeCode": "S004",
@@ -578,7 +540,6 @@
                     "sid": "GUIDR00039"
                 }
             ],
-            "relationshipGuid": "GUIDR00039",
             "sourceRefId": "GUIDA00002",
             "targetRefId": "GUIDP00009",
             "relTypeCode": "S004",
@@ -593,7 +554,6 @@
                     "sid": "GUIDR00040"
                 }
             ],
-            "relationshipGuid": "GUIDR00040",
             "sourceRefId": "GUIDA00003",
             "targetRefId": "GUIDP00006",
             "relTypeCode": "S004",
@@ -608,7 +568,6 @@
                     "sid": "GUIDR00041"
                 }
             ],
-            "relationshipGuid": "GUIDR00041",
             "sourceRefId": "GUIDA00004",
             "targetRefId": "GUIDO00013",
             "relTypeCode": "S900",
@@ -623,7 +582,6 @@
                     "sid": "GUIDR00042"
                 }
             ],
-            "relationshipGuid": "GUIDR00042",
             "sourceRefId": "GUIDA00004",
             "targetRefId": "GUIDO00015",
             "relTypeCode": "S900",
@@ -638,7 +596,6 @@
                     "sid": "GUIDR00043"
                 }
             ],
-            "relationshipGuid": "GUIDR00043",
             "sourceRefId": "GUIDA00005",
             "targetRefId": "GUIDO00013",
             "relTypeCode": "S900",
@@ -653,7 +610,6 @@
                     "sid": "GUIDR00044"
                 }
             ],
-            "relationshipGuid": "GUIDR00044",
             "sourceRefId": "GUIDA00005",
             "targetRefId": "GUIDO00017",
             "relTypeCode": "S900",
@@ -668,7 +624,6 @@
                     "sid": "GUIDR00045"
                 }
             ],
-            "relationshipGuid": "GUIDR00045",
             "sourceRefId": "GUIDO00014",
             "targetRefId": "GUIDO00009",
             "relTypeCode": "S900",
@@ -683,7 +638,6 @@
                     "sid": "GUIDR00046"
                 }
             ],
-            "relationshipGuid": "GUIDR00046",
             "sourceRefId": "GUIDO00014",
             "targetRefId": "GUIDO00010",
             "relTypeCode": "S900",
@@ -698,7 +652,6 @@
                     "sid": "GUIDR00047"
                 }
             ],
-            "relationshipGuid": "GUIDR00047",
             "sourceRefId": "GUIDO00014",
             "targetRefId": "GUIDO00013",
             "relTypeCode": "S900",
@@ -713,7 +666,6 @@
                     "sid": "GUIDR00048"
                 }
             ],
-            "relationshipGuid": "GUIDR00048",
             "sourceRefId": "GUIDO00016",
             "targetRefId": "GUIDO00011",
             "relTypeCode": "S900",
@@ -728,7 +680,6 @@
                     "sid": "GUIDR00049"
                 }
             ],
-            "relationshipGuid": "GUIDR00049",
             "sourceRefId": "GUIDO00016",
             "targetRefId": "GUIDO00015",
             "relTypeCode": "S900",
@@ -743,7 +694,6 @@
                     "sid": "GUIDR00050"
                 }
             ],
-            "relationshipGuid": "GUIDR00050",
             "sourceRefId": "GUIDO00018",
             "targetRefId": "GUIDO00012",
             "relTypeCode": "S900",
@@ -758,7 +708,6 @@
                     "sid": "GUIDR00051"
                 }
             ],
-            "relationshipGuid": "GUIDR00051",
             "sourceRefId": "GUIDO00018",
             "targetRefId": "GUIDO00017",
             "relTypeCode": "S900",
@@ -773,7 +722,6 @@
                     "sid": "GUIDR00052"
                 }
             ],
-            "relationshipGuid": "GUIDR00052",
             "sourceRefId": "GUIDC00002",
             "targetRefId": "GUIDA00001",
             "relTypeCode": "S900",
@@ -788,7 +736,6 @@
                     "sid": "GUIDR00053"
                 }
             ],
-            "relationshipGuid": "GUIDR00053",
             "sourceRefId": "GUIDC00002",
             "targetRefId": "GUIDA00002",
             "relTypeCode": "S900",
@@ -803,7 +750,6 @@
                     "sid": "GUIDR00054"
                 }
             ],
-            "relationshipGuid": "GUIDR00054",
             "sourceRefId": "GUIDC00002",
             "targetRefId": "GUIDA00003",
             "relTypeCode": "S900",
@@ -818,7 +764,6 @@
                     "sid": "GUIDR00055"
                 }
             ],
-            "relationshipGuid": "GUIDR00055",
             "sourceRefId": "GUIDC00002",
             "targetRefId": "GUIDA00004",
             "relTypeCode": "S900",
@@ -833,7 +778,6 @@
                     "sid": "GUIDR00056"
                 }
             ],
-            "relationshipGuid": "GUIDR00056",
             "sourceRefId": "GUIDC00002",
             "targetRefId": "GUIDA00005",
             "relTypeCode": "S900",
@@ -848,7 +792,6 @@
                     "sid": "GUIDR00057"
                 }
             ],
-            "relationshipGuid": "GUIDR00057",
             "sourceRefId": "GUIDI00002",
             "targetRefId": "GUIDP00001",
             "relTypeCode": "S001",
@@ -863,7 +806,6 @@
                     "sid": "GUIDR00058"
                 }
             ],
-            "relationshipGuid": "GUIDR00058",
             "sourceRefId": "GUIDI00002",
             "targetRefId": "GUIDP00008",
             "relTypeCode": "S004",
@@ -878,7 +820,6 @@
                     "sid": "GUIDR00059"
                 }
             ],
-            "relationshipGuid": "GUIDR00059",
             "sourceRefId": "GUIDI00002",
             "targetRefId": "GUIDP00009",
             "relTypeCode": "S004",
@@ -893,7 +834,6 @@
                     "sid": "GUIDR00060"
                 }
             ],
-            "relationshipGuid": "GUIDR00060",
             "sourceRefId": "GUIDI00002",
             "targetRefId": "GUIDP00010",
             "relTypeCode": "S003",
@@ -908,7 +848,6 @@
                     "sid": "GUIDR00061"
                 }
             ],
-            "relationshipGuid": "GUIDR00061",
             "sourceRefId": "GUIDC00002",
             "targetRefId": "GUIDI00002",
             "relTypeCode": "V002",
@@ -923,7 +862,6 @@
                     "sid": "GUIDR00062"
                 }
             ],
-            "relationshipGuid": "GUIDR00062",
             "sourceRefId": "GUIDC00002",
             "targetRefId": "GUIDA00006",
             "relTypeCode": "S900",
@@ -938,7 +876,6 @@
                     "sid": "GUIDR00063"
                 }
             ],
-            "relationshipGuid": "GUIDR00063",
             "sourceRefId": "GUIDI00002",
             "targetRefId": "GUIDL00011",
             "relTypeCode": "S900",
@@ -955,9 +892,6 @@
                     "sid": "GUIDC00001"
                 }
             ],
-            "entityGuid": "GUIDC00001",
-            "entityId": "CASE00001",
-            "entityType": "Case",
             "entityDesc": "Kennedy A: Money Laundering",
             "entityTime": "2012-02-05 13:30:00",
             "sourcen": "DEMO_SYSTEM",
@@ -966,7 +900,6 @@
             "priority": "2",
             "status": "008",
             "caseCategory": "ICM",
-            "caseOwner": "",
             "caseStartDate": "20120205",
             "caseStartTime": "1330",
             "caseEndDate": "20121220",
@@ -981,9 +914,6 @@
                     "sid": "GUIDC00002"
                 }
             ],
-            "entityGuid": "GUIDC00002",
-            "entityId": "CASE00002",
-            "entityType": "Case",
             "entityDesc": "Kennedy J: Obtaining a financial advantage by deception",
             "entityTime": "2018-03-16 09:00:00",
             "sourcen": "DEMO_SYSTEM",
@@ -992,7 +922,6 @@
             "priority": "2",
             "status": "002",
             "caseCategory": "ICM",
-            "caseOwner": "",
             "caseStartDate": "20180316",
             "caseStartTime": "0900",
             "caseEndDate": "",
@@ -1009,9 +938,6 @@
                     "sid": "GUIDP00001"
                 }
             ],
-            "entityGuid": "GUIDP00001",
-            "entityId": "PERS00001",
-            "entityType": "Person",
             "sourcen": "DEMO_SYSTEM",
             "origin": "ATO",
             "firstName": "Joseph",
@@ -1024,14 +950,8 @@
             "gender": "Male",
             "countryOfBirth": "AU",
             "country": "UK",
-            "familyName": "",
-            "fullName": "",
-            "birthName": "",
-            "otherName": "",
             "placeOfBirth": "London",
-            "nationality": "UK",
-            "secondNationality": "",
-            "additionalRemarks": ""
+            "nationality": "UK"
         },
         {
             "source": [
@@ -1041,9 +961,6 @@
                     "sid": "GUIDP00002"
                 }
             ],
-            "entityGuid": "GUIDP00002",
-            "entityId": "PERS00002",
-            "entityType": "Person",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
             "firstName": "Alex",
@@ -1068,9 +985,6 @@
                     "sid": "GUIDP00003"
                 }
             ],
-            "entityGuid": "GUIDP00003",
-            "entityId": "PERS00003",
-            "entityType": "Person",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
             "firstName": "Phillipe",
@@ -1094,9 +1008,6 @@
                     "sid": "GUIDP00004"
                 }
             ],
-            "entityGuid": "GUIDP00004",
-            "entityId": "PERS00004",
-            "entityType": "Person",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
             "firstName": "Ivan",
@@ -1121,9 +1032,6 @@
                     "sid": "GUIDP00005"
                 }
             ],
-            "entityGuid": "GUIDP00005",
-            "entityId": "PERS00005",
-            "entityType": "Person",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
             "firstName": "Bobby",
@@ -1147,9 +1055,6 @@
                     "sid": "GUIDP00006"
                 }
             ],
-            "entityGuid": "GUIDP00006",
-            "entityId": "PERS00006",
-            "entityType": "Person",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
             "firstName": "Jerry",
@@ -1174,9 +1079,6 @@
                     "sid": "GUIDP00007"
                 }
             ],
-            "entityGuid": "GUIDP00007",
-            "entityId": "PERS00007",
-            "entityType": "Person",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
             "firstName": "Thanh",
@@ -1200,9 +1102,6 @@
                     "sid": "GUIDP00008"
                 }
             ],
-            "entityGuid": "GUIDP00008",
-            "entityId": "PERS00008",
-            "entityType": "Person",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
             "firstName": "Hilda",
@@ -1227,9 +1126,6 @@
                     "sid": "GUIDP00009"
                 }
             ],
-            "entityGuid": "GUIDP00009",
-            "entityId": "PERS00009",
-            "entityType": "Person",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
             "firstName": "Rosario",
@@ -1249,9 +1145,6 @@
                     "sid": "GUIDP00010"
                 }
             ],
-            "entityGuid": "GUIDP00010",
-            "entityId": "PERS00010",
-            "entityType": "Person",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
             "firstName": "Rogerio",
@@ -1302,9 +1195,6 @@
                     "sid": "GUIDO00001"
                 }
             ],
-            "entityGuid": "GUIDO00001",
-            "entityId": "OBJ00001",
-            "entityType": "Object",
             "entityDesc": "JK Cleaning Pty Ltd",
             "sourcen": "DEMO_SYSTEM",
             "origin": "ABR",
@@ -1318,9 +1208,6 @@
                     "sid": "GUIDO00002"
                 }
             ],
-            "entityGuid": "GUIDO00002",
-            "entityId": "OBJ00002",
-            "entityType": "Object",
             "entityDesc": "Kennedy Cleaning Pty Ltd",
             "sourcen": "DEMO_SYSTEM",
             "origin": "ABR",
@@ -1334,9 +1221,6 @@
                     "sid": "GUIDO00003"
                 }
             ],
-            "entityGuid": "GUIDO00003",
-            "entityId": "OBJ00003",
-            "entityType": "Object",
             "entityDesc": "Trentham Property Group",
             "sourcen": "DEMO_SYSTEM",
             "origin": "ABR",
@@ -1350,9 +1234,6 @@
                     "sid": "GUIDO00004"
                 }
             ],
-            "entityGuid": "GUIDO00004",
-            "entityId": "OBJ00004",
-            "entityType": "Object",
             "entityDesc": "Ramage Industrial Fit Outs Pty Ltd",
             "sourcen": "DEMO_SYSTEM",
             "origin": "ABR",
@@ -1366,9 +1247,6 @@
                     "sid": "GUIDO00005"
                 }
             ],
-            "entityGuid": "GUIDO0005",
-            "entityId": "OBJ00005",
-            "entityType": "Object",
             "entityDesc": "TLV Airport Collective",
             "sourcen": "DEMO_SYSTEM",
             "origin": "ABR",
@@ -1382,9 +1260,6 @@
                     "sid": "GUIDO00006"
                 }
             ],
-            "entityGuid": "GUIDO00006",
-            "entityId": "OBJ00006",
-            "entityType": "Object",
             "entityDesc": "Royal Construction Pty Let",
             "sourcen": "DEMO_SYSTEM",
             "origin": "ABR",
@@ -1398,9 +1273,6 @@
                     "sid": "GUIDO00007"
                 }
             ],
-            "entityGuid": "GUIDO00007",
-            "entityId": "OBJ00007",
-            "entityType": "Object",
             "entityDesc": "Truscott Holdings",
             "sourcen": "DEMO_SYSTEM",
             "origin": "ABR",
@@ -1414,9 +1286,6 @@
                     "sid": "GUIDO00008"
                 }
             ],
-            "entityGuid": "GUIDO00008",
-            "entityId": "OBJ00008",
-            "entityType": "Object",
             "entityDesc": "Rebels Spain Outlaw Motorcycle Gang",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
@@ -1430,9 +1299,6 @@
                     "sid": "GUIDO00009"
                 }
             ],
-            "entityGuid": "GUIDO00009",
-            "entityId": "OBJ00009",
-            "entityType": "Object",
             "entityDesc": "Handset 1 JK: IMEI 86-123456-987654-1",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
@@ -1446,9 +1312,6 @@
                     "sid": "GUIDO00010"
                 }
             ],
-            "entityGuid": "GUIDO00010",
-            "entityId": "OBJ00010",
-            "entityType": "Object",
             "entityDesc": "Handset 2 JK: IMEI 72-284937-093672-2",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
@@ -1462,9 +1325,6 @@
                     "sid": "GUIDO00011"
                 }
             ],
-            "entityGuid": "GUIDO00011",
-            "entityId": "OBJ00011",
-            "entityType": "Object",
             "entityDesc": "Handset Ramage: IMEI 23-654321-135791-5",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
@@ -1478,9 +1338,6 @@
                     "sid": "GUIDO00012"
                 }
             ],
-            "entityGuid": "GUIDO00012",
-            "entityId": "OBJ00012",
-            "entityType": "Object",
             "entityDesc": "Handset Lomez: IMEI 32-134654-224466-7",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
@@ -1494,9 +1351,6 @@
                     "sid": "GUIDO00013"
                 }
             ],
-            "entityGuid": "GUIDO00013",
-            "entityId": "OBJ00013",
-            "entityType": "Object",
             "entityDesc": "J Kennedy Mobile: +61 489 232 323",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
@@ -1510,9 +1364,6 @@
                     "sid": "GUIDO00014"
                 }
             ],
-            "entityGuid": "GUIDO00014",
-            "entityId": "OBJ00014",
-            "entityType": "Object",
             "entityDesc": "J Kennedy SIM: IMSI: 321-45-123456789",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
@@ -1526,9 +1377,6 @@
                     "sid": "GUIDO00015"
                 }
             ],
-            "entityGuid": "GUIDO00015",
-            "entityId": "OBJ00015",
-            "entityType": "Object",
             "entityDesc": "B Ramage Mobile: +61 491 789 987",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
@@ -1542,9 +1390,6 @@
                     "sid": "GUIDO00016"
                 }
             ],
-            "entityGuid": "GUIDO00016",
-            "entityId": "OBJ00016",
-            "entityType": "Object",
             "entityDesc": "B Ramage SIM: IMSI: 321-22-987654321",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
@@ -1558,9 +1403,6 @@
                     "sid": "GUIDO00017"
                 }
             ],
-            "entityGuid": "GUIDO00017",
-            "entityId": "OBJ00017",
-            "entityType": "Object",
             "entityDesc": "P Lomez Mobile: +61 495 300 003",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
@@ -1574,9 +1416,6 @@
                     "sid": "GUIDO00018"
                 }
             ],
-            "entityGuid": "GUIDO00018",
-            "entityId": "OBJ00018",
-            "entityType": "Object",
             "entityDesc": "P lomez SIM: IMSI: 432-33-086421321",
             "sourcen": "DEMO_SYSTEM",
             "origin": "IMS",
@@ -1592,9 +1431,6 @@
                     "sid": "GUIDA00001"
                 }
             ],
-            "entityGuid": "GUIDA00001",
-            "entityId": "ACT00001",
-            "entityType": "Activity",
             "entityDesc": "Attain WS: Hilda Friedel",
             "entityTime": "2018-04-24 10:00:00",
             "sourcen": "DEMO_SYSTEM",
@@ -1612,9 +1448,6 @@
                     "sid": "GUIDA00002"
                 }
             ],
-            "entityGuid": "GUIDA00002",
-            "entityId": "ACT00002",
-            "entityType": "Activity",
             "entityDesc": "Attain WS: Rosario Gomez",
             "entityTime": "2018-05-09 11:00:00",
             "sourcen": "DEMO_SYSTEM",
@@ -1632,9 +1465,6 @@
                     "sid": "GUIDA00003"
                 }
             ],
-            "entityGuid": "GUIDA00003",
-            "entityId": "ACT00003",
-            "entityType": "Activity",
             "entityDesc": "Attain WS: Jerry Roberts",
             "entityTime": "2018-05-02 12:30:00",
             "sourcen": "DEMO_SYSTEM",
@@ -1652,9 +1482,6 @@
                     "sid": "GUIDA00004"
                 }
             ],
-            "entityGuid": "GUIDA00004",
-            "entityId": "ACT00004",
-            "entityType": "Activity",
             "entityDesc": "Phone intercept: J Kennedy - B Ramage",
             "entityTime": "2018-04-24 13:00:00",
             "sourcen": "DEMO_SYSTEM",
@@ -1668,9 +1495,6 @@
                     "sid": "GUIDA00005"
                 }
             ],
-            "entityGuid": "GUIDA00005",
-            "entityId": "ACT00005",
-            "entityType": "Activity",
             "entityDesc": "Phone intercept: J Kennedy - P Lomez",
             "entityTime": "2018-04-25 20:00:00",
             "sourcen": "DEMO_SYSTEM",
@@ -1684,9 +1508,6 @@
                     "sid": "GUIDA00006"
                 }
             ],
-            "entityGuid": "GUIDA00006",
-            "entityId": "ACT00006",
-            "entityType": "Activity",
             "entityDesc": "Honeypot: New client",
             "entityTime": "2018-04-01 09:00:00",
             "sourcen": "DEMO_SYSTEM",
@@ -1702,9 +1523,6 @@
                     "sid": "GUIDL00001"
                 }
             ],
-            "entityGuid": "GUIDL00001",
-            "entityId": "LOC0001",
-            "entityType": "Location",
             "entityDesc": "Kennedy Cleaning Services Pty Ltd Premises",
             "position": {
                 "type": "Point",
@@ -1730,11 +1548,7 @@
                     "sid": "GUIDL00002"
                 }
             ],
-            "entityGuid": "GUIDL00002",
-            "entityId": "LOC0002",
-            "entityType": "Location",
             "entityDesc": "JK Cleaning Services Pty Ltd Premises",
-            "entityTime": "",
             "position": {
                 "type": "Point",
                 "coordinates": [
@@ -1743,14 +1557,12 @@
                 ]
             },
             "sourcen": "DEMO_SYSTEM",
-            "origin": "",
             "locationCategory": "street",
             "houseNumber": "70",
             "street": "Kent",
             "city": "London",
             "postalCode": "2600",
             "country": "England",
-            "region": "",
             "locationType": "Business Premises"
         },
         {
@@ -1761,9 +1573,6 @@
                     "sid": "GUIDL00003"
                 }
             ],
-            "entityGuid": "GUIDL00003",
-            "entityId": "LOC0003",
-            "entityType": "Location",
             "entityDesc": "Joseph Kennedy Residence",
             "position": {
                 "type": "Point",
@@ -1789,9 +1598,6 @@
                     "sid": "GUIDL00004"
                 }
             ],
-            "entityGuid": "GUIDL00004",
-            "entityId": "LOC0004",
-            "entityType": "Location",
             "entityDesc": "Trentham Property Group Premises",
             "position": {
                 "type": "Point",
@@ -1817,9 +1623,6 @@
                     "sid": "GUIDL00005"
                 }
             ],
-            "entityGuid": "GUIDL00005",
-            "entityId": "LOC0005",
-            "entityType": "Location",
             "entityDesc": "Truscott Holdings Premises",
             "position": {
                 "type": "Point",
@@ -1845,9 +1648,6 @@
                     "sid": "GUIDL00006"
                 }
             ],
-            "entityGuid": "GUIDL00006",
-            "entityId": "LOC0006",
-            "entityType": "Location",
             "entityDesc": "Royal Constuction Pty Ltd Premises",
             "position": {
                 "type": "Point",
@@ -1873,9 +1673,6 @@
                     "sid": "GUIDL00007"
                 }
             ],
-            "entityGuid": "GUIDL00007",
-            "entityId": "LOC0007",
-            "entityType": "Location",
             "entityDesc": "Ramage Industrial Fit Outs Pty Ltd Premises",
             "position": {
                 "type": "Point",
@@ -1901,9 +1698,6 @@
                     "sid": "GUIDL00008"
                 }
             ],
-            "entityGuid": "GUIDL00008",
-            "entityId": "LOC0008",
-            "entityType": "Location",
             "entityDesc": "TLV Airport Collective Premises",
             "position": {
                 "type": "Point",
@@ -1929,9 +1723,6 @@
                     "sid": "GUIDL00009"
                 }
             ],
-            "entityGuid": "GUIDL00009",
-            "entityId": "LOC0009",
-            "entityType": "Location",
             "entityDesc": "Alex Kennedy Residence",
             "position": {
                 "type": "Point",
@@ -1957,9 +1748,6 @@
                     "sid": "GUIDL00010"
                 }
             ],
-            "entityGuid": "GUIDL00010",
-            "entityId": "LOC0010",
-            "entityType": "Location",
             "entityDesc": "Jerry Roberts Residence",
             "position": {
                 "type": "Point",
@@ -1985,9 +1773,6 @@
                     "sid": "GUIDL00011"
                 }
             ],
-            "entityGuid": "GUIDL00011",
-            "entityId": "LOC0011",
-            "entityType": "Location",
             "entityDesc": "Dingley Apartments",
             "position": {
                 "type": "Point",
@@ -2012,9 +1797,7 @@
                     "type": "Location",
                     "sid": "GUIDL00012"
                 }
-            ],
-            "entityGuid": "GUIDL00012",
-            "entityId": "LOC0012"
+            ]
         }
     ],
     "RelCasesActivity": [
@@ -2264,6 +2047,33 @@
                     }
                 ]
             }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelLocationPerson",
+                    "sid": "obj44"
+                }
+            ],
+            "location": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Location",
+                        "sid": "GUIDL00009"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00002"
+                    }
+                ]
+            }
         }
     ],
     "Incidents": [
@@ -2275,9 +2085,6 @@
                     "sid": "GUIDI00001"
                 }
             ],
-            "entityGuid": "GUIDI00001",
-            "entityId": "INC00001",
-            "entityType": "Incident",
             "entityDesc": "Assault: J Kennedy on J Roberts",
             "entityTime": "2011-10-11 15:15:00",
             "position": {
@@ -2299,9 +2106,6 @@
                     "sid": "GUIDI00002"
                 }
             ],
-            "entityGuid": "GUIDI00002",
-            "entityId": "INC00002",
-            "entityType": "Incident",
             "entityDesc": "Threat of violence: J Kennedy on Rogerio Gomez",
             "entityTime": "2017-10-13 10:00:00",
             "position": {
@@ -2325,9 +2129,6 @@
                     "sid": "GUIDLE00001"
                 }
             ],
-            "entityGuid": "GUIDLE00001",
-            "entityId": "LEAD00001",
-            "entityType": "Lead",
             "entityDesc": "Kennedy J: ATO Referral",
             "entityTime": "2018-03-15 09:00:00",
             "sourcen": "DEMO_SYSTEM",
@@ -2344,9 +2145,6 @@
                     "sid": "GUIDLE00002"
                 }
             ],
-            "entityGuid": "GUIDLE00002",
-            "entityId": "LEAD00002",
-            "entityType": "Lead",
             "entityDesc": "Kennedy J: Cash payment for Carribean Cruise",
             "entityTime": "2016-06-30 10:30:00",
             "sourcen": "DEMO_SYSTEM",
@@ -2363,9 +2161,6 @@
                     "sid": "GUIDLE00003"
                 }
             ],
-            "entityGuid": "GUIDLE00003",
-            "entityId": "LEAD00003",
-            "entityType": "Lead",
             "entityDesc": "Kennedy J: Cash payment for house extension",
             "entityTime": "2017-01-25 15:00:00",
             "sourcen": "DEMO_SYSTEM",

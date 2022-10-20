@@ -28,7 +28,7 @@ from constants import (CONCURRENT_CONNECTIONS, TENANT_ID_MAX_LENGTH,
                        DBUserType)
 from db_connection_pool import (ConnectionPool, Credentials, DBBulkProcessing,
                                 DBConnection)
-from esh_objects import EshObject
+from esh_client import EshObject
 from request_mapping import map_request
 
 # run with uvicorn src.server:app --reload

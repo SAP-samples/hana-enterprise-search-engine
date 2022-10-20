@@ -1,7 +1,7 @@
 '''
 External to internal mapping of query
 '''
-import esh_objects as esh
+import esh_client as esh
 
 def extract_pathes(query: esh.EshObject):
     pathes = {tuple(['id']):''}

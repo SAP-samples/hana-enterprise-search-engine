@@ -1,0 +1,1739 @@
+{
+  "definitions": {
+    "CodeList": {
+      "kind": "aspect",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "code": {
+          "type": "cds.String",
+          "length": 40
+        },
+        "description": {
+          "type": "cds.String",
+          "length": 256
+        }
+      }
+    },
+    "CountryCode": {
+      "kind": "entity",
+      "includes": [
+        "CodeList"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "code": {
+          "type": "cds.String",
+          "length": 40
+        },
+        "description": {
+          "type": "cds.String",
+          "length": 256
+        }
+      }
+    },
+    "RelTypeCode": {
+      "kind": "entity",
+      "includes": [
+        "CodeList"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "code": {
+          "type": "cds.String",
+          "length": 40
+        },
+        "description": {
+          "type": "cds.String",
+          "length": 256
+        }
+      }
+    },
+    "Cases": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "entityGuid": {
+          "type": "cds.UUID"
+        },
+        "entityId": {
+          "type": "cds.String"
+        },
+        "entityType": {
+          "type": "cds.String"
+        },
+        "entityDesc": {
+          "type": "cds.String"
+        },
+        "entityTime": {
+          "type": "cds.String"
+        },
+        "sourcen": {
+          "type": "cds.String"
+        },
+        "origin": {
+          "type": "cds.String"
+        },
+        "caseType": {
+          "type": "cds.String"
+        },
+        "priority": {
+          "type": "cds.String"
+        },
+        "status": {
+          "type": "cds.String"
+        },
+        "caseCategory": {
+          "type": "cds.String"
+        },
+        "caseOwner": {
+          "type": "cds.String"
+        },
+        "caseStartDate": {
+          "type": "cds.Date"
+        },
+        "caseStartTime": {
+          "type": "cds.String"
+        },
+        "caseEndDate": {
+          "type": "cds.Date"
+        },
+        "caseEndTime": {
+          "type": "cds.String"
+        },
+        "caseSummary": {
+          "type": "cds.String"
+        },
+        "relPerson": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelCasesPerson",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relObject": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelCasesObject",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relActivity": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelCasesActivity",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relIncident": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelCasesIncident",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relLeads": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelLeadsCases",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "Person": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "entityGuid": {
+          "type": "cds.UUID"
+        },
+        "entityId": {
+          "type": "cds.String"
+        },
+        "entityType": {
+          "type": "cds.String"
+        },
+        "sourcen": {
+          "type": "cds.String"
+        },
+        "origin": {
+          "type": "cds.String"
+        },
+        "firstName": {
+          "type": "cds.String"
+        },
+        "lastName": {
+          "type": "cds.String"
+        },
+        "dob": {
+          "type": "cds.String"
+        },
+        "age": {
+          "type": "cds.Integer"
+        },
+        "complexion": {
+          "type": "cds.String"
+        },
+        "ethnicity": {
+          "type": "cds.String"
+        },
+        "height": {
+          "type": "cds.Integer"
+        },
+        "gender": {
+          "type": "cds.String"
+        },
+        "countryOfBirth": {
+          "type": "cds.String"
+        },
+        "country": {
+          "type": "cds.String"
+        },
+        "familyName": {
+          "type": "cds.String"
+        },
+        "fullName": {
+          "type": "cds.String"
+        },
+        "birthName": {
+          "type": "cds.String"
+        },
+        "otherName": {
+          "type": "cds.String"
+        },
+        "placeOfBirth": {
+          "type": "cds.String"
+        },
+        "nationality": {
+          "type": "cds.String"
+        },
+        "secondNationality": {
+          "type": "cds.String"
+        },
+        "additionalRemarks": {
+          "type": "cds.String"
+        },
+        "city": {
+          "type": "cds.String"
+        },
+        "relCases": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelCasesPerson",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relObject": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelPersonObject",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relActivity": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelActivityPerson",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relLocation": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelLocationPerson",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relIncident": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelIncidentPerson",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relLeads": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelLeadsPerson",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "RelCasesPerson": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "cases": {
+          "type": "cds.Association",
+          "target": "Cases",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "person": {
+          "type": "cds.Association",
+          "target": "Person",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "Object": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "entityGuid": {
+          "type": "cds.UUID"
+        },
+        "entityId": {
+          "type": "cds.String"
+        },
+        "entityType": {
+          "type": "cds.String"
+        },
+        "entityDesc": {
+          "type": "cds.String"
+        },
+        "sourcen": {
+          "type": "cds.String"
+        },
+        "origin": {
+          "type": "cds.String"
+        },
+        "objectCategory": {
+          "type": "cds.String"
+        },
+        "relCases": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelCasesObject",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relPerson": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelPersonObject",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relActivity": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelActivityObject",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relLocation": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelObjectLocation",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "RelCasesObject": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "cases": {
+          "type": "cds.Association",
+          "target": "Cases",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "object": {
+          "type": "cds.Association",
+          "target": "Object",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "RelPersonObject": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "person": {
+          "type": "cds.Association",
+          "target": "Person",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "object": {
+          "type": "cds.Association",
+          "target": "Object",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "Activity": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "entityGuid": {
+          "type": "cds.UUID"
+        },
+        "entityId": {
+          "type": "cds.String"
+        },
+        "entityType": {
+          "type": "cds.String"
+        },
+        "entityDesc": {
+          "type": "cds.String"
+        },
+        "entityTime": {
+          "type": "cds.String"
+        },
+        "sourcen": {
+          "type": "cds.String"
+        },
+        "origin": {
+          "type": "cds.String"
+        },
+        "activityType": {
+          "type": "cds.String"
+        },
+        "location": {
+          "type": "cds.String"
+        },
+        "activityCategory": {
+          "type": "cds.String"
+        },
+        "activityOwner": {
+          "type": "cds.String"
+        },
+        "activityStartDate": {
+          "type": "cds.Date"
+        },
+        "activityStartTime": {
+          "type": "cds.String"
+        },
+        "activityEndDate": {
+          "type": "cds.Date"
+        },
+        "activityEndTime": {
+          "type": "cds.String"
+        },
+        "activitySummary": {
+          "type": "cds.String"
+        },
+        "activityPriority": {
+          "type": "cds.String"
+        },
+        "activityStatus": {
+          "type": "cds.String"
+        },
+        "relCases": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelCasesActivity",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relPerson": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelActivityPerson",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relObject": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelActivityObject",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "RelCasesActivity": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "cases": {
+          "type": "cds.Association",
+          "target": "Cases",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "activity": {
+          "type": "cds.Association",
+          "target": "Activity",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "RelActivityPerson": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "activity": {
+          "type": "cds.Association",
+          "target": "Activity",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "person": {
+          "type": "cds.Association",
+          "target": "Person",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "RelActivityObject": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "activity": {
+          "type": "cds.Association",
+          "target": "Activity",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "object": {
+          "type": "cds.Association",
+          "target": "Object",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "Location": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "entityGuid": {
+          "type": "cds.UUID"
+        },
+        "entityId": {
+          "type": "cds.String"
+        },
+        "entityType": {
+          "type": "cds.String"
+        },
+        "entityDesc": {
+          "type": "cds.String"
+        },
+        "entityTime": {
+          "type": "cds.String"
+        },
+        "position": {
+          "type": "cds.hana.ST_POINT",
+          "srid": 4326
+        },
+        "sourcen": {
+          "type": "cds.String"
+        },
+        "origin": {
+          "type": "cds.String"
+        },
+        "locationCategory": {
+          "type": "cds.String"
+        },
+        "houseNumber": {
+          "type": "cds.String"
+        },
+        "street": {
+          "type": "cds.String"
+        },
+        "city": {
+          "type": "cds.String"
+        },
+        "postalCode": {
+          "type": "cds.String"
+        },
+        "country": {
+          "type": "cds.String"
+        },
+        "region": {
+          "type": "cds.String"
+        },
+        "locationType": {
+          "type": "cds.String"
+        },
+        "relObject": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelObjectLocation",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relPerson": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelLocationPerson",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relIncidents": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelIncidentLocation",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "RelObjectLocation": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "object": {
+          "type": "cds.Association",
+          "target": "Object",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "location": {
+          "type": "cds.Association",
+          "target": "Location",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "RelLocationPerson": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "location": {
+          "type": "cds.Association",
+          "target": "Location",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "person": {
+          "type": "cds.Association",
+          "target": "Person",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "Incidents": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "entityGuid": {
+          "type": "cds.UUID"
+        },
+        "entityId": {
+          "type": "cds.String"
+        },
+        "entityType": {
+          "type": "cds.String"
+        },
+        "entityDesc": {
+          "type": "cds.String"
+        },
+        "entityTime": {
+          "type": "cds.String"
+        },
+        "position": {
+          "type": "cds.hana.ST_POINT"
+        },
+        "sourcen": {
+          "type": "cds.String"
+        },
+        "origin": {
+          "type": "cds.String"
+        },
+        "incidentType": {
+          "type": "cds.String"
+        },
+        "startDate": {
+          "type": "cds.Date"
+        },
+        "endDate": {
+          "type": "cds.Date"
+        },
+        "reportedBy": {
+          "type": "cds.String"
+        },
+        "location": {
+          "type": "cds.String"
+        },
+        "incidentStartTime": {
+          "type": "cds.String"
+        },
+        "incidentEndTime": {
+          "type": "cds.String"
+        },
+        "relLocation": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelIncidentLocation",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relPerson": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelIncidentPerson",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relCases": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelCasesIncident",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "RelIncidentLocation": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "incident": {
+          "type": "cds.Association",
+          "target": "Incidents",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "location": {
+          "type": "cds.Association",
+          "target": "Location",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "RelIncidentPerson": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "incident": {
+          "type": "cds.Association",
+          "target": "Incidents",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "person": {
+          "type": "cds.Association",
+          "target": "Person",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "RelCasesIncident": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "cases": {
+          "type": "cds.Association",
+          "target": "Cases",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "incident": {
+          "type": "cds.Association",
+          "target": "Incidents",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "Leads": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "entityGuid": {
+          "type": "cds.UUID"
+        },
+        "entityId": {
+          "type": "cds.String"
+        },
+        "entityType": {
+          "type": "cds.String"
+        },
+        "entityDesc": {
+          "type": "cds.String"
+        },
+        "entityTime": {
+          "type": "cds.String"
+        },
+        "sourcen": {
+          "type": "cds.String"
+        },
+        "origin": {
+          "type": "cds.String"
+        },
+        "leadType": {
+          "type": "cds.String"
+        },
+        "leadCategory": {
+          "type": "cds.String"
+        },
+        "leadOwner": {
+          "type": "cds.String"
+        },
+        "leadStartDate": {
+          "type": "cds.Date"
+        },
+        "leadStartTime": {
+          "type": "cds.String"
+        },
+        "leadEndDate": {
+          "type": "cds.Date"
+        },
+        "leadEndTime": {
+          "type": "cds.String"
+        },
+        "leadSummary": {
+          "type": "cds.String"
+        },
+        "leadPriority": {
+          "type": "cds.String"
+        },
+        "leadStatus": {
+          "type": "cds.String"
+        },
+        "relCases": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelLeadsCases",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "relPerson": {
+          "@sap.esh.isVirtual": true,
+          "type": "cds.Association",
+          "target": "RelLeadsPerson",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "RelLeadsCases": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "lead": {
+          "type": "cds.Association",
+          "target": "Leads",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "cases": {
+          "type": "cds.Association",
+          "target": "Cases",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "RelLeadsPerson": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "lead": {
+          "type": "cds.Association",
+          "target": "Leads",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "person": {
+          "type": "cds.Association",
+          "target": "Person",
+          "keys": [
+            {
+              "ref": [
+                "id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "Relationship": {
+      "kind": "entity",
+      "includes": [
+        "sap.esh.Identifier"
+      ],
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        },
+        "relationshipGuid": {
+          "type": "cds.UUID"
+        },
+        "sourceRefId": {
+          "type": "cds.String"
+        },
+        "targetRefId": {
+          "type": "cds.String"
+        },
+        "relTypeCode": {
+          "type": "cds.String"
+        },
+        "sourceSystem": {
+          "type": "cds.String"
+        },
+        "origin": {
+          "type": "cds.String"
+        }
+      }
+    },
+    "sap.esh.Identifier": {
+      "kind": "aspect",
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.UUID"
+        },
+        "source": {
+          "items": {
+            "elements": {
+              "name": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "type": {
+                "type": "cds.String",
+                "length": 4000
+              },
+              "sid": {
+                "type": "cds.String",
+                "length": 4000
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "meta": {
+    "creator": "CDS Compiler v3.1.2",
+    "flavor": "inferred"
+  },
+  "$version": "2.0"
+}

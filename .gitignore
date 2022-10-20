@@ -1,5 +1,5 @@
 # application specific
-.config.json
+.config.*
 .vscode/launch.json
 
 # Byte-compiled / optimized / DLL files

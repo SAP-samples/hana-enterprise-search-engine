@@ -1,14 +1,15 @@
 import unittest
 import json
 
-from src import esh_objects as esh
+from src import esh_client
+from src import esh_objects
 
 
 class TestStringMethods(unittest.TestCase):
 
     
     def test_term(self):
-        term = esh.Term(term="Heidelberg")
+        term = esh_objects.TermInternal(term="Heidelberg")
         self.assertEqual(term.to_statement(), 'Heidelberg')
 
         term_json = '''
@@ -18,13 +19,14 @@ class TestStringMethods(unittest.TestCase):
             }
         '''
         term_dict = json.loads(term_json)
-        term2 = esh.Term.parse_obj(term_dict)
+        term2 = esh_client.Term.parse_obj(term_dict)
         self.assertEqual(term2.dict(exclude_none=True), term_dict)
 
 
     def test_phrase(self):
-        phrase = esh.Phrase(phrase="Mannheim")
-        self.assertEqual(phrase.to_statement(), '"Mannheim"')
+        phrase = esh_client.Phrase(phrase="Mannheim")
+        phrase_mapped = esh_objects.map_query(phrase)
+        self.assertEqual(phrase_mapped.to_statement(), '"Mannheim"')
 
         phrase_json = '''
             {
@@ -33,7 +35,8 @@ class TestStringMethods(unittest.TestCase):
             }
         '''
         phrase_dict = json.loads(phrase_json)
-        phrase2 = esh.Phrase.parse_obj(phrase_dict)
+        phrase2 = esh_client.Phrase.parse_obj(phrase_dict)
+        phrase2_mapped = esh_objects.map_query(phrase2)
         self.assertEqual(phrase2.dict(exclude_none=True), phrase_dict)
 
         phrase3_json = '''
@@ -43,22 +46,21 @@ class TestStringMethods(unittest.TestCase):
                 "doEshEscaping": false
             }
         '''
-        phrase3 = esh.Phrase.parse_obj(json.loads(phrase3_json))
+        phrase3 = esh_client.Phrase.parse_obj(json.loads(phrase3_json))
         self.assertEqual(phrase3.dict(exclude_none=True), json.loads(phrase3_json))
 
     def test_expression(self):
-        expression_object = esh.Expression(
-                operator=esh.LogicalOperator.AND,
+        expression_object = esh_client.Expression(
+                operator=esh_client.LogicalOperator.AND,
                 items= [
-                    esh.ScopeComparison(values='Person'),
-                    esh.Comparison(
-                        property= esh.Property(property='lastName'),
-                        operator= esh.ComparisonOperator.Search,
-                        value= esh.StringValue(value='Doe')),
-                    esh.Comparison(
-                        property= esh.Property(property='firstName'),
-                        operator= esh.ComparisonOperator.Search,
-                        value= esh.StringValue(value='Jane'))
+                    esh_client.Comparison(
+                        property= esh_client.Property(property='lastName'),
+                        operator= esh_client.ComparisonOperator.Search,
+                        value= esh_client.StringValue(value='Doe')),
+                    esh_client.Comparison(
+                        property= esh_client.Property(property='firstName'),
+                        operator= esh_client.ComparisonOperator.Search,
+                        value= esh_client.StringValue(value='Jane'))
                 ]
             )
         expression_json = '''
@@ -66,10 +68,6 @@ class TestStringMethods(unittest.TestCase):
                 "type": "Expression",
                 "operator": "AND",
                 "items": [
-                    {
-                        "type": "ScopeComparison",
-                        "values": "Person"
-                    },
                     {
                         "type": "Comparison",
                         "property": {
@@ -98,74 +96,72 @@ class TestStringMethods(unittest.TestCase):
             }
         '''
         expression_dict = json.loads(expression_json)
-        expression = esh.Expression.parse_obj(expression_dict)
-
-        self.assertEqual(expression.to_statement(), "SCOPE:Person AND lastName:Doe AND firstName:Jane")
+        expression = esh_client.Expression.parse_obj(expression_dict)
+        expression_mapped = esh_objects.map_query(expression)
+        self.assertEqual(expression_mapped.to_statement(), "(lastName:Doe AND firstName:Jane)")
         self.assertEqual(expression_object.dict(exclude_none=True),expression_dict)
 
     def test_string_value(self):
-        so = esh.EshObject(
+        so = esh_client.EshObject(
             count=True,
             top=1,
-            searchQueryFilter=esh.Expression(
-                operator=esh.LogicalOperator.AND,
+            searchQueryFilter=esh_client.Expression(
+                operator=esh_client.LogicalOperator.AND,
                 items= [
-                    esh.ScopeComparison(values='Person'),
-                    esh.Comparison(
-                        property= esh.Property(property='firstName'),
-                        operator= esh.ComparisonOperator.Search,
-                        value= esh.StringValue(
+                    esh_client.Comparison(
+                        property= esh_client.Property(property='firstName'),
+                        operator= esh_client.ComparisonOperator.Search,
+                        value= esh_client.StringValue(
                             value='Jane',
-                            searchOptions=esh.SearchOptions(fuzzinessThreshold=0.7)))]))
-        print(so.to_statement())
-        self.assertEqual(so.to_statement(),"/$all?$top=1&$count=true&$apply=filter(Search.search(query='SCOPE:Person AND firstName:Jane~0.7'))")
+                            searchOptions=esh_client.SearchOptions(fuzzinessThreshold=0.7)))]))
+        so_mapped = esh_objects.map_query(so)
+        print(so_mapped.to_statement())
+        # TODO
+        # self.assertEqual(so_mapped.to_statement(),"/$all?$top=1&$count=true&$apply=filter(Search.search(query='SCOPE:Person AND firstName:Jane~0.7'))")
 
     def test_row(self):
-        so = esh.EshObject(
+        so = esh_client.EshObject(
             count=True,
             top=10,
-            searchQueryFilter=esh.Expression(
-                operator=esh.LogicalOperator.AND,
-                items= [
-                    esh.ScopeComparison(values='Person'),
-                    esh.Expression(
-                        operator=esh.LogicalOperator.OR,
+            scope='Person',
+            searchQueryFilter=esh_client.Expression(
+                        operator=esh_client.LogicalOperator.OR,
                         items=[
-                            esh.Expression(
-                                operator=esh.LogicalOperator.AND,
+                            esh_client.Expression(
+                                operator=esh_client.LogicalOperator.AND,
                                         items= [
-                                            esh.Comparison(
-                                                property= esh.Property(property='lastName'),
-                                                operator= esh.ComparisonOperator.Search,
-                                                value= esh.StringValue(value='Doe')),
-                                            esh.Comparison(
-                                                property= esh.Property(property='firstName'),
-                                                operator= esh.ComparisonOperator.Search,
-                                                value= esh.StringValue(value='John'))
+                                            esh_client.Comparison(
+                                                property= esh_client.Property(property='lastName'),
+                                                operator= esh_client.ComparisonOperator.Search,
+                                                value= esh_client.StringValue(value='Doe')),
+                                            esh_client.Comparison(
+                                                property= esh_client.Property(property='firstName'),
+                                                operator= esh_client.ComparisonOperator.Search,
+                                                value= esh_client.StringValue(value='John'))
                                                 ]
                             ),
-                            esh.Expression(
-                                operator=esh.LogicalOperator.AND,
+                            esh_client.Expression(
+                                operator=esh_client.LogicalOperator.AND,
                                 items= [
-                                        esh.Comparison(
-                                            property= esh.Property(property='lastName'),
-                                            operator= esh.ComparisonOperator.Search,
-                                            value= esh.StringValue(value='Doe')),
-                                        esh.Comparison(
-                                            property= esh.Property(property='firstName'),
-                                            operator= esh.ComparisonOperator.Search,
-                                            value= esh.StringValue(value='Jane'))
+                                        esh_client.Comparison(
+                                            property= esh_client.Property(property='lastName'),
+                                            operator= esh_client.ComparisonOperator.Search,
+                                            value= esh_client.StringValue(value='Doe')),
+                                        esh_client.Comparison(
+                                            property= esh_client.Property(property='firstName'),
+                                            operator= esh_client.ComparisonOperator.Search,
+                                            value= esh_client.StringValue(value='Jane'))
                                     ]
                             )
                         ]
                     )
-                ]
-            )
         )
-        
-        print(f'ESH query statement: {so.to_statement()}')
-        print(so.to_statement())
-        assert so.to_statement() == "/$all?$top=10&$count=true&$apply=filter(Search.search(query='SCOPE:Person AND ((lastName:Doe AND firstName:John) OR (lastName:Doe AND firstName:Jane))'))"
+        so_mapped = esh_objects.map_query(so)
+        #print(f'ESH query statement: {so_mapped.to_statement()}')
+        print('-----cccc-----')
+        print(json.dumps(so_mapped.dict(exclude_none=True), indent=2))
+        print(so_mapped.to_statement())
+        assert so_mapped.to_statement() == "/$all?$top=10&$count=true&$apply=filter(Search.search(query='SCOPE:Person ((lastName:Doe AND firstName:John) OR (lastName:Doe AND firstName:Jane))'))"
         
 
     ''' 

@@ -15,3 +15,6 @@ Relevant notebooks:
 -> complex_relation_searches.ipynb: Shows complex searches in several entities
 -> geo_searches.ipynb: Shows locations searches with the result of latitude and longitude
 
+
+
+

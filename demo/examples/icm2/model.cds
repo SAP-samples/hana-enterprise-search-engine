@@ -13,9 +13,6 @@ entity RelTypeCode : CodeList {}
 // }
 
 entity Cases : Identifier {
-    entityGuid    : UUID;
-    entityId      : String;
-    entityType    : String;
     entityDesc    : String;
     entityTime    : String;
     sourcen       : String;
@@ -24,7 +21,6 @@ entity Cases : Identifier {
     priority      : String;
     status        : String;
     caseCategory  : String;
-    caseOwner     : String;
     caseStartDate : Date;
     caseStartTime : String;
     caseEndDate   : Date;
@@ -44,9 +40,6 @@ entity Cases : Identifier {
 
 
 entity Person : Identifier {
-    entityGuid        : UUID;
-    entityId          : String;
-    entityType        : String;
     sourcen           : String;
     origin            : String;
     firstName         : String;
@@ -59,15 +52,10 @@ entity Person : Identifier {
     gender            : String;
     countryOfBirth    : String;
     country           : String;
-    familyName        : String;
-    fullName          : String;
-    birthName         : String;
-    otherName         : String;
     placeOfBirth      : String;
     nationality       : String;
     secondNationality : String;
     additionalRemarks : String;
-    city              : String;
     @sap.esh.isVirtual
     relCases          : Association to RelCasesPerson;
     @sap.esh.isVirtual
@@ -92,9 +80,6 @@ entity RelCasesPerson : Identifier {
 }
 
 entity Object : Identifier {
-    entityGuid     : UUID;
-    entityId       : String;
-    entityType     : String;
     entityDesc     : String;
     sourcen        : String;
     origin         : String;
@@ -122,24 +107,14 @@ entity RelPersonObject : Identifier {
 }
 
 entity Activity : Identifier {
-    entityGuid        : UUID;
-    entityId          : String;
-    entityType        : String;
     entityDesc        : String;
     entityTime        : String;
     sourcen           : String;
     origin            : String;
     activityType      : String;
     location          : String;
-    activityCategory  : String;
-    activityOwner     : String;
     activityStartDate : Date;
-    activityStartTime : String;
     activityEndDate   : Date;
-    activityEndTime   : String;
-    activitySummary   : String;
-    activityPriority  : String;
-    activityStatus    : String;
     @sap.esh.isVirtual
     relCases          : Association to RelCasesActivity;
     @sap.esh.isVirtual
@@ -169,21 +144,15 @@ entity RelActivityObject : Identifier {
 
 
 entity Location : Identifier {
-    entityGuid       : UUID;
-    entityId         : String;
-    entityType       : String;
     entityDesc       : String;
-    entityTime       : String;
     position         : hana.ST_POINT(4326); //Position
     sourcen          : String;
-    origin           : String;
     locationCategory : String;
     houseNumber      : String;
     street           : String;
     city             : String;
     postalCode       : String;
     country          : String;
-    region           : String;
     locationType     : String;
     @sap.esh.isVirtual
     relObject        : Association to RelObjectLocation;
@@ -207,9 +176,6 @@ entity RelLocationPerson : Identifier {
 }
 
 entity Incidents : Identifier {
-    entityGuid        : UUID;
-    entityId          : String;
-    entityType        : String;
     entityDesc        : String;
     entityTime        : String;
     position          : hana.ST_POINT; //Position
@@ -249,27 +215,17 @@ entity RelCasesIncident : Identifier {
 }
 
 entity Leads : Identifier {
-    entityGuid    : UUID;
-    entityId      : String;
-    entityType    : String;
-    entityDesc    : String;
-    entityTime    : String;
-    sourcen       : String;
-    origin        : String;
-    leadType      : String;
-    leadCategory  : String;
-    leadOwner     : String;
-    leadStartDate : Date;
-    leadStartTime : String;
-    leadEndDate   : Date;
-    leadEndTime   : String;
-    leadSummary   : String;
-    leadPriority  : String;
-    leadStatus    : String;
+    entityDesc  : String;
+    entityTime  : String;
+    sourcen     : String;
+    origin      : String;
+    leadType    : String;
+    leadSummary : String;
+    leadStatus  : String;
     @sap.esh.isVirtual
-    relCases      : Association to RelLeadsCases;
+    relCases    : Association to RelLeadsCases;
     @sap.esh.isVirtual
-    relPerson     : Association to RelLeadsPerson;
+    relPerson   : Association to RelLeadsPerson;
 }
 
 entity RelLeadsCases : Identifier {
@@ -285,7 +241,6 @@ entity RelLeadsPerson : Identifier {
 }
 
 entity Relationship : Identifier {
-    relationshipGuid : UUID;
     sourceRefId      : String;
     targetRefId      : String;
     relTypeCode      : String;

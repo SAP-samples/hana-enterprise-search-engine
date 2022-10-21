@@ -1527,8 +1527,8 @@
             "position": {
                 "type": "Point",
                 "coordinates": [
-                    51.560760544987865,
-                    -0.35568797163571464
+                    -0.06082391245791958,
+                    51.5115961331511
                 ]
             },
             "sourcen": "DEMO_SYSTEM",
@@ -1552,8 +1552,8 @@
             "position": {
                 "type": "Point",
                 "coordinates": [
-                    51.5675900602574,
-                    -0.1977595112292078
+                    -0.07922981195512407,
+                    51.506496402535696
                 ]
             },
             "sourcen": "DEMO_SYSTEM",
@@ -1577,8 +1577,8 @@
             "position": {
                 "type": "Point",
                 "coordinates": [
-                    51.40168501692694,
-                    0.02059375141978827
+                    -0.05944583884249789,
+                    51.517286619586336
                 ]
             },
             "sourcen": "DEMO_SYSTEM",
@@ -1602,8 +1602,8 @@
             "position": {
                 "type": "Point",
                 "coordinates": [
-                    51.38026158483485,
-                    -0.13046825418643546
+                    -0.07944438867001156,
+                    51.51405516426107
                 ]
             },
             "sourcen": "DEMO_SYSTEM",
@@ -1627,8 +1627,8 @@
             "position": {
                 "type": "Point",
                 "coordinates": [
-                    51.496683944068565,
-                    0.08788500846256075
+                    -0.1017603675125375,
+                    51.51557744859428
                 ]
             },
             "sourcen": "DEMO_SYSTEM",
@@ -1652,8 +1652,8 @@
             "position": {
                 "type": "Point",
                 "coordinates": [
-                    51.560760544987865,
-                    -0.35568797163571464
+                    -0.09100566040099785,
+                    51.51193247732162
                 ]
             },
             "sourcen": "DEMO_SYSTEM",
@@ -1677,8 +1677,8 @@
             "position": {
                 "type": "Point",
                 "coordinates": [
-                    51.43765380329693,
-                    -0.6825312201291804
+                    -0.08742466507306709,
+                    51.50792830545193
                 ]
             },
             "sourcen": "DEMO_SYSTEM",
@@ -1702,8 +1702,8 @@
             "position": {
                 "type": "Point",
                 "coordinates": [
-                    51.48300259625972,
-                    0.2513066327092938
+                    -0.06624334550770546,
+                    51.50558621077371
                 ]
             },
             "sourcen": "DEMO_SYSTEM",
@@ -1727,8 +1727,8 @@
             "position": {
                 "type": "Point",
                 "coordinates": [
-                    51.32451370696893,
-                    -0.21011912986971698
+                    -0.07097727939337366,
+                    51.511932252979975
                 ]
             },
             "sourcen": "DEMO_SYSTEM",
@@ -1752,8 +1752,8 @@
             "position": {
                 "type": "Point",
                 "coordinates": [
-                    51.55393000391825,
-                    0.22109423158804903
+                    -0.07600007718858372,
+                    51.50868381865499
                 ]
             },
             "sourcen": "DEMO_SYSTEM",
@@ -1777,17 +1777,17 @@
             "position": {
                 "type": "Point",
                 "coordinates": [
-                    51.549660394810296,
-                    -0.38040720891673296
+                    8.64328522071792,
+                    49.304618751883005
                 ]
             },
             "sourcen": "DEMO_SYSTEM",
             "locationCategory": "street",
-            "houseNumber": "18",
-            "street": "Torrens",
-            "city": "London",
-            "postalCode": "2612",
-            "country": "England",
+            "houseNumber": " 13-1",
+            "street": "Heidelberger Str.",
+            "city": "Walldorf",
+            "postalCode": "69190",
+            "country": "Germany",
             "locationType": "Residence"
         },
         {
@@ -1797,7 +1797,23 @@
                     "type": "Location",
                     "sid": "GUIDL00012"
                 }
-            ]
+            ],
+            "entityDesc": "Walldorfer Appartment",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    8.642383987644662,
+                    49.30643058918701
+                ]
+            },
+            "sourcen": "DEMO_SYSTEM",
+            "locationCategory": "street",
+            "houseNumber": "1",
+            "street": "Hildastrasse",
+            "city": "Walldorf",
+            "postalCode": "69190",
+            "country": "Germany",
+            "locationType": "Office"
         }
     ],
     "RelCasesActivity": [
@@ -2071,6 +2087,33 @@
                         "name": "systemA",
                         "type": "Person",
                         "sid": "GUIDP00002"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelLocationPerson",
+                    "sid": "obj444"
+                }
+            ],
+            "location": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Location",
+                        "sid": "GUIDL00010"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00006"
                     }
                 ]
             }

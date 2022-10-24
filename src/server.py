@@ -667,6 +667,7 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
             view_ddls.append(view_ddl)
             dynamic_views.append(cv.view_name)
             # search_object = EshObject.parse_obj(query)
+            query.scope = cv.view_name # TODO implement this mapping od scopes
             search_object = map_query(query)
             search_object.select = ['ID']
             esh_query = search_object.to_statement()[1:]

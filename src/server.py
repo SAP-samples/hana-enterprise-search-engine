@@ -6,7 +6,6 @@ import json
 import logging
 import sys
 import uuid
-#from asyncio import gather, get_event_loop
 from datetime import datetime
 from typing import List
 
@@ -14,9 +13,7 @@ import httpx
 import uvicorn
 from fastapi import Body, FastAPI, HTTPException, Request, Response
 from fastapi.staticfiles import StaticFiles
-#from hdbcli.dbapi import DataError
 from hdbcli.dbapi import Error as HDBException
-#from hdbcli.dbapi import IntegrityError
 from starlette.responses import RedirectResponse
 
 import consistency_check
@@ -31,7 +28,8 @@ from constants import (CONCURRENT_CONNECTIONS, TENANT_ID_MAX_LENGTH,
                        DBUserType)
 from db_connection_pool import (ConnectionPool, Credentials, DBBulkProcessing,
                                 DBConnection)
-from esh_objects import EshObject
+from esh_client import EshObject
+from esh_objects import map_query
 from request_mapping import map_request
 
 # run with uvicorn src.server:app --reload
@@ -406,8 +404,8 @@ def perform_search(esh_version, tenant_id, esh_query, is_metadata = False):
     #logging.info(search_query)
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         tenant_schema_name = get_tenant_schema_name(tenant_id)
-        params = (json.dumps([f"/{esh_version}/{tenant_schema_name}{esh_query}"]), None)
-        db.cur.callproc('esh_search', params)
+        search_params = (json.dumps([f'/{esh_version}/{tenant_schema_name}{esh_query}']), None)
+        db.cur.callproc('esh_search', search_params)
         for row in db.cur.fetchall():
             if is_metadata:
                 return row[0]
@@ -455,14 +453,14 @@ def get_search_metadata_entity_set(tenant_id, esh_version, path):
     return Response(\
         content=perform_search(get_esh_version(esh_version), tenant_id, '/$metadata/{}' + path, True)\
             , media_type='application/xml')
-            
+
 @app.get('/v1/search/{tenant_id:path}/{esh_version:path}/$all/{path:path}')
 def get_search_all_suggestion(tenant_id, esh_version, path):
     return Response(\
         content=perform_search(get_esh_version(esh_version), tenant_id, f'/$all/{path}', True)\
             , media_type='application/json')
 
-@app.post("/eshobject")
+@app.post('/eshobject')
 async def update_eshobject(esh_object: EshObject):
 # async def update_eshobject(esh_object: EshObject, points: Point | LineString):
     # print(esh_object)
@@ -632,11 +630,11 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
     except Exception as e:
         return {'error': f'{e}'}
 
-def get_column_view(mapping, anchor_entity_name, schema_name, path_list):
+def get_column_view(mapping, anchor_entity_name, schema_name, path_list, auto_default_search_element):
     view_id = str(uuid.uuid4()).replace('-', '').upper()
-    view_name = f'VIEW/{view_id}'
-    odata_name = f'VIEW_{view_id}'
-    cv = ColumnView(mapping, anchor_entity_name, schema_name)
+    view_name = f'DYNAMICVIEW/{view_id}'
+    odata_name = f'DYNAMICVIEW_{view_id}'
+    cv = ColumnView(mapping, anchor_entity_name, schema_name, auto_default_search_element)
     cv.by_path_list(path_list, view_name, odata_name)
     return cv
 
@@ -652,7 +650,6 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
         view_ddls = []
         requested_entity_types = []
         for query in queries:
-            # query_object = EshObject.parse_obj(query)
             scopes, pathes = query_mapping.extract_pathes(query)
             if len(scopes) != 1:
                 handle_error('Exactly one scope is needed', 400)
@@ -660,7 +657,7 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
             if not scope in mapping['entities']:
                 handle_error(f'unknown entity {scope}', 400)
             requested_entity_types.append(scope)
-            cv = get_column_view(mapping, scope, schema_name, pathes.keys())
+            cv = get_column_view(mapping, scope, schema_name, pathes.keys(), False)
             view_ddl, esh_config = cv.data_definition()
             configurations.append(esh_config['content'])
             for path in pathes.keys():
@@ -668,8 +665,8 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
             query_mapping.map_query(query, [cv.odata_name], pathes)
             view_ddls.append(view_ddl)
             dynmaic_views.append(cv.view_name)
-            # search_object = IESSearchOptions(query)
-            search_object = EshObject.parse_obj(query)
+            # search_object = EshObject.parse_obj(query)
+            search_object = map_query(query)
             search_object.select = ['ID']
             esh_query = search_object.to_statement()[1:]
             uris.append(f'/{get_esh_version(esh_version)}/{schema_name}/{esh_query}')
@@ -678,7 +675,6 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         params = (json.dumps([{'Configuration': configurations, 'URI': uris}]), None)
         db.cur.callproc('esh_search', params)
-        #search_results = cleanse_output([json.loads(w[0]) for w in db.cur.fetchall()])
         search_results = [json.loads(w[0]) for w in db.cur.fetchall()]
     with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
         for view_name in dynmaic_views:
@@ -779,11 +775,10 @@ if __name__ == '__main__':
                 json.dump(config, fr, indent = 4)
 
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db_read:
-        params = (json.dumps([ { 'URI': [ '/$apiversion' ] } ]), None)
-        db_read.cur.callproc('esh_search', params)
+        db_read.cur.callproc('esh_search', (json.dumps([ { 'URI': [ '/$apiversion' ] } ]), None))
         glob.esh_apiversion = 'v' + str(json.loads(db_read.cur.fetchone()[0])['apiversion'])
         #logging.info('ESH_SEARCH calls will use API-version %s', glob.esh_apiversion)
 
-    #ui_default_tenant = config['UIDefaultTenant']  
+    #ui_default_tenant = config['UIDefaultTenant']
     cs = config['server']
     uvicorn.run('server:app', host = cs['host'], port = cs['port'], log_level = cs['logLevel'], reload = cs['reload'])

@@ -37,11 +37,11 @@ def extract_property_path(obj, scope, pathes):
                 extract_property_path(obj.items, scope, pathes)
             case esh.UnaryExpression:
                 extract_property_path(obj.item, scope, pathes)
-            case esh.ScopeComparison:
-                if isinstance(obj.values, list):
-                    scope.extend(obj.values)
-                else:
-                    scope.extend([obj.values])
+            # case esh.ScopeComparison:
+            #    if isinstance(obj.values, list):
+            #        scope.extend(obj.values)
+            #    else:
+            #        scope.extend([obj.values])
             case esh.Comparison:
                 if isinstance(obj.property.property, str):
                     pathes[(obj.property.property,)] = ''
@@ -80,8 +80,8 @@ def map_property(obj, scope, pathes):
                 extract_property_path(obj.items, scope, pathes)
             case esh.UnaryExpression:
                 extract_property_path(obj.item, scope, pathes)
-            case esh.ScopeComparison:
-                obj.values = scope
+            # case esh.ScopeComparison:
+            #    obj.values = scope
             case esh.Comparison:
                 if isinstance(obj.property.property, str):
                     obj.property.property = pathes[(obj.property.property,)]

@@ -183,6 +183,7 @@ class StringValueInternal(esh_client.StringValue):
             return_value = self.value
         return addFuzzySearchOptions(return_value, self.searchOptions)
 
+
 class NumberValueInternal(esh_client.NumberValue):
 
     def to_statement(self):
@@ -424,9 +425,14 @@ def map_query(item):
                     value=item.value,
                     isQuoted=item.isQuoted,
                     isSingleQuoted=item.isSingleQuoted,
-                    withoutEnclosing=item.withoutEnclosing,
-                    searchOptions=item.searchOptions
+                    withoutEnclosing=item.withoutEnclosing
                 )
+                if item.searchOptions is not None:
+                    result.searchOptions=SearchOptionsInternal(
+                        fuzzinessThreshold=item.searchOptions.fuzzinessThreshold,
+                        fuzzySearchOptions=item.searchOptions.fuzzySearchOptions,
+                        weight=item.searchOptions.weight
+                    )
             case 'Property':
                 result = PropertyInternal(
                     property=item.property,

@@ -20,7 +20,7 @@ def print_response(r):
         print(r.json())
 
 def get_base_url():
-    config_file = os.path.join(sys.path[-1], 'demo', 'shared', '.config.json')
+    config_file = os.path.join(sys.path[-1], 'src', '.config.json')
     with open(config_file, encoding='utf-8') as f:
         config = json.load(f)
     return  f"http://{config['server']['host']}:{config['server']['port']}"

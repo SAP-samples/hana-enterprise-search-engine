@@ -70,7 +70,7 @@ def serialize_geometry_collection(collection):
 
 # Expression = ForwardRef('Expression')       
 ExpressionValueInternal = Union[Annotated[Union["UnaryExpressionInternal",  \
-    "ExpressionInternal", "ComparisonInternal","ScopeComparisonInternal", "WithinOperator", "CoveredByOperator", \
+    "ExpressionInternal", "ComparisonInternal","WithinOperator", "CoveredByOperator", \
     "IntersectsOperator", "TermInternal", "PointInternal", "LineStringInternal", "CircularStringInternal", "PolygonInternal", \
     "MultiPointInternal", "MultiLineStringInternal", "MultiPolygonInternal", "GeometryCollectionInternal", "NumberValueInternal", \
     "BooleanValueInternal", "StringValueInternal", "PhraseInternal", "PropertyInternal",  "MultiValuesInternal"], \
@@ -146,14 +146,6 @@ class PropertyInternal(esh_client.Property):
         else:
             return property_value
 
-class ScopeComparisonInternal(esh_client.ScopeComparison):
-    type: Literal['ScopeComparisonInternal'] = 'ScopeComparisonInternal'
-    values: str | List[str]
-
-    def to_statement(self):
-        scope_value = self.values if not type(self.values) is list else "(" + " OR ".join(self.values) + ")"
-        return f"SCOPE:{scope_value}"
-
 class TermInternal(esh_client.Term):
 
     def to_statement(self):
@@ -191,6 +183,7 @@ class StringValueInternal(esh_client.StringValue):
             return_value = self.value
         return addFuzzySearchOptions(return_value, self.searchOptions)
 
+
 class NumberValueInternal(esh_client.NumberValue):
 
     def to_statement(self):
@@ -200,17 +193,6 @@ class BooleanValueInternal(esh_client.BooleanValue):
 
     def to_statement(self):
         return json.dumps(self.value)
-
-class ScopeComparisonInternal(esh_client.ScopeComparison):
-
-    def to_statement(self):
-        if isinstance(self.values, str):
-            return f'SCOPE:{self.values}'
-        elif len(self.values) == 1:
-            return f'SCOPE:{self.values[0]}'
-        else:
-            scope_values = ' OR '.join(self.values)
-            return f'SCOPE:({scope_values})'
 
 class ComparisonInternal(BaseModel):
     type: Literal['ComparisonInternal'] = 'ComparisonInternal'
@@ -231,10 +213,6 @@ class ComparisonInternal(BaseModel):
             value = self.value
         return f'{property}{self.operator}{value}'
 
-    @classmethod
-    def from_Comparison(cls, a: esh_client.Comparison):
-        b_obj = ComparisonInternal(property="sss",operator=esh_client.ComparisonOperator.IsNull)
-        return b_obj
         
 class ExpressionInternal(esh_client.Expression):
     type: Literal['ExpressionInternal'] = 'ExpressionInternal'
@@ -242,7 +220,7 @@ class ExpressionInternal(esh_client.Expression):
     
     def get_expression_statement(self, expression_item):
         if isinstance(expression_item, ExpressionInternal): 
-            return f'({expression_item.to_statement()})'
+            return f'{expression_item.to_statement()}'
         else:
             try:
                 return expression_item.to_statement()
@@ -258,9 +236,9 @@ class ExpressionInternal(esh_client.Expression):
         else:
             connect_operator = ' '
         statements = list(map(lambda item: self.get_expression_statement(item), self.items))
-        if len(self.items) > 1 and not isinstance(self.items[0], ExpressionInternal) and not isinstance(self.items[0], ScopeComparisonInternal):
-            # return f"({connect_operator.join(statements)})"
-            return f"{connect_operator.join(statements)}"
+        if len(self.items) > 1:
+            return f"({connect_operator.join(statements)})"
+            # return f"{connect_operator.join(statements)}"
         return connect_operator.join(statements)
 
 
@@ -397,8 +375,20 @@ class EshObjectInternal(esh_client.EshObject):
                 esh += f'&${Constants.skip}={self.skip}'
             if self.count is not None:
                 esh += f'&${Constants.count}={json.dumps(self.count)}'
+            scope_filter = None
+            if self.scope:
+                if isinstance(self.scope, str):
+                    scope_filter = self.scope
+                elif len(self.scope) == 1:
+                    scope_filter = self.scope[0]
+                else:
+                    scope_filter = f'({" OR ".join(self.scope)})'
             if searchQueryFilter != '':
+                if scope_filter is not None:
+                    searchQueryFilter = f'SCOPE:{scope_filter} {searchQueryFilter}'
                 esh += f"&$apply=filter(Search.search(query='{searchQueryFilter}'))"
+            elif scope_filter is not None:
+                esh += f"&$apply=filter(Search.search(query='SCOPE:{scope_filter}'))"
             if self.whyfound is not None:
                 esh += f'&{Constants.whyfound}={json.dumps(self.whyfound)}'
             if self.select is not None:
@@ -435,9 +425,14 @@ def map_query(item):
                     value=item.value,
                     isQuoted=item.isQuoted,
                     isSingleQuoted=item.isSingleQuoted,
-                    withoutEnclosing=item.withoutEnclosing,
-                    searchOptions=item.searchOptions
+                    withoutEnclosing=item.withoutEnclosing
                 )
+                if item.searchOptions is not None:
+                    result.searchOptions=SearchOptionsInternal(
+                        fuzzinessThreshold=item.searchOptions.fuzzinessThreshold,
+                        fuzzySearchOptions=item.searchOptions.fuzzySearchOptions,
+                        weight=item.searchOptions.weight
+                    )
             case 'Property':
                 result = PropertyInternal(
                     property=item.property,
@@ -505,10 +500,6 @@ def map_query(item):
                 result = GeometryCollectionInternal(
                     geometries=list(map(lambda i: map_query(i), item.geometries))
                 )
-            case 'ScopeComparison':
-                result = ScopeComparisonInternal(
-                    values=item.values
-                )
             case 'MultiValues':
                 result = MultiValuesInternal(
                     items = list(map(lambda i: map_query(i), item.items)),
@@ -527,6 +518,7 @@ def map_query(item):
                     orderby=list(map(lambda i: map_query(i), item.orderby)) if item.orderby else None,
                     top=item.top,
                     skip=item.skip,
+                    scope=item.scope,
                     count=item.count,
                     whyfound=item.whyfound,
                     select=item.select,
@@ -550,13 +542,11 @@ if __name__ == '__main__':
     mapped_object = map_query(esh_client.Property(property='aa'))
     print(mapped_object.to_statement())
 
-    # mapped_comparison = ComparisonInternal.from_Comparison(esh_client.Comparison(property="land",operator=esh_client.ComparisonOperator.EqualCaseInsensitive,value="negde"))
     mapped_comparison = map_query(esh_client.Comparison(property="land",operator=esh_client.ComparisonOperator.EqualCaseInsensitive,value="negde"))
     m_items = [esh_client.StringValue(value='www'), esh_client.StringValue(value='222'), esh_client.StringValue(value='333')]
 
     comp = {'property': "language", \
         'operator': ':EQ:', 'value': { Constants.type: 'StringValue', 'value': 'Python'}}
-    # aas = ComparisonInternal.from_Comparison(esh_client.Comparison.parse_obj(comp))
     aas = map_query(esh_client.Comparison.parse_obj(comp))
     assert aas.to_statement() == 'language:EQ:Python'
 
@@ -569,19 +559,19 @@ if __name__ == '__main__':
 
     exp1 = map_query(esh_client.Expression(items=[esh_client.StringValue(value='MMMM'),\
         esh_client.StringValue(value='KKK')], operator='OR'))
-    assert exp1.to_statement() == 'MMMM OR KKK'
+    assert exp1.to_statement() == '(MMMM OR KKK)'
    
     aa = esh_client.EshObject.parse_obj({'searchQueryFilter': {Constants.type: 'Expression', 'items' : [{'type': 'StringValue', \
        'value': 'aaa'},{'type': 'StringValue', 'value': 'bbb'}], 'operator': 'AND'}})
     bbb = map_query(aa)
-    assert bbb.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='aaa AND bbb'))"
+    assert bbb.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='(aaa AND bbb)'))"
 
     exp2 = ExpressionInternal()
     exp2.operator = 'AND'
     exp2.items = []
     exp2.items.append(StringValueInternal(value='mannheim'))
     exp2.items.append(StringValueInternal(value='heidelberg'))
-    assert exp2.to_statement() == 'mannheim AND heidelberg'
+    assert exp2.to_statement() == '(mannheim AND heidelberg)'
 
 
     json_body={
@@ -592,6 +582,7 @@ if __name__ == '__main__':
         'estimate': True,
         'wherefound': True,
         'facetlimit': 4,
+        'scope': ['S1'],
         'facets': ['city', 'land'],
         'filteredgroupby': False,
         'orderby': [
@@ -607,13 +598,12 @@ if __name__ == '__main__':
                     'key': 'land'
                 }
             ],
-        'searchQueryFilter': {Constants.type: 'Expression', 'items' : [\
-            {Constants.type: 'ScopeComparison', 'values': ['S1']},\
-            {Constants.type: 'Expression', 'items' :[\
+        'searchQueryFilter': {Constants.type: 'Expression',\
+            'operator': 'OR',\
+            'items' :[\
                 {'type': 'StringValue', 'value': 'test'},\
-                {'type': 'StringValue', 'value': 'function'}], 'operator': 'OR'}, \
-                {'type': 'StringValue', 'value': 'aaa'},{'type': 'StringValue', 'value': 'bbb'}\
-            ], 'operator': 'AND'}
+                {'type': 'StringValue', 'value': 'function'}]
+            }
         }
 
 
@@ -623,9 +613,10 @@ if __name__ == '__main__':
     # print(json.dumps(es_objects.searchQueryFilter.to_dict(), indent=4))
     # print(json.dumps(es_objects.to_dict(), indent=4))
     expected_statement = '/$all?$top=10&$count=true&$apply=filter(' \
-        'Search.search(query=\'SCOPE:S1 AND (test OR function)' \
-        ' AND aaa AND bbb\'))&whyfound=true&$select=id,name&$orderby=city ASC,language DESC,' \
+        'Search.search(query=\'SCOPE:S1 (test OR function)\'' \
+        '))&whyfound=true&$select=id,name&$orderby=city ASC,language DESC,' \
         'land&estimate=true&wherefound=true&facetlimit=4&facets=city,land&filteredgroupby=false'
+    print(es_mapped_objects.to_statement())
     assert es_mapped_objects.to_statement() == expected_statement
 
     sv = esh_client.StringValue(value='sss', isQuoted=True)
@@ -719,7 +710,7 @@ if __name__ == '__main__':
     # print(json.dumps(deserialized_object_expression.to_dict()))
     # print(deserialized_object_expression.to_statement())
     deserialized_object_expression_mapped = map_query(deserialized_object_expression)
-    assert deserialized_object_expression_mapped.to_statement() == 'city country'
+    assert deserialized_object_expression_mapped.to_statement() == '(city country)'
 
     json_property = '''
         {
@@ -986,7 +977,6 @@ if __name__ == '__main__':
         searchQueryFilter=esh_client.Expression(
             operator='AND',
             items= [
-                esh_client.ScopeComparison(values='Person'),
                 esh_client.Comparison(
                     property= esh_client.Property(property='lastName'),
                     operator= esh_client.ComparisonOperator.Search,
@@ -1002,7 +992,7 @@ if __name__ == '__main__':
     print(so_mapped.to_statement())
     # print(json.dumps(so.dict(exclude_none=True), indent = 4))
 
-    assert so_mapped.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='SCOPE:Person AND lastName:Doe AND firstName:Jane'))"
+    assert so_mapped.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='(lastName:Doe AND firstName:Jane)'))"
 
 
     mv = esh_client.MultiValues(items=["one", "two"], separator=",", encloseStart="[", encloseEnd="]")
@@ -1028,4 +1018,46 @@ if __name__ == '__main__':
     unary_expression_mapped = map_query(unary_expression)  
     assert unary_expression_mapped.to_statement() == "ROW:(city:EQ:Mannheim AND company:EQ:SAP)"
     
+    so = esh_client.EshObject(
+            count=True,
+            top=10,
+            scope='Person',
+            searchQueryFilter=esh_client.Expression(
+                        operator=esh_client.LogicalOperator.OR,
+                        items=[
+                            esh_client.Expression(
+                                operator=esh_client.LogicalOperator.AND,
+                                        items= [
+                                            esh_client.Comparison(
+                                                property= esh_client.Property(property='lastName'),
+                                                operator= esh_client.ComparisonOperator.Search,
+                                                value= esh_client.StringValue(value='Doe')),
+                                            esh_client.Comparison(
+                                                property= esh_client.Property(property='firstName'),
+                                                operator= esh_client.ComparisonOperator.Search,
+                                                value= esh_client.StringValue(value='John'))
+                                                ]
+                            ),
+                            esh_client.Expression(
+                                operator=esh_client.LogicalOperator.AND,
+                                items= [
+                                        esh_client.Comparison(
+                                            property= esh_client.Property(property='lastName'),
+                                            operator= esh_client.ComparisonOperator.Search,
+                                            value= esh_client.StringValue(value='Doe')),
+                                        esh_client.Comparison(
+                                            property= esh_client.Property(property='firstName'),
+                                            operator= esh_client.ComparisonOperator.Search,
+                                            value= esh_client.StringValue(value='Jane'))
+                                    ]
+                            )
+                        ]
+                    )
+        )
+    so_mapped = map_query(so)
+    #print(f'ESH query statement: {so_mapped.to_statement()}')
+    #print('-----cccc-----')
+    #print(json.dumps(so_mapped.dict(exclude_none=True), indent=2))
+    assert so_mapped.to_statement() == "/$all?$top=10&$count=true&$apply=filter(Search.search(query='SCOPE:Person ((lastName:Doe AND firstName:John) OR (lastName:Doe AND firstName:Jane))'))"
+
     print(' -----> everything fine <----- ')

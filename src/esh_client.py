@@ -31,7 +31,7 @@ class ComparisonOperator(str, Enum):
 
  
 ExpressionValue = Union[Annotated[Union["UnaryExpression", \
-    "Expression", "Comparison","ScopeComparison", "WithinOperator", "CoveredByOperator", \
+    "Expression", "Comparison", "WithinOperator", "CoveredByOperator", \
     "IntersectsOperator", "Term", "Point", "LineString", "CircularString", "Polygon", \
     "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection", "NumberValue", \
     "BooleanValue", "StringValue", "Phrase", "Property",  "MultiValues"], \
@@ -93,14 +93,6 @@ class NumberValue(BaseModel):
 class BooleanValue(BaseModel):
     type: Literal['BooleanValue'] = 'BooleanValue'
     value: bool
-
-
-
-class ScopeComparison(BaseModel):
-    type: Literal['ScopeComparison'] = 'ScopeComparison'
-    values: str | List[str]
-
-
 class Comparison(BaseModel):
     type: Literal['Comparison'] = 'Comparison'
     property: str | ExpressionValue
@@ -190,6 +182,7 @@ class EshObject(BaseModel):
     top: int | None
     skip: int | None
     count: bool | None
+    scope: str | List[str] | None
     searchQueryFilter: Expression | None
     whyfound: bool | None
     select: list[str] | None

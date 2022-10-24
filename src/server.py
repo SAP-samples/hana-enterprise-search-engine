@@ -659,6 +659,7 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
                 handle_error(f'unknown entity {scope}', 400)
             requested_entity_types.append(scope)
             cv = get_column_view(mapping, scope, schema_name, pathes.keys(), False)
+            query.scope = cv.view_name
             view_ddl, esh_config = cv.data_definition()
             configurations.append(esh_config['content'])
             for path in pathes.keys():
@@ -684,32 +685,35 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
             sql = f'drop view "{schema_name}"."{view_name}"'
             db.cur.execute(sql)
 
-    data_request = {}
-    for i, search_result in enumerate(search_results):
-        if 'value' in search_result and search_result['value']:
-            requested_entity_type = requested_entity_types[i]
-            if not requested_entity_type in data_request:
-                data_request[requested_entity_type] = []
-            for res_item in search_result['value']:
-                data_request[requested_entity_type].append({'id':res_item['ID']})
-    full_objects = await read_data(tenant_id, data_request, True)
-    full_objects_idx = {}
-    for k, v in full_objects.items():
-        full_objects_idx[k] = {}
-        for i in v:
-            full_objects_idx[k][i['id']] = i
+    if [w for w in search_results if 'error' in w]:
+        handle_error(json.dumps(search_results))
+    else:
+        data_request = {}
+        for i, search_result in enumerate(search_results):
+            if 'value' in search_result and search_result['value']:
+                requested_entity_type = requested_entity_types[i]
+                if not requested_entity_type in data_request:
+                    data_request[requested_entity_type] = []
+                for res_item in search_result['value']:
+                    data_request[requested_entity_type].append({'id':res_item['ID']})
+        full_objects = await read_data(tenant_id, data_request, True)
+        full_objects_idx = {}
+        for k, v in full_objects.items():
+            full_objects_idx[k] = {}
+            for i in v:
+                full_objects_idx[k][i['id']] = i
 
-    results = []
-    for i, search_result in enumerate(search_results):
-        result = {'value': []}
-        if 'value' in search_result and search_result['value']:
-            requested_entity_type = requested_entity_types[i]
-            for res_item in search_result['value']:
-                result['value'].append(full_objects_idx[requested_entity_type][res_item['ID']])
-        if '@odata.count' in search_result:
-            result['@odata.count'] = search_result['@odata.count']
-        results.append(result)
-    return results
+        results = []
+        for i, search_result in enumerate(search_results):
+            result = {'value': []}
+            if 'value' in search_result and search_result['value']:
+                requested_entity_type = requested_entity_types[i]
+                for res_item in search_result['value']:
+                    result['value'].append(full_objects_idx[requested_entity_type][res_item['ID']])
+            if '@odata.count' in search_result:
+                result['@odata.count'] = search_result['@odata.count']
+            results.append(result)
+        return results
 
 @app.get('/{path:path}')
 async def tile_request(path: str, response: Response):

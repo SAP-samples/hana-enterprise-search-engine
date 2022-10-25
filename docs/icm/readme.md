@@ -3,12 +3,16 @@ This is an example how to build queries on an ICM data model
 ---------------------------------------------------------------------------------------------------------------------------------------
 # Introduction
 ---------------------------------------------------------------------------------------------------------------------------------------
-The ICM example shows how it is possible to search for queries with the enterprise search technology. Also it is shown that complex
-queries can be built on an ICM data model. The objective of this example is that the key-user gets a feeling of how to use this 
-technology wihtin its business processes.
+The ICM example shows how it is possible to search for queries with the enterprise search technology on HANA. Also it is shown that 
+complex queries can be built on an ICM data model. The objective of this example is that the key-user gets a feeling of how to use this 
+technology wihtin its business processes. In general in this example there are queries where search scenarios are built. For example
+it is searched for persons and their locations or for persons and their cases or just for persons.
 ---------------------------------------------------------------------------------------------------------------------------------------
 # Data Model
 ---------------------------------------------------------------------------------------------------------------------------------------
+This data model is a copy of the ICM data model. The data itself is example data. Some attributes of the entities are modified and not 
+all attributes are exactly the same as ICM. The following points show which files have to be built for a successful data model:
+
 1. It is built a CDS file which is representing the tables and their relations to each other
 2. It is built the JSON file which contains the data. This data is related to the structure and relationships of the CDS file
 3. For starting building queries it is mandatory to have these two files. Without these files it is not possible to build queries
@@ -32,6 +36,8 @@ Relevant notebooks:
 -> fuzzy_searches.ipynb: Shows incomplete parameter searches
 -> complex_relation_searches.ipynb: Shows complex searches in several entities
 -> geo_searches.ipynb: Shows locations/coordinates searches with the result of latitude and longitude
+
+Relevant files:
 -> icm2.model.json -> generated JSON File for creating tenant
 -> data.json -> JSON File with relevant data according to structure and relationship
 -> model.cds -> CDS file with entities and relationships
@@ -77,8 +83,20 @@ The data model is copied from ICM. Following entities are created:
 Please have a look on the file "model.cds" for detailed information regarding attributes and relationships.
 Also a class diagram is existing. Please have a look on "icm_model.drawio".
 
-
-
+---------------------------------------------------------------------------------------------------------------------------------------
+# ICM scenario/example
+---------------------------------------------------------------------------------------------------------------------------------------
+Example:
+•A witness reports that a known criminal was sneaking around a car dealership and for that an incident record is created. 
+•A detective comes to the conclusion  that this incident  might be related to a crime and thus creates a lead and assigns the incident  
+with the previous information.  He also assigns to the lead an unknown  suspect –together with all the information  he got about this 
+person -and the location  of the car dealer. He collects other elements for the investigation  like the records of further 
+interrogations  or a script for further interviews.
+•The detective updates the description  of the suspect as a result of e.g. further interviews.
+•Detective creates a follow-up  activity  in order to record the visit to the car dealership.
+•It becomes clear for the detective, that the unknown  person is a known criminal.
+•The detective merges the record of the unknown  suspect with  the record of the known criminal.
+•The Data Quality  Manager reviews  the result of the merging.
 
 
 

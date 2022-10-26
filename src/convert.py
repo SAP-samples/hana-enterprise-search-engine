@@ -213,7 +213,7 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                 table_name, table_map = table_name_mapping.register(external_path, ENTITY_PREFIX\
                     , definition = {'pk': pk_column_name})
                 entity['table_name'] = table_name
-                table['columns'] = {}
+                table['columns'] = {pk_column_name: {}}
             else:
                 table_name, table_map = table_name_mapping.register(external_path)
                 entity['table_name'] = table_name

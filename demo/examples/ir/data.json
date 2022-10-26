@@ -1,0 +1,2896 @@
+{
+    "Cases": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Cases",
+                    "sid": "GUIDC00001"
+                }
+            ],
+            "entityDesc": "Kennedy A: Money Laundering",
+            "entityTime": "2012-02-05 13:30:00",
+            "caseType": "ICM",
+            "priority": "2",
+            "status": "008",
+            "caseCategory": "ICM",
+            "caseStartDate": "20120205",
+            "caseStartTime": "1330",
+            "caseEndDate": "20121220",
+            "caseEndTime": "1400",
+            "caseSummary": "Investigation into Alex Kennedy for money laundering. Alex Kennedy was convicted for laundering money for the Rebels OMCG through cash payments to itinerant workers of his company Kennedy Cleaning Pty Ltd."
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Cases",
+                    "sid": "GUIDC00002"
+                }
+            ],
+            "entityDesc": "Kennedy J: Obtaining a financial advantage by deception",
+            "entityTime": "2018-03-16 09:00:00",
+            "caseType": "ICM",
+            "priority": "2",
+            "status": "002",
+            "caseCategory": "ICM",
+            "caseStartDate": "20180316",
+            "caseStartTime": "0900",
+            "caseSummary": "Investigation into Joseph Kennedy for obtaining a financial advantage by deception. It is alleged that JK Cleaning BAS revenue is under-reported for the periods between 1 Jul 14 to 30 Dec 17."
+        }
+    ],
+    "Person": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Person",
+                    "sid": "GUIDP00001"
+                }
+            ],
+            "firstName": "Joseph",
+            "lastName": "Kennedy",
+            "dob": "19820318",
+            "age": "36",
+            "complexion": "Fair",
+            "ethnicity": "ENG",
+            "height": 179,
+            "gender": "Male",
+            "countryOfBirth": "AU",
+            "country": "UK",
+            "placeOfBirth": "London",
+            "nationality": "UK"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Person",
+                    "sid": "GUIDP00002"
+                }
+            ],
+            "firstName": "Alex",
+            "lastName": "Kennedy",
+            "dob": "19610819",
+            "age": "57",
+            "complexion": "Fair",
+            "ethnicity": "ENG",
+            "height": "174",
+            "gender": "Male",
+            "countryOfBirth": "GB",
+            "country": "UK",
+            "placeOfBirth": "Stoke on Trent",
+            "nationality": "UK",
+            "secondNationality": "British"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Person",
+                    "sid": "GUIDP00003"
+                }
+            ],
+            "firstName": "Phillipe",
+            "lastName": "Lomez",
+            "dob": "19900101",
+            "age": "28",
+            "complexion": "Olive",
+            "ethnicity": "HIS",
+            "height": "180",
+            "gender": "Male",
+            "countryOfBirth": "AU",
+            "country": "UK",
+            "placeOfBirth": "Brunswick",
+            "nationality": "UK"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Person",
+                    "sid": "GUIDP00004"
+                }
+            ],
+            "firstName": "Ivan",
+            "lastName": "Kowalski",
+            "dob": "19520712",
+            "age": "65",
+            "complexion": "Fair",
+            "ethnicity": "SLA",
+            "height": "168",
+            "gender": "Male",
+            "countryOfBirth": "PL",
+            "country": "UK",
+            "placeOfBirth": "Warsaw",
+            "nationality": "UK",
+            "secondNationality": "Polish"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Person",
+                    "sid": "GUIDP00005"
+                }
+            ],
+            "firstName": "Bobby",
+            "lastName": "Ramage",
+            "dob": "19710215",
+            "age": "47",
+            "complexion": "Fair",
+            "ethnicity": "ENG",
+            "height": "190",
+            "gender": "Male",
+            "countryOfBirth": "AU",
+            "country": "UK",
+            "placeOfBirth": "Penrith",
+            "nationality": "UK"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Person",
+                    "sid": "GUIDP00006"
+                }
+            ],
+            "firstName": "Jerry",
+            "lastName": "Roberts",
+            "dob": "19801125",
+            "age": "37",
+            "complexion": "Dark",
+            "ethnicity": "AFR",
+            "height": "187",
+            "gender": "Male",
+            "countryOfBirth": "UK",
+            "country": "UK",
+            "placeOfBirth": "Accra",
+            "nationality": "UK",
+            "secondNationality": "Ghanaian "
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Person",
+                    "sid": "GUIDP00007"
+                }
+            ],
+            "firstName": "Thanh",
+            "lastName": "Tran",
+            "dob": "19701212",
+            "age": "47",
+            "complexion": "Dark",
+            "ethnicity": "CHN",
+            "height": "160",
+            "gender": "Male",
+            "countryOfBirth": "VN",
+            "country": "UK",
+            "placeOfBirth": "Cam Ranh",
+            "nationality": "Irish"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Person",
+                    "sid": "GUIDP00008"
+                }
+            ],
+            "firstName": "Hilda",
+            "lastName": "Friedel",
+            "dob": "19670425",
+            "age": "51",
+            "complexion": "Fair",
+            "ethnicity": "GER",
+            "height": "166",
+            "gender": "Female",
+            "countryOfBirth": "DE",
+            "country": "UK",
+            "placeOfBirth": "Stuttgart",
+            "nationality": "Irish",
+            "secondNationality": "German"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Person",
+                    "sid": "GUIDP00009"
+                }
+            ],
+            "firstName": "Rosario",
+            "lastName": "Gomez",
+            "dob": "19751011",
+            "age": "42",
+            "complexion": "Dark",
+            "ethnicity": "OTH",
+            "height": "155",
+            "gender": "Female"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Person",
+                    "sid": "GUIDP00010"
+                }
+            ],
+            "firstName": "Rogerio",
+            "lastName": "Gomez",
+            "dob": "19761122",
+            "age": "42",
+            "complexion": "Dark",
+            "ethnicity": "OTH",
+            "height": "162",
+            "gender": "Male"
+        }
+    ],
+    "RelCasesPerson": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelCasesPerson",
+                    "sid": "obj2"
+                }
+            ],
+            "cases": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Cases",
+                        "sid": "GUIDC00001"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00002"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "V004"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelCasesPerson",
+                    "sid": "obj22233"
+                }
+            ],
+            "cases": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Cases",
+                        "sid": "GUIDC00002"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00001"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S001"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelCasesPerson",
+                    "sid": "obj2121"
+                }
+            ],
+            "cases": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Cases",
+                        "sid": "GUIDC00001"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00001"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S013"
+                    }
+                ]
+            }
+        }
+    ],
+    "Object": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00001"
+                }
+            ],
+            "entityDesc": "JK Cleaning Pty Ltd",
+            "origin": "ABR",
+            "objectCategory": "Business"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00002"
+                }
+            ],
+            "entityDesc": "Kennedy Cleaning Pty Ltd",
+            "origin": "ABR",
+            "objectCategory": "Business"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00003"
+                }
+            ],
+            "entityDesc": "Trentham Property Group",
+            "origin": "ABR",
+            "objectCategory": "Business"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00004"
+                }
+            ],
+            "entityDesc": "Ramage Industrial Fit Outs Pty Ltd",
+            "origin": "ABR",
+            "objectCategory": "Business"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00005"
+                }
+            ],
+            "entityDesc": "TLV Airport Collective",
+            "origin": "ABR",
+            "objectCategory": "Business"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00006"
+                }
+            ],
+            "entityDesc": "Royal Construction Pty Let",
+            "origin": "ABR",
+            "objectCategory": "Business"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00007"
+                }
+            ],
+            "entityDesc": "Truscott Holdings",
+            "origin": "ABR",
+            "objectCategory": "Business"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00008"
+                }
+            ],
+            "entityDesc": "Rebels Spain Outlaw Motorcycle Gang",
+            "origin": "IMS",
+            "objectCategory": "Criminal Org"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00009"
+                }
+            ],
+            "entityDesc": "Handset 1 JK: IMEI 86-123456-987654-1",
+            "origin": "IMS",
+            "objectCategory": "Telephone"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00010"
+                }
+            ],
+            "entityDesc": "Handset 2 JK: IMEI 72-284937-093672-2",
+            "origin": "IMS",
+            "objectCategory": "Telephone"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00011"
+                }
+            ],
+            "entityDesc": "Handset Ramage: IMEI 23-654321-135791-5",
+            "origin": "IMS",
+            "objectCategory": "Telephone"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00012"
+                }
+            ],
+            "entityDesc": "Handset Lomez: IMEI 32-134654-224466-7",
+            "origin": "IMS",
+            "objectCategory": "Telephone"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00013"
+                }
+            ],
+            "entityDesc": "J Kennedy Mobile: +61 489 232 323",
+            "origin": "IMS",
+            "objectCategory": "Telephone Number"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00014"
+                }
+            ],
+            "entityDesc": "J Kennedy SIM: IMSI: 321-45-123456789",
+            "origin": "IMS",
+            "objectCategory": "SIM Card"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00015"
+                }
+            ],
+            "entityDesc": "B Ramage Mobile: +61 491 789 987",
+            "origin": "IMS",
+            "objectCategory": "Telephone Number"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00016"
+                }
+            ],
+            "entityDesc": "B Ramage SIM: IMSI: 321-22-987654321",
+            "origin": "IMS",
+            "objectCategory": "SIM Card"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00017"
+                }
+            ],
+            "entityDesc": "P Lomez Mobile: +61 495 300 003",
+            "origin": "IMS",
+            "objectCategory": "Telephone Number"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Object",
+                    "sid": "GUIDO00018"
+                }
+            ],
+            "entityDesc": "P lomez SIM: IMSI: 432-33-086421321",
+            "origin": "IMS",
+            "objectCategory": "SIM Card"
+        }
+    ],
+    "Activity": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Activity",
+                    "sid": "GUIDA00001"
+                }
+            ],
+            "entityDesc": "Attain WS: Hilda Friedel",
+            "entityTime": "2018-04-24 10:00:00",
+            "origin": "IMS",
+            "location": "London",
+            "activityStartDate": "20180424",
+            "activityEndDate": "20180430"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Activity",
+                    "sid": "GUIDA00002"
+                }
+            ],
+            "entityDesc": "Attain WS: Rosario Gomez",
+            "entityTime": "2018-05-09 11:00:00",
+            "origin": "IMS",
+            "location": "London",
+            "activityStartDate": "20180509",
+            "activityEndDate": "20180515"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Activity",
+                    "sid": "GUIDA00003"
+                }
+            ],
+            "entityDesc": "Attain WS: Jerry Roberts",
+            "entityTime": "2018-05-02 12:30:00",
+            "origin": "IMS",
+            "location": "Dublin",
+            "activityStartDate": "20180502",
+            "activityEndDate": "20180505"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Activity",
+                    "sid": "GUIDA00004"
+                }
+            ],
+            "entityDesc": "Phone intercept: J Kennedy - B Ramage",
+            "entityTime": "2018-04-24 13:00:00",
+            "activityStartDate": "20180424"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Activity",
+                    "sid": "GUIDA00005"
+                }
+            ],
+            "entityDesc": "Phone intercept: J Kennedy - P Lomez",
+            "entityTime": "2018-04-25 20:00:00",
+            "activityStartDate": "20180425"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Activity",
+                    "sid": "GUIDA00006"
+                }
+            ],
+            "entityDesc": "Honeypot: New client",
+            "entityTime": "2018-04-01 09:00:00",
+            "activityStartDate": "20180401"
+        }
+    ],
+    "Location": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Location",
+                    "sid": "GUIDL00001"
+                }
+            ],
+            "entityDesc": "Kennedy Cleaning Services Pty Ltd Premises",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    -0.06082391245791958,
+                    51.5115961331511
+                ]
+            },
+            "locationCategory": "street",
+            "houseNumber": "68",
+            "street": "Reed",
+            "city": "London",
+            "postalCode": "2900",
+            "country": "England",
+            "locationType": "Business Premises"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Location",
+                    "sid": "GUIDL00002"
+                }
+            ],
+            "entityDesc": "JK Cleaning Services Pty Ltd Premises",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    -0.07922981195512407,
+                    51.506496402535696
+                ]
+            },
+            "locationCategory": "street",
+            "houseNumber": "70",
+            "street": "Kent",
+            "city": "London",
+            "postalCode": "2600",
+            "country": "England",
+            "locationType": "Business Premises"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Location",
+                    "sid": "GUIDL00003"
+                }
+            ],
+            "entityDesc": "Joseph Kennedy Residence",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    -0.05944583884249789,
+                    51.517286619586336
+                ]
+            },
+            "locationCategory": "Crescent",
+            "houseNumber": "130",
+            "street": "McBryde",
+            "city": "London",
+            "postalCode": "2903",
+            "country": "England",
+            "locationType": "Residence"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Location",
+                    "sid": "GUIDL00004"
+                }
+            ],
+            "entityDesc": "Trentham Property Group Premises",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    -0.07944438867001156,
+                    51.51405516426107
+                ]
+            },
+            "locationCategory": "Court",
+            "houseNumber": "50",
+            "street": "Oatley",
+            "city": "London",
+            "postalCode": "2617",
+            "country": "England",
+            "locationType": "Business Premises"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Location",
+                    "sid": "GUIDL00005"
+                }
+            ],
+            "entityDesc": "Truscott Holdings Premises",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    -0.1017603675125375,
+                    51.51557744859428
+                ]
+            },
+            "locationCategory": "street",
+            "houseNumber": "33",
+            "street": "Hibberson",
+            "city": "London",
+            "postalCode": "2912",
+            "country": "England",
+            "locationType": "Business Premises"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Location",
+                    "sid": "GUIDL00006"
+                }
+            ],
+            "entityDesc": "Royal Constuction Pty Ltd Premises",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    -0.09100566040099785,
+                    51.51193247732162
+                ]
+            },
+            "locationCategory": "street",
+            "houseNumber": "121",
+            "street": "Monaro",
+            "city": "London",
+            "postalCode": "2620",
+            "country": "England",
+            "locationType": "Business Premises"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Location",
+                    "sid": "GUIDL00007"
+                }
+            ],
+            "entityDesc": "Ramage Industrial Fit Outs Pty Ltd Premises",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    -0.08742466507306709,
+                    51.50792830545193
+                ]
+            },
+            "locationCategory": "street",
+            "houseNumber": "1",
+            "street": "Rogan",
+            "city": "London",
+            "postalCode": "2609",
+            "country": "England",
+            "locationType": "Business Premises"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Location",
+                    "sid": "GUIDL00008"
+                }
+            ],
+            "entityDesc": "TLV Airport Collective Premises",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    -0.06624334550770546,
+                    51.50558621077371
+                ]
+            },
+            "locationCategory": "Circuit",
+            "houseNumber": "2 ",
+            "street": "Brindabella",
+            "city": "London",
+            "postalCode": "2609",
+            "country": "England",
+            "locationType": "Business Premises"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Location",
+                    "sid": "GUIDL00009"
+                }
+            ],
+            "entityDesc": "Alex Kennedy Residence",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    -0.07097727939337366,
+                    51.511932252979975
+                ]
+            },
+            "locationCategory": "Avenue",
+            "houseNumber": "131",
+            "street": "Ellerston",
+            "city": "London",
+            "postalCode": "2905",
+            "country": "England",
+            "locationType": "Residence"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Location",
+                    "sid": "GUIDL00010"
+                }
+            ],
+            "entityDesc": "Jerry Roberts Residence",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    -0.07600007718858372,
+                    51.50868381865499
+                ]
+            },
+            "locationCategory": "street",
+            "houseNumber": "10",
+            "street": "Majara",
+            "city": "London",
+            "postalCode": "2621",
+            "country": "England",
+            "locationType": "Residence"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Location",
+                    "sid": "GUIDL00011"
+                }
+            ],
+            "entityDesc": "Dingley Apartments",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    8.64328522071792,
+                    49.304618751883005
+                ]
+            },
+            "locationCategory": "street",
+            "houseNumber": " 13-1",
+            "street": "Heidelberger Str.",
+            "city": "Walldorf",
+            "postalCode": "69190",
+            "country": "Germany",
+            "locationType": "Residence"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Location",
+                    "sid": "GUIDL00012"
+                }
+            ],
+            "entityDesc": "Walldorfer Appartment",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    8.642383987644662,
+                    49.30643058918701
+                ]
+            },
+            "locationCategory": "street",
+            "houseNumber": "1",
+            "street": "Hildastrasse",
+            "city": "Walldorf",
+            "postalCode": "69190",
+            "country": "Germany",
+            "locationType": "Office"
+        }
+    ],
+    "RelCasesObject": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelCasesObject",
+                    "sid": "obj010"
+                }
+            ],
+            "cases": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Cases",
+                        "sid": "GUIDC00001"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00008"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        }
+    ],
+    "RelCasesActivity": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelCasesActivity",
+                    "sid": "obj4"
+                }
+            ],
+            "cases": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Cases",
+                        "sid": "GUIDC00002"
+                    }
+                ]
+            },
+            "activity": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Activity",
+                        "sid": "GUIDA00001"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelCasesActivity",
+                    "sid": "obj5"
+                }
+            ],
+            "cases": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Cases",
+                        "sid": "GUIDC00002"
+                    }
+                ]
+            },
+            "activity": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Activity",
+                        "sid": "GUIDA00002"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelCasesActivity",
+                    "sid": "obj6"
+                }
+            ],
+            "cases": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Cases",
+                        "sid": "GUIDC00002"
+                    }
+                ]
+            },
+            "activity": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Activity",
+                        "sid": "GUIDA00003"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelCasesActivity",
+                    "sid": "obj7"
+                }
+            ],
+            "cases": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Cases",
+                        "sid": "GUIDC00002"
+                    }
+                ]
+            },
+            "activity": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Activity",
+                        "sid": "GUIDA00004"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelCasesActivity",
+                    "sid": "obj8"
+                }
+            ],
+            "cases": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Cases",
+                        "sid": "GUIDC00002"
+                    }
+                ]
+            },
+            "activity": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Activity",
+                        "sid": "GUIDA00005"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelCasesActivity",
+                    "sid": "obj9"
+                }
+            ],
+            "cases": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Cases",
+                        "sid": "GUIDC00002"
+                    }
+                ]
+            },
+            "activity": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Activity",
+                        "sid": "GUIDA00006"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        }
+    ],
+    "RelActivityObject": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelActivityObject",
+                    "sid": "obj10"
+                }
+            ],
+            "activity": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Activity",
+                        "sid": "GUIDA00004"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00013"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelActivityObject",
+                    "sid": "obj11"
+                }
+            ],
+            "activity": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Activity",
+                        "sid": "GUIDA00004"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00015"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelActivityObject",
+                    "sid": "obj109"
+                }
+            ],
+            "activity": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Activity",
+                        "sid": "GUIDA00005"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00013"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelActivityObject",
+                    "sid": "obj108"
+                }
+            ],
+            "activity": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Activity",
+                        "sid": "GUIDA00005"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00017"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        }
+    ],
+    "RelActivityPerson": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelActivityPerson",
+                    "sid": "obj0080"
+                }
+            ],
+            "activity": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Activity",
+                        "sid": "GUIDA00001"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00008"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S004"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelActivityPerson",
+                    "sid": "obj0081"
+                }
+            ],
+            "activity": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Activity",
+                        "sid": "GUIDA00002"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00009"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S004"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelActivityPerson",
+                    "sid": "obj0082"
+                }
+            ],
+            "activity": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Activity",
+                        "sid": "GUIDA00003"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00006"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S004"
+                    }
+                ]
+            }
+        }
+    ],
+    "RelLocationPerson": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelLocationPerson",
+                    "sid": "obj1"
+                }
+            ],
+            "location": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Location",
+                        "sid": "GUIDL00001"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00001"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S012"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelLocationPerson",
+                    "sid": "obj44"
+                }
+            ],
+            "location": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Location",
+                        "sid": "GUIDL00009"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00002"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S012"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelLocationPerson",
+                    "sid": "obj444"
+                }
+            ],
+            "location": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Location",
+                        "sid": "GUIDL00010"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00006"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S012"
+                    }
+                ]
+            }
+        }
+    ],
+    "Incidents": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Incidents",
+                    "sid": "GUIDI00001"
+                }
+            ],
+            "entityDesc": "Assault: J Kennedy on J Roberts",
+            "entityTime": "2011-10-11 15:15:00",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    149.0666687,
+                    -35.4177163
+                ]
+            },
+            "location": "Kennedy Cleaning, Greenway"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Incidents",
+                    "sid": "GUIDI00002"
+                }
+            ],
+            "entityDesc": "Threat of violence: J Kennedy on Rogerio Gomez",
+            "entityTime": "2017-10-13 10:00:00",
+            "position": {
+                "type": "Point",
+                "coordinates": [
+                    149.1318151,
+                    -35.2740866
+                ]
+            },
+            "location": "Dingley Apartments, Braddon"
+        }
+    ],
+    "Leads": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Leads",
+                    "sid": "GUIDLE00001"
+                }
+            ],
+            "entityDesc": "Kennedy J: ATO Referral",
+            "entityTime": "2018-03-15 09:00:00",
+            "leadSummary": "ATO alleges that JK Cleaning BAS revenue is under-reported by Joseph Kennedy for the periods between 1 Jul 14 to 30 Dec 17.",
+            "leadStatus": "5"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Leads",
+                    "sid": "GUIDLE00002"
+                }
+            ],
+            "entityDesc": "Kennedy J: Cash payment for Carribean Cruise",
+            "entityTime": "2016-06-30 10:30:00",
+            "leadSummary": "ATO proved that a cash payment of $20,000 was made for a Carribean Cruise",
+            "leadStatus": "8"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "Leads",
+                    "sid": "GUIDLE00003"
+                }
+            ],
+            "entityDesc": "Kennedy J: Cash payment for house extension",
+            "entityTime": "2017-01-25 15:00:00",
+            "leadSummary": "ATO proved that a Cash payment of $150,000 was made for a house extension",
+            "leadStatus": "8"
+        }
+    ],
+    "RelLeadsPerson": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelLeadsPerson",
+                    "sid": "obj1199"
+                }
+            ],
+            "lead": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Leads",
+                        "sid": "GUIDLE00002"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00001"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S002"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelLeadsPerson",
+                    "sid": "obj11991"
+                }
+            ],
+            "lead": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Leads",
+                        "sid": "GUIDLE00003"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00001"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S002"
+                    }
+                ]
+            }
+        }
+    ],
+    "RelLeadsCases": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelLeadsCases",
+                    "sid": "obj3"
+                }
+            ],
+            "lead": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Leads",
+                        "sid": "GUIDLE00001"
+                    }
+                ]
+            },
+            "cases": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Cases",
+                        "sid": "GUIDC00001"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S010"
+                    }
+                ]
+            }
+        }
+    ],
+    "RelCasesIncident": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelCasesIncident",
+                    "sid": "obj12400"
+                }
+            ],
+            "cases": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Cases",
+                        "sid": "GUIDC00002"
+                    }
+                ]
+            },
+            "incident": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Incidents",
+                        "sid": "GUIDI00002"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "V002"
+                    }
+                ]
+            }
+        }
+    ],
+    "RelIncidentPerson": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelIncentPerson",
+                    "sid": "obj1299"
+                }
+            ],
+            "incident": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Incidents",
+                        "sid": "GUIDI00001"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00001"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S001"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelIncentPerson",
+                    "sid": "obj12998"
+                }
+            ],
+            "incident": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Incidents",
+                        "sid": "GUIDI00001"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00006"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S003"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelIncentPerson",
+                    "sid": "obj1266"
+                }
+            ],
+            "incident": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Incidents",
+                        "sid": "GUIDI00002"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00001"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S001"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelIncentPerson",
+                    "sid": "obj129123"
+                }
+            ],
+            "incident": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Incidents",
+                        "sid": "GUIDI00002"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00008"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S004"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelIncentPerson",
+                    "sid": "obj12442"
+                }
+            ],
+            "incident": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Incidents",
+                        "sid": "GUIDI00002"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00009"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S004"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelIncentPerson",
+                    "sid": "obj1288"
+                }
+            ],
+            "incident": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Incidents",
+                        "sid": "GUIDI00002"
+                    }
+                ]
+            },
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00010"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S003"
+                    }
+                ]
+            }
+        }
+    ],
+    "RelIncidentLocation": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelIncidentLocation",
+                    "sid": "obj1232342"
+                }
+            ],
+            "incident": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Incidents",
+                        "sid": "GUIDI00002"
+                    }
+                ]
+            },
+            "location": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Location",
+                        "sid": "GUIDL00011"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        }
+    ],
+    "RelPersonObject": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelPersonObject",
+                    "sid": "obj9183"
+                }
+            ],
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00001"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00001"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S012"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelPersonObject",
+                    "sid": "obj9184"
+                }
+            ],
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00008"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00003"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S012"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelPersonObject",
+                    "sid": "obj9185"
+                }
+            ],
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00007"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00007"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S012"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelPersonObject",
+                    "sid": "obj9186"
+                }
+            ],
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00006"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00006"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S012"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelPersonObject",
+                    "sid": "obj9187"
+                }
+            ],
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00005"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00004"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S012"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelPersonObject",
+                    "sid": "obj9188"
+                }
+            ],
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00004"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00005"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S012"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelPersonObject",
+                    "sid": "obj9189"
+                }
+            ],
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00002"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00008"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelPersonObject",
+                    "sid": "obj9190"
+                }
+            ],
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00002"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00002"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S012"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelPersonObject",
+                    "sid": "obj9191111111"
+                }
+            ],
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00003"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00002"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelPersonObject",
+                    "sid": "obj918366"
+                }
+            ],
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00003"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00002"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelPersonObject",
+                    "sid": "obj918322"
+                }
+            ],
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00001"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00002"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelPersonObject",
+                    "sid": "obj9183323"
+                }
+            ],
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00010"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00001"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelPersonObject",
+                    "sid": "obj918399"
+                }
+            ],
+            "person": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Person",
+                        "sid": "GUIDP00009"
+                    }
+                ]
+            },
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00001"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "S900"
+                    }
+                ]
+            }
+        }
+    ],
+    "RelObjectLocation": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelObjectLocation",
+                    "sid": "objrol1"
+                }
+            ],
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00001"
+                    }
+                ]
+            },
+            "location": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Location",
+                        "sid": "GUIDL00002"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "V003"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelObjectLocation",
+                    "sid": "objrol2"
+                }
+            ],
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00003"
+                    }
+                ]
+            },
+            "location": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Location",
+                        "sid": "GUIDL00004"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "V003"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelObjectLocation",
+                    "sid": "objrol3"
+                }
+            ],
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00007"
+                    }
+                ]
+            },
+            "location": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Location",
+                        "sid": "GUIDL00005"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "V003"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelObjectLocation",
+                    "sid": "objrol4"
+                }
+            ],
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00006"
+                    }
+                ]
+            },
+            "location": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Location",
+                        "sid": "GUIDL00006"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "V003"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelObjectLocation",
+                    "sid": "objrol5"
+                }
+            ],
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00004"
+                    }
+                ]
+            },
+            "location": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Location",
+                        "sid": "GUIDL00007"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "V003"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelObjectLocation",
+                    "sid": "objrol6"
+                }
+            ],
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00005"
+                    }
+                ]
+            },
+            "location": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Location",
+                        "sid": "GUIDL00008"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "V003"
+                    }
+                ]
+            }
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelObjectLocation",
+                    "sid": "objrol7"
+                }
+            ],
+            "object": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Object",
+                        "sid": "GUIDO00002"
+                    }
+                ]
+            },
+            "location": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "Location",
+                        "sid": "GUIDL00001"
+                    }
+                ]
+            },
+            "relTypeCode": {
+                "source": [
+                    {
+                        "name": "systemA",
+                        "type": "RelTypeCode",
+                        "sid": "V003"
+                    }
+                ]
+            }
+        }
+    ],
+    "RelTypeCode": [
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelTypeCode",
+                    "sid": "S002"
+                }
+            ],
+            "description": "Person involved"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelTypeCode",
+                    "sid": "S001"
+                }
+            ],
+            "description": "Suspect"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelTypeCode",
+                    "sid": "S012"
+                }
+            ],
+            "description": "Is property of"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelTypeCode",
+                    "sid": "V003"
+                }
+            ],
+            "description": "Victim of"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelTypeCode",
+                    "sid": "S900"
+                }
+            ],
+            "description": "is linked to"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelTypeCode",
+                    "sid": "V004"
+                }
+            ],
+            "description": "Convict"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelTypeCode",
+                    "sid": "S013"
+                }
+            ],
+            "description": "Person of Interest"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelTypeCode",
+                    "sid": "S010"
+                }
+            ],
+            "description": "is related to"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelTypeCode",
+                    "sid": "S003"
+                }
+            ],
+            "description": "Victim"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelTypeCode",
+                    "sid": "S004"
+                }
+            ],
+            "description": "Witness"
+        },
+        {
+            "source": [
+                {
+                    "name": "systemA",
+                    "type": "RelTypeCode",
+                    "sid": "V002"
+                }
+            ],
+            "description": "Related incident"
+        }
+    ]
+}

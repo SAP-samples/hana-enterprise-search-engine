@@ -61,6 +61,74 @@ class Constants(object):
     attribute = 'attribute'
     alias = 'alias'
 
+class FuzzySearchOptionsInternal(esh_client.FuzzySearchOptions):
+
+    def to_statement(self):
+        result_array = []
+        if hasattr(self, 'abbreviationSimilarity') and self.abbreviationSimilarity is not None:
+            result_array.append(f"abbreviationSimilarity={self.abbreviationSimilarity}")
+        if hasattr(self, 'andSymmetric') and self.andSymmetric is not None:
+            result_array.append(f"andSymmetric={self.andSymmetric}")  
+        if hasattr(self, 'andThreshold') and self.andThreshold is not None:
+            result_array.append(f"andThreshold={self.andThreshold}")  
+        if hasattr(self, 'bestMatchingTokenWeight') and self.bestMatchingTokenWeight is not None:
+            result_array.append(f"bestMatchingTokenWeight={self.bestMatchingTokenWeight}")  
+        if hasattr(self, 'composeWords') and self.composeWords is not None:
+            result_array.append(f"composeWords={self.composeWords}")  
+        if hasattr(self, 'compoundWordWeight') and self.compoundWordWeight is not None:
+            result_array.append(f"compoundWordWeight={self.compoundWordWeight}")  
+        if hasattr(self, 'considerNonMatchingTokens') and self.considerNonMatchingTokens is not None:
+            result_array.append(f"considerNonMatchingTokens={self.considerNonMatchingTokens}")  
+        if hasattr(self, 'decomposeWords') and self.decomposeWords is not None:
+            result_array.append(f"decomposeWords={self.decomposeWords}")  
+        if hasattr(self, 'emptyScore') and self.emptyScore is not None:
+            result_array.append(f"emptyScore={self.emptyScore}")  
+        if hasattr(self, 'errorDevaluate') and self.errorDevaluate is not None:
+            result_array.append(f"errorDevaluate={self.errorDevaluate}")  
+        if hasattr(self, 'excessTokenWeight') and self.excessTokenWeight is not None:
+            result_array.append(f"excessTokenWeight={self.excessTokenWeight}")  
+        if hasattr(self, 'fuzzySubstringMatch') and self.fuzzySubstringMatch is not None:
+            result_array.append(f"fuzzySubstringMatch={self.fuzzySubstringMatch}")  
+        if hasattr(self, 'interScriptMatching') and self.interScriptMatching is not None:
+            result_array.append(f"interScriptMatching={self.interScriptMatching}")  
+        if hasattr(self, 'lengthTolerance') and self.lengthTolerance is not None:
+            result_array.append(f"lengthTolerance={self.lengthTolerance}")  
+        if hasattr(self, 'maxDateDistance') and self.maxDateDistance is not None:
+            result_array.append(f"maxDateDistance={self.maxDateDistance}")  
+        if hasattr(self, 'minSearchLength') and self.minSearchLength is not None:
+            result_array.append(f"minSearchLength={self.minSearchLength}")  
+        if hasattr(self, 'minTextScore') and self.minTextScore is not None:
+            result_array.append(f"minTextScore={self.minTextScore}")  
+        if hasattr(self, 'phraseCheckFactor') and self.phraseCheckFactor is not None:
+            result_array.append(f"phraseCheckFactor={self.phraseCheckFactor}")  
+        if hasattr(self, 'returnAll') and self.returnAll is not None:
+            result_array.append(f"returnAll={self.returnAll}")  
+        if hasattr(self, 'scoreFunction') and self.scoreFunction is not None:
+            result_array.append(f"scoreFunction={self.scoreFunction}")  
+        if hasattr(self, 'scoreFunctionDecay') and self.scoreFunctionDecay is not None:
+            result_array.append(f"scoreFunctionDecay={self.scoreFunctionDecay}")  
+        if hasattr(self, 'scoreFunctionOffset') and self.scoreFunctionOffset is not None:
+            result_array.append(f"scoreFunctionOffset={self.scoreFunctionOffset}")  
+        if hasattr(self, 'scoreFunctionScale') and self.scoreFunctionScale is not None:
+            result_array.append(f"scoreFunctionScale={self.scoreFunctionScale}")  
+        if hasattr(self, 'searchMode') and self.searchMode is not None:
+            result_array.append(f"searchMode={self.searchMode}")  
+        if hasattr(self, 'similarCalculationMode') and self.similarCalculationMode is not None:
+            result_array.append(f"similarCalculationMode={self.similarCalculationMode}")  
+        if hasattr(self, 'spellCheckFactor') and self.spellCheckFactor is not None:
+            result_array.append(f"spellCheckFactor={self.spellCheckFactor}")  
+        if hasattr(self, 'stopwordListId') and self.stopwordListId is not None:
+            result_array.append(f"stopwordListId={self.stopwordListId}")  
+        if hasattr(self, 'stopwordTable') and self.stopwordTable is not None:
+            result_array.append(f"stopwordTable={self.stopwordTable}")  
+        if hasattr(self, 'termMappingListId') and self.termMappingListId is not None:
+            result_array.append(f"termMappingListId={self.termMappingListId}")  
+        if hasattr(self, 'textSearch') and self.textSearch is not None:
+            result_array.append(f"textSearch={self.textSearch}")
+        if len(result_array) > 0:
+            return f'{",".join(result_array)}'
+        return None
+
 def serialize_geometry_collection(collection):
     try:
         collection[0]
@@ -78,6 +146,7 @@ ExpressionValueInternal = Union[Annotated[Union["UnaryExpressionInternal",  \
     Field(discriminator="type")], str]
 
 class SearchOptionsInternal(esh_client.SearchOptions):
+    fuzzySearchOptions: FuzzySearchOptionsInternal | None
 
     def to_statement(self) -> str:
         returnStatement = ""
@@ -86,7 +155,7 @@ class SearchOptionsInternal(esh_client.SearchOptions):
         if self.fuzzySearchOptions:
             if not self.fuzzinessThreshold:
                 returnStatement = returnStatement + '~0.8'
-            returnStatement = returnStatement + '[' + self.fuzzySearchOptions + ']'
+            returnStatement = returnStatement + '[' + self.fuzzySearchOptions.to_statement() + ']'
         if self.weight:
             returnStatement = returnStatement + '^' + str(self.weight)
         return returnStatement
@@ -365,6 +434,9 @@ class AuthInternal(EshLanguageOperators):
     type: Literal['AuthInternal'] = 'AuthInternal'  
     operator: str = "AUTH:"
 
+    # TODO add validation to check ComparisonOperators
+    # allowed only EQ(S), LT(S), BT(S) and IS:NULL
+
 class FilterInternal(EshLanguageOperators):
     type: Literal['FilterInternal'] = 'FilterInternal'  
     operator: str = "FILTER:"
@@ -485,9 +557,71 @@ def map_search_options(result, item):
     if item.searchOptions is not None:
         result.searchOptions=SearchOptionsInternal(
             fuzzinessThreshold=item.searchOptions.fuzzinessThreshold,
-            fuzzySearchOptions=item.searchOptions.fuzzySearchOptions,
             weight=item.searchOptions.weight
         )
+        if item.searchOptions.fuzzySearchOptions is not None:
+            result.searchOptions.fuzzySearchOptions = FuzzySearchOptionsInternal()
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'abbreviationSimilarity') and item.searchOptions.fuzzySearchOptions.abbreviationSimilarity is not None:
+                result.searchOptions.fuzzySearchOptions.abbreviationSimilarity = item.searchOptions.fuzzySearchOptions.abbreviationSimilarity
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'andSymmetric') and item.searchOptions.fuzzySearchOptions.andSymmetric is not None:
+                result.searchOptions.fuzzySearchOptions.andSymmetric = item.searchOptions.fuzzySearchOptions.andSymmetric  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'andThreshold') and item.searchOptions.fuzzySearchOptions.andThreshold is not None:
+                result.searchOptions.fuzzySearchOptions.andThreshold = item.searchOptions.fuzzySearchOptions.andThreshold
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'bestMatchingTokenWeight') and item.searchOptions.fuzzySearchOptions.bestMatchingTokenWeight is not None:
+                result.searchOptions.fuzzySearchOptions.bestMatchingTokenWeight = item.searchOptions.fuzzySearchOptions.bestMatchingTokenWeight 
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'composeWords') and item.searchOptions.fuzzySearchOptions.composeWords is not None:
+                result.searchOptions.fuzzySearchOptions.composeWords = item.searchOptions.fuzzySearchOptions.composeWords  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'compoundWordWeight') and item.searchOptions.fuzzySearchOptions.compoundWordWeight is not None:
+                result.searchOptions.fuzzySearchOptions.compoundWordWeight = item.searchOptions.fuzzySearchOptions.compoundWordWeight  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'considerNonMatchingTokens') and item.searchOptions.fuzzySearchOptions.considerNonMatchingTokens is not None:
+                result.searchOptions.fuzzySearchOptions.considerNonMatchingTokens = item.searchOptions.fuzzySearchOptions.considerNonMatchingTokens  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'decomposeWords') and item.searchOptions.fuzzySearchOptions.decomposeWords is not None:
+                result.searchOptions.fuzzySearchOptions.decomposeWords = item.searchOptions.fuzzySearchOptions.decomposeWords  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'emptyScore') and item.searchOptions.fuzzySearchOptions.emptyScore is not None:
+                result.searchOptions.fuzzySearchOptions.emptyScore = item.searchOptions.fuzzySearchOptions.emptyScore 
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'errorDevaluate') and item.searchOptions.fuzzySearchOptions.errorDevaluate is not None:
+                result.searchOptions.fuzzySearchOptions.errorDevaluate = item.searchOptions.fuzzySearchOptions.errorDevaluate
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'excessTokenWeight') and item.searchOptions.fuzzySearchOptions.excessTokenWeight is not None:
+                result.searchOptions.fuzzySearchOptions.excessTokenWeight = item.searchOptions.fuzzySearchOptions.excessTokenWeight
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'fuzzySubstringMatch') and item.searchOptions.fuzzySearchOptions.fuzzySubstringMatch is not None:
+                result.searchOptions.fuzzySearchOptions.fuzzySubstringMatch = item.searchOptions.fuzzySearchOptions.fuzzySubstringMatch
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'interScriptMatching') and item.searchOptions.fuzzySearchOptions.interScriptMatching is not None:
+                result.searchOptions.fuzzySearchOptions.interScriptMatching = item.searchOptions.fuzzySearchOptions.interScriptMatching
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'lengthTolerance') and item.searchOptions.fuzzySearchOptions.lengthTolerance is not None:
+                result.searchOptions.fuzzySearchOptions.lengthTolerance = item.searchOptions.fuzzySearchOptions.lengthTolerance
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'maxDateDistance') and item.searchOptions.fuzzySearchOptions.maxDateDistance is not None:
+                result.searchOptions.fuzzySearchOptions.maxDateDistance = item.searchOptions.fuzzySearchOptions.maxDateDistance  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'minSearchLength') and item.searchOptions.fuzzySearchOptions.minSearchLength is not None:
+                result.searchOptions.fuzzySearchOptions.minSearchLength = item.searchOptions.fuzzySearchOptions.minSearchLength  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'minTextScore') and item.searchOptions.fuzzySearchOptions.minTextScore is not None:
+                result.searchOptions.fuzzySearchOptions.minTextScore = item.searchOptions.fuzzySearchOptions.minTextScore 
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'phraseCheckFactor') and item.searchOptions.fuzzySearchOptions.phraseCheckFactor is not None:
+                result.searchOptions.fuzzySearchOptions.phraseCheckFactor = item.searchOptions.fuzzySearchOptions.phraseCheckFactor  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'returnAll') and item.searchOptions.fuzzySearchOptions.returnAll is not None:
+                result.searchOptions.fuzzySearchOptions.returnAll = item.searchOptions.fuzzySearchOptions.returnAll
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'scoreFunction') and item.searchOptions.fuzzySearchOptions.scoreFunction is not None:
+                result.searchOptions.fuzzySearchOptions.scoreFunction = item.searchOptions.fuzzySearchOptions.scoreFunction
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'scoreFunctionDecay') and item.searchOptions.fuzzySearchOptions.scoreFunctionDecay is not None:
+                result.searchOptions.fuzzySearchOptions.scoreFunctionDecay = item.searchOptions.fuzzySearchOptions.scoreFunctionDecay
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'scoreFunctionOffset') and item.searchOptions.fuzzySearchOptions.scoreFunctionOffset is not None:
+                result.searchOptions.fuzzySearchOptions.scoreFunctionOffset = item.searchOptions.fuzzySearchOptions.scoreFunctionOffset 
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'scoreFunctionScale') and item.searchOptions.fuzzySearchOptions.scoreFunctionScale is not None:
+                result.searchOptions.fuzzySearchOptions.scoreFunctionScale = item.searchOptions.fuzzySearchOptions.scoreFunctionScale
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'searchMode') and item.searchOptions.fuzzySearchOptions.searchMode is not None:
+                result.searchOptions.fuzzySearchOptions.searchMode = item.searchOptions.fuzzySearchOptions.searchMode  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'similarCalculationMode') and item.searchOptions.fuzzySearchOptions.similarCalculationMode is not None:
+                result.searchOptions.fuzzySearchOptions.similarCalculationMode = item.searchOptions.fuzzySearchOptions.similarCalculationMode  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'spellCheckFactor') and item.searchOptions.fuzzySearchOptions.spellCheckFactor is not None:
+                result.searchOptions.fuzzySearchOptions.spellCheckFactor = item.searchOptions.fuzzySearchOptions.spellCheckFactor  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'stopwordListId') and item.searchOptions.fuzzySearchOptions.stopwordListId is not None:
+                result.searchOptions.fuzzySearchOptions.stopwordListId = item.searchOptions.fuzzySearchOptions.stopwordListId  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'stopwordTable') and item.searchOptions.fuzzySearchOptions.stopwordTable is not None:
+                result.searchOptions.fuzzySearchOptions.stopwordTable = item.searchOptions.fuzzySearchOptions.stopwordTable  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'termMappingListId') and item.searchOptions.fuzzySearchOptions.termMappingListId is not None:
+                result.searchOptions.fuzzySearchOptions.termMappingListId = item.searchOptions.fuzzySearchOptions.termMappingListId  
+            if hasattr(item.searchOptions.fuzzySearchOptions, 'textSearch') and item.searchOptions.fuzzySearchOptions.textSearch is not None:
+                result.searchOptions.fuzzySearchOptions.textSearch = item.searchOptions.fuzzySearchOptions.textSearch
+
 
 def map_query(item):
     result = None
@@ -738,9 +872,10 @@ if __name__ == '__main__':
             Constants.fuzzySearchOptions:'search=typeahead'}}
     # TODO add the test after removing Term class
 
-
-    searchOpts = SearchOptionsInternal(fuzzinessThreshold=0.5,fuzzySearchOptions='search=typeahead',weight=0.9)
-    assert searchOpts.to_statement() == '~0.5[search=typeahead]^0.9'
+    fuzzy_search_options_1 = FuzzySearchOptionsInternal()
+    fuzzy_search_options_1.similarCalculationMode = esh_client.SimilarCalculationMode.typeAhead;
+    searchOpts = SearchOptionsInternal(fuzzinessThreshold=0.5,fuzzySearchOptions=fuzzy_search_options_1,weight=0.9)
+    assert searchOpts.to_statement() == '~0.5[similarCalculationMode=typeAhead]^0.9'
 
     '''      
     term = TermInternal(term='mannh"eim', doEshEscaping=True,\
@@ -1425,5 +1560,26 @@ if __name__ == '__main__':
     esh_object_with_boost_array = esh_client.EshObject.parse_obj(json.loads(esh_object_with_boost_array_json))
     esh_object_with_boost_array_mapped = map_query(esh_object_with_boost_array)
     assert esh_object_with_boost_array_mapped.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='(BOOST:(language:en) BOOST:(city:mannheim))'))"    
+
+    fuzzy_search_options = FuzzySearchOptionsInternal()
+    fuzzy_search_options.textSearch = esh_client.TextSearch.compare
+    fuzzy_search_options.abbreviationSimilarity = 0.9
+    print(fuzzy_search_options.to_statement())
+
+    string_value_with_fuzzy_options_json = '''
+        {
+            "type": "StringValue",
+            "value": "frankfurt",
+            "searchOptions": {
+                "fuzzinessThreshold": 0.78,
+                "fuzzySearchOptions": {
+                    "considerNonMatchingTokens": "input"
+                }
+            }
+        }
+    '''
+    string_value_with_fuzzy_options = esh_client.StringValue.parse_obj(json.loads(string_value_with_fuzzy_options_json))
+    string_value_with_fuzzy_options_mapped = map_query(string_value_with_fuzzy_options)
+    print(string_value_with_fuzzy_options_mapped.to_statement())
 
     print(' -----> everything fine <----- ')

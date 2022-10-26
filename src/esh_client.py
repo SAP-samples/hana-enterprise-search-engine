@@ -37,9 +37,91 @@ ExpressionValue = Union[Annotated[Union["UnaryExpression", \
     "BooleanValue", "StringValue",  "Property",  "MultiValues", "Filter", "FilterWF", "Boost"], \
     Field(discriminator="type")], str]
 
+class NonMatchingTokens(str, Enum):
+   max = "max"
+   min = "min"
+   all = "all"
+   input = 'input'
+   table = 'table'
+
+class FuzzySubstringMatch(str, Enum):
+    off = 'off'
+    on = 'on'
+    anywhere = 'anywhere'
+    beginning = 'beginning'
+
+class OnEnum(str, Enum):
+    on = 'on' 
+
+class ScoreFunction(str, Enum):
+    linear = 'linear'
+    gaussian = 'gaussian'
+    logarithmic = 'logarithmic'
+
+class SearchMode(str, Enum):
+    default = 'default'
+    null = 'null'
+    alphanum = 'alphanum'
+    housenumber = 'housenumber'
+    postcode = 'postcode'
+    identifier = 'identifier'
+    alphanum_identifier = 'alphanum_identifier'
+
+class SimilarCalculationMode(str, Enum):
+     compare = 'compare'
+     typeAhead = 'typeAhead' 
+     searchCompare = 'searchCompare'
+     search = 'search'
+     symmetricSearch = 'symmetricSearch'
+     sunstringSearch = 'sunstringSearch'
+     flexible = 'flexible'
+
+class TextSearch(str, Enum):
+    compare = 'compare'
+    fulltext = 'fulltext'
+
+class PhraseCheckFactor(float, Enum):
+    zeroNine = 0.9
+    one = 1
+
+class FuzzySearchOptions(BaseModel):
+    abbreviationSimilarity: float | None #    0.0..1.0
+    andSymmetric: float | None #     0.0..1.0
+    andThreshold: float | None #     0.0..1.0
+    bestMatchingTokenWeight: float | None # 0.0..1.0
+    composeWords: int | None #     1..5
+    compoundWordWeight: float | None # 0.0..1.0
+    considerNonMatchingTokens: NonMatchingTokens | None
+    decomposeWords: int | None #    1..5
+    emptyScore: float | None # example: 0.9
+    errorDevaluate: float | None # 0..1 0.9
+    excessTokenWeight: float | None #   0.0..1.0
+    fuzzySubstringMatch:FuzzySubstringMatch | None
+    interScriptMatching: OnEnum | None
+    lengthTolerance: float | None # Range 0..1, default is 0.5
+    maxDateDistance: int | None # 5
+    minSearchLength: int | None # int 0,1,2,3,4,5
+    minTextScore: int | None #  0.0..1.0
+    phraseCheckFactor: PhraseCheckFactor | None #  0.9 | 1
+    returnAll: OnEnum | None
+    scoreFunction: ScoreFunction | None
+    scoreFunctionDecay: float | None #  0 <= decay < 1 (linear),  0 < decay < 1 (gaussian)
+    scoreFunctionOffset: float | None #     offset >= 0
+    scoreFunctionScale: float | None #     scale > 0
+    searchMode: SearchMode | None
+    similarCalculationMode: SimilarCalculationMode | None
+    spellCheckFactor: float | None #    0.0 .. 1.0
+    stopwordListId: str | None #    stopwordListId=legalform -> freeform string     stopwordListId=mylist1,mylist2,mylist3
+    stopwordTable: str | None #    stopwordTable=[<schemaname>.]<tablename> TODO maybe object schema: str, table: str
+    termMappingListId: str | None # TODO maybe list is also possible   termMappingListId=01 => free string => check if it is possible as a list (comma separated string)
+
+
+    termMappingTable: str | None #  termMappingTable=tm_view
+    # TODO maybe with schema as object example with schema: termMappingTable="_SYS_BIC"."tm_map/TM_MAP_VIEW",termMappingListId=01,textSearch=compare
+    textSearch: TextSearch | None
 class SearchOptions(BaseModel):
     fuzzinessThreshold: float | int | None
-    fuzzySearchOptions:  str | None  
+    fuzzySearchOptions:  FuzzySearchOptions | None  
     weight: float | int | None
 
 

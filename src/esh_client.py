@@ -32,9 +32,9 @@ class ComparisonOperator(str, Enum):
  
 ExpressionValue = Union[Annotated[Union["UnaryExpression", \
     "Expression", "Comparison", "WithinOperator", "CoveredByOperator", \
-    "IntersectsOperator", "Term", "Point", "LineString", "CircularString", "Polygon", \
+    "IntersectsOperator", "Point", "LineString", "CircularString", "Polygon", \
     "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection", "NumberValue", \
-    "BooleanValue", "StringValue", "Phrase", "Property",  "MultiValues"], \
+    "BooleanValue", "StringValue",  "Property",  "MultiValues", "Filter", "FilterWF", "Boost"], \
     Field(discriminator="type")], str]
 
 class SearchOptions(BaseModel):
@@ -58,7 +58,7 @@ class Property(BaseModel):
     prefixOperator: str | None
 
 
-    
+'''  
 class Term(BaseModel):
     type: Literal['Term'] = 'Term'
     term: str 
@@ -73,14 +73,13 @@ class Phrase(BaseModel):
     phrase: str
     searchOptions: SearchOptions | None
     doEshEscaping: bool | None
-
+'''
 
 class StringValue(BaseModel):
     type: Literal['StringValue'] = 'StringValue'
     value: str
-    isQuoted: bool | None
-    isSingleQuoted: bool | None
-    withoutEnclosing: bool | None
+    isPhrase: bool | None
+    doEshEscaping: bool | None
     searchOptions: SearchOptions | None
 
 
@@ -108,10 +107,10 @@ class Expression(BaseModel):
 class UnaryOperator(str, Enum):
   NOT = "NOT"
   ROW = "ROW"
-  AUTH = "AUTH"
-  FILTER = "FILTER"
-  FILTERWF = "FILTERWF"
-  BOOST = "BOOST"
+  # AUTH = "AUTH"
+  # FILTER = "FILTER"
+  # FILTERWF = "FILTERWF"
+  # BOOST = "BOOST"
 
 class UnaryExpression(BaseModel):
     type: Literal['UnaryExpression'] = 'UnaryExpression'
@@ -172,10 +171,27 @@ class MultiValues(BaseModel):
     encloseStart: str | None = None
     encloseEnd: str | None = None
 
+# class Auth(BaseModel):
+#     type: Literal['Auth'] = 'Auth'    
+#    value: Expression | Comparison
+
+class Filter(BaseModel):
+    type: Literal['Filter'] = 'Filter'   
+    value: Expression | Comparison
+
+class FilterWF(BaseModel):
+    type: Literal['FilterWF'] = 'FilterWF'   
+    value: Expression | Comparison
+
+class Boost(BaseModel):
+    type: Literal['Boost'] = 'Boost'   
+    value: Expression | Comparison
+
     
 Comparison.update_forward_refs()
 Expression.update_forward_refs()
 UnaryExpression.update_forward_refs()
+MultiValues.update_forward_refs()
 
 class EshObject(BaseModel):
     type: Literal['EshObject'] = 'EshObject'
@@ -183,6 +199,8 @@ class EshObject(BaseModel):
     skip: int | None
     count: bool | None
     scope: str | List[str] | None
+    boost: Boost | list[Boost] | None
+    filter: Filter | FilterWF | None
     searchQueryFilter: Expression | None
     whyfound: bool | None
     select: list[str] | None

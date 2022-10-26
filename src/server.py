@@ -479,6 +479,8 @@ def get_search(tenant_id, esh_version, path, req: Request):
 def post_search(tenant_id, esh_version, body=Body(...)):
     return perform_bulk_search(get_esh_version(esh_version), tenant_id, body)
 
+'''
+
 # v2 Search
 @app.post('/v2/search/{tenant_id}/{esh_version:path}')
 async def search_v2(tenant_id, esh_version, queries: List[EshObject]):
@@ -611,12 +613,10 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
                             new_where[term] = []
                             for item in where_array:
                                 new_where[term].append(mapping['views'][entity_name]['columns'][item]['path'])
-                            '''
-                            alias_list.append({
-                                'alias': [found_property],
-                                'selector': mapping['views'][entity_name]['columns'][found_property]['path']
-                            })
-                            '''
+                            #alias_list.append({
+                            #    'alias': [found_property],
+                            #    'selector': mapping['views'][entity_name]['columns'][found_property]['path']
+                            #})
                         # matched_object["@com.sap.vocabularies.Search.v1.Aliases"] = alias_list
                         # matched_object["@com.sap.vocabularies.Search.v1.WhereFoundOriginal"] \
                         # = matched_object["@com.sap.vocabularies.Search.v1.WhereFound"]
@@ -629,12 +629,13 @@ async def search_v21(tenant_id, esh_version, query=Body(...)):
         return search_results
     except Exception as e:
         return {'error': f'{e}'}
+'''
 
-def get_column_view(mapping, anchor_entity_name, schema_name, path_list, auto_default_search_element):
+def get_column_view(mapping, anchor_entity_name, schema_name, path_list):
     view_id = str(uuid.uuid4()).replace('-', '').upper()
     view_name = f'DYNAMICVIEW/{view_id}'
     odata_name = f'DYNAMICVIEW_{view_id}'
-    cv = ColumnView(mapping, anchor_entity_name, schema_name, auto_default_search_element)
+    cv = ColumnView(mapping, anchor_entity_name, schema_name)
     cv.by_path_list(path_list, view_name, odata_name)
     return cv
 
@@ -658,7 +659,7 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
             if not scope in mapping['entities']:
                 handle_error(f'unknown entity {scope}', 400)
             requested_entity_types.append(scope)
-            cv = get_column_view(mapping, scope, schema_name, pathes.keys(), False)
+            cv = get_column_view(mapping, scope, schema_name, pathes.keys())
             query.scope = cv.view_name
             view_ddl, esh_config = cv.data_definition()
             configurations.append(esh_config['content'])

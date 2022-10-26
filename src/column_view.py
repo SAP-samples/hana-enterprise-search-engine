@@ -30,7 +30,7 @@ def sequence_int(i = 10, step = 10):
 
 class ColumnView:
     """Column view definition"""
-    def __init__(self, mapping, anchor_entity_name, schema_name, auto_default_search_element = True) -> None:
+    def __init__(self, mapping, anchor_entity_name, schema_name) -> None:
         self.mapping = mapping
         self.anchor_entity = mapping['entities'][anchor_entity_name]
         self.schema_name = schema_name
@@ -43,7 +43,6 @@ class ColumnView:
         self.join_path_id_gen = sequence(1, 'JP', 3)
         self.join_condition_id_gen = sequence(1, 'JC', 3)
         self.ui_position_gen = sequence_int()
-        self.auto_default_search_element = auto_default_search_element
 
     def by_selector(self, view_name, odata_name, selector):
         self.view_name = view_name
@@ -111,7 +110,8 @@ class ColumnView:
         if is_enteprise_search_key:
             col_conf['@EnterpriseSearch.key'] = True
             col_conf['@UI.hidden'] = True
-        if is_enteprise_search_key ^ self.auto_default_search_element:
+        if not(is_enteprise_search_key or self.mapping['tables'][table_name]['columns'][table_column_name]['type'] in ['ST_POINT', 'ST_GEOMETRY']):
+        # if is_enteprise_search_key ^ self.auto_default_search_element:
             col_conf['@Search.defaultSearchElement'] = True
         if annotations and '@EndUserText.Label' in annotations and '@SAP.Common.Label' not in annotations:
             col_conf['@SAP.Common.Label'] = annotations['@EndUserText.Label']
@@ -230,6 +230,16 @@ class ColumnView:
         self.esh_config['content']['Fullname'] = f'{self.schema_name}/{self.view_name}'
         self.esh_config['content']['EntityType']['@EnterpriseSearchHana.identifier'] = self.odata_name
         self._traverse(self.selector, self.anchor_entity, [], self._table(anchor_table_name))
+
+        has_default_search_element = False
+        for prop in self.esh_config['content']['EntityType']['Properties']:
+            if '@Search.defaultSearchElement' in prop:
+                has_default_search_element = True
+                break
+        if not has_default_search_element:
+            for prop in self.esh_config['content']['EntityType']['Properties']:
+                if '@EnterpriseSearch.key' in prop and prop['@EnterpriseSearch.key']:
+                    prop['@Search.defaultSearchElement'] = True
 
         return self._get_sql_statement(), self.esh_config
 

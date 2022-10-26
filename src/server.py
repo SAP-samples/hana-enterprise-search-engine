@@ -651,8 +651,7 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
         view_ddls = []
         requested_entity_types = []
         for query in queries:
-            scopes, pathes = query_mapping.extract_pathes(query)
-            #if len(scopes) != 1:
+            pathes = query_mapping.extract_pathes(query)
             if query.scope is None or not isinstance(query.scope, str):
                 handle_error('Exactly one scope is needed', 400)
             scope = query.scope
@@ -665,10 +664,9 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
             configurations.append(esh_config['content'])
             for path in pathes.keys():
                 pathes[path] = cv.column_name_by_path(path)
-            query_mapping.map_query(query, [cv.odata_name], pathes)
+            query_mapping.map_query(query, pathes)
             view_ddls.append(view_ddl)
             dynamic_views.append(cv.view_name)
-            # search_object = EshObject.parse_obj(query)
             search_object = map_query(query)
             search_object.select = ['ID']
             esh_query = search_object.to_statement()[1:]

@@ -5,7 +5,6 @@ import esh_client as esh
 
 def extract_pathes(query: esh.EshObject):
     pathes = {tuple(['id']):''}
-    scope = []
     if query.orderby:
         for orderby in query.orderby:
             if isinstance(orderby.key, str):
@@ -23,32 +22,27 @@ def extract_pathes(query: esh.EshObject):
             else:
                 raise NotImplementedError
     if query.searchQueryFilter:
-        extract_property_path(query.searchQueryFilter.items, scope, pathes)
-    return (scope, pathes)
+        extract_property_path(query.searchQueryFilter.items, pathes)
+    return pathes
 
 
-def extract_property_path(obj, scope, pathes):
+def extract_property_path(obj, pathes):
     if isinstance(obj, list):
         for o in obj:
-            extract_property_path(o, scope, pathes)
+            extract_property_path(o, pathes)
     else:
         match type(obj):
             case esh.Expression:
-                extract_property_path(obj.items, scope, pathes)
+                extract_property_path(obj.items, pathes)
             case esh.UnaryExpression:
-                extract_property_path(obj.item, scope, pathes)
-            # case esh.ScopeComparison:
-            #    if isinstance(obj.values, list):
-            #        scope.extend(obj.values)
-            #    else:
-            #        scope.extend([obj.values])
+                extract_property_path(obj.item, pathes)
             case esh.Comparison:
                 if isinstance(obj.property.property, str):
                     pathes[(obj.property.property,)] = ''
                 else:
                     pathes[tuple(obj.property.property)] = ''
 
-def map_query(query, scope, pathes):
+def map_query(query, pathes):
     if query.orderby:
         for orderby in query.orderby:
             if isinstance(orderby.key, str):
@@ -68,20 +62,18 @@ def map_query(query, scope, pathes):
                 raise NotImplementedError
         query.select = select_int
     if query.searchQueryFilter:
-        map_property(query.searchQueryFilter.items, scope, pathes)
+        map_property(query.searchQueryFilter.items, pathes)
 
-def map_property(obj, scope, pathes):
+def map_property(obj, pathes):
     if isinstance(obj, list):
         for o in obj:
-            map_property(o, scope, pathes)
+            map_property(o, pathes)
     else:
         match type(obj):
             case esh.Expression:
-                extract_property_path(obj.items, scope, pathes)
+                extract_property_path(obj.items, pathes)
             case esh.UnaryExpression:
-                extract_property_path(obj.item, scope, pathes)
-            # case esh.ScopeComparison:
-            #    obj.values = scope
+                extract_property_path(obj.item, pathes)
             case esh.Comparison:
                 if isinstance(obj.property.property, str):
                     obj.property.property = pathes[(obj.property.property,)]

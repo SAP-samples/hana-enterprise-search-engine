@@ -25,7 +25,7 @@ from column_view import ColumnView
 from config import get_user_name
 from constants import (CONCURRENT_CONNECTIONS, TENANT_ID_MAX_LENGTH,
                        TENANT_PREFIX, TYPES_B64_ENCODE, TYPES_SPATIAL,
-                       DBUserType)
+                       DBUserType, ENTITY_PREFIX)
 from db_connection_pool import (ConnectionPool, Credentials, DBBulkProcessing,
                                 DBConnection)
 from esh_client import EshObject
@@ -636,82 +636,121 @@ def get_column_view(mapping, anchor_entity_name, schema_name, path_list):
     view_name = f'DYNAMICVIEW/{view_id}'
     odata_name = f'DYNAMICVIEW_{view_id}'
     cv = ColumnView(mapping, anchor_entity_name, schema_name)
-    cv.by_path_list(path_list, view_name, odata_name)
+    cv.by_default_and_path_list(path_list, view_name, odata_name)
     return cv
 
 # Query v1
 @app.post('/v1/query/{tenant_id}/{esh_version:path}')
 async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
     schema_name = get_tenant_schema_name(tenant_id)
-    with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
-        mapping = get_mapping(tenant_id, schema_name)
-        dynamic_views = []
-        configurations = []
+    mapping = get_mapping(tenant_id, schema_name)
+    dynamic_views = {}
+    odata_map = {}
+    esh_queries = []
+    for query in queries:
         uris = []
-        view_ddls = []
-        requested_entity_types = []
-        for query in queries:
-            pathes = query_mapping.extract_pathes(query)
-            if query.scope is None or not isinstance(query.scope, str):
-                handle_error('Exactly one scope is needed', 400)
-            scope = query.scope
+        configurations = []
+        pathes = query_mapping.extract_pathes(query)
+        if query.scope:
+            if isinstance(query.scope, str):
+                scopes = [query.scope]
+            elif isinstance(query.scope, list):
+                scopes = query.scope
+        else:
+            scopes = []
+        esh_scopes = []
+        for scope in scopes:
             if not scope in mapping['entities']:
                 handle_error(f'unknown entity {scope}', 400)
-            requested_entity_types.append(scope)
+            is_cross_entity = False
+            for path in pathes:
+                is_valid, is_cross = convert.check_path(mapping, mapping['entities'][scope], path)
+                if not is_valid:
+                    handle_error(f'invalid path {path} for entity {scope}', 400)
+                is_cross_entity = is_cross_entity or is_cross
+            #if is_cross_entity:
+                # ToDo: support free-style
             cv = get_column_view(mapping, scope, schema_name, pathes.keys())
-            query.scope = cv.view_name
+            esh_scopes.append(cv.odata_name)
             view_ddl, esh_config = cv.data_definition()
             configurations.append(esh_config['content'])
+            view_map = {k:v for k,_,_,_,v in cv.view_attribute}
+            odata_map['$metadata#' + cv.odata_name] = {'entity_type':scope, 'view_map': view_map}
+            dynamic_views[cv.view_name] = {'ddl': view_ddl}
+            #else:
+            #    esh_scopes.append(mapping['entities'][scope]['table_name'][len(ENTITY_PREFIX):])
             for path in pathes.keys():
                 pathes[path] = cv.column_name_by_path(path)
-            query_mapping.map_query(query, pathes)
-            view_ddls.append(view_ddl)
-            dynamic_views.append(cv.view_name)
-            search_object = map_query(query)
-            search_object.select = ['ID']
-            esh_query = search_object.to_statement()[1:]
-            uris.append(f'/{get_esh_version(esh_version)}/{schema_name}/{esh_query}')
-        for view_ddl in view_ddls:
-            db.cur.execute(view_ddl)
-    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
-        params = (json.dumps([{'Configuration': configurations, 'URI': uris}]), None)
+
+        query_mapping.map_query(query, pathes)
+        query.scope = esh_scopes
+        search_object = map_query(query)
+        search_object.select = ['ID']
+        esh_query = search_object.to_statement()[1:]
+        uris.append(f'/{get_esh_version(esh_version)}/{schema_name}/{esh_query}')
         logging.info(uris)
+        esh_query = {'URI': uris}
+        if configurations:
+            esh_query['Configuration'] = configurations
+        esh_queries.append(esh_query)
+    if dynamic_views:
+        with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
+            for dynamic_view in dynamic_views.values():
+                db.cur.execute(dynamic_view['ddl'])
+    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+        params = (json.dumps(esh_queries), None)
         db.cur.callproc('esh_search', params)
         search_results = [json.loads(w[0]) for w in db.cur.fetchall()]
-    with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
-        for view_name in dynamic_views:
-            sql = f'drop view "{schema_name}"."{view_name}"'
-            db.cur.execute(sql)
+    if dynamic_views:
+        with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
+            for view_name in dynamic_views:
+                sql = f'drop view "{schema_name}"."{view_name}"'
+                db.cur.execute(sql)
+    read_request = {}
+    for search_result in search_results:
+        if 'error' in search_result:
+            handle_error(json.dumps(search_results))
+        for itm in search_result['value']:
+            if itm['@odata.context'] in odata_map:
+                entity_type = odata_map[itm['@odata.context']]['entity_type']
+            else:
+                entity_type = mapping['tables'][ENTITY_PREFIX + itm['@odata.context'][10:]]['external_path'][0]
+                odata_map[itm['@odata.context']]['entity_type'] = entity_type
+            if not entity_type in read_request:
+                read_request[entity_type] = []
+            read_request[entity_type].append({'id':itm['ID']})
 
-    if [w for w in search_results if 'error' in w]:
-        handle_error(json.dumps(search_results))
-    else:
-        data_request = {}
-        for i, search_result in enumerate(search_results):
-            if 'value' in search_result and search_result['value']:
-                requested_entity_type = requested_entity_types[i]
-                if not requested_entity_type in data_request:
-                    data_request[requested_entity_type] = []
-                for res_item in search_result['value']:
-                    data_request[requested_entity_type].append({'id':res_item['ID']})
-        full_objects = await read_data(tenant_id, data_request, True)
-        full_objects_idx = {}
-        for k, v in full_objects.items():
-            full_objects_idx[k] = {}
-            for i in v:
-                full_objects_idx[k][i['id']] = i
+    full_objects = await read_data(tenant_id, read_request, True)
+    full_objects_idx = {}
+    for k, v in full_objects.items():
+        full_objects_idx[k] = {}
+        for i in v:
+            full_objects_idx[k][i['id']] = i
 
-        results = []
-        for i, search_result in enumerate(search_results):
-            result = {'value': []}
-            if 'value' in search_result and search_result['value']:
-                requested_entity_type = requested_entity_types[i]
-                for res_item in search_result['value']:
-                    result['value'].append(full_objects_idx[requested_entity_type][res_item['ID']])
-            if '@odata.count' in search_result:
-                result['@odata.count'] = search_result['@odata.count']
-            results.append(result)
-        return results
+    results = []
+    for i, search_result in enumerate(search_results):
+        result = {'value': []}
+        for itm in search_result['value']:
+            r = {}
+            if '@com.sap.vocabularies.Search.v1.Ranking' in itm:
+                r['@com.sap.vocabularies.Search.v1.Ranking'] = itm['@com.sap.vocabularies.Search.v1.Ranking']
+            if '@com.sap.vocabularies.Search.v1.WhyFound' in itm:
+                r['@com.sap.vocabularies.Search.v1.WhyFound'] = []
+                for k, v in itm['@com.sap.vocabularies.Search.v1.WhyFound'].items():
+                    wf = {'path': odata_map[itm['@odata.context']]['view_map'][k], 'found': v}
+                    r['@com.sap.vocabularies.Search.v1.WhyFound'].append(wf)
+            #if '@com.sap.vocabularies.Search.v1.WhereFound' in itm:
+            #    r['@com.sap.vocabularies.Search.v1.WhereFound'] = []
+            #    for k, v in itm['@com.sap.vocabularies.Search.v1.WhereFound'].items():
+            #        wf = {'path': odata_map[itm['@odata.context']]['view_map'][k], 'found': v}
+            #        r['@com.sap.vocabularies.Search.v1.WhereFound'].append(wf)
+            res_item = r | full_objects_idx[odata_map[itm['@odata.context']]['entity_type']][itm['ID']]
+            result['value'].append(res_item)
+        if '@odata.count' in search_result:
+            result['@odata.count'] = search_result['@odata.count']
+        results.append(result)
+    return results
+
 
 @app.get('/{path:path}')
 async def tile_request(path: str, response: Response):

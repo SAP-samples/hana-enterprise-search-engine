@@ -82,7 +82,7 @@ class ColumnView:
             v += f'joinCondition=(\'{jc[0]}\',"{self.schema_name}"."{jc[1]}","{jc[2]}","{self.schema_name}"."{jc[3]}","{jc[4]}",\'\',81,0),\n'
         for jp_name, jp_conditions in self.join_path.items():
             v += f"joinPath=('{jp_name}','{','.join(sorted(list(jp_conditions)))}'),\n"
-        for view_prop_name, table_name, table_prop_name, join_path_id in self.view_attribute:
+        for view_prop_name, table_name, table_prop_name, join_path_id, _ in self.view_attribute:
             v += f"viewAttribute=('{view_prop_name}',\"{self.schema_name}\".\"{table_name}\",\"{table_prop_name}\",'{join_path_id}'"\
                 +",'default','attribute'),\n"
         v += f"view=('default',\"{self.schema_name}\".\"{self.anchor_entity['table_name']}\"),\n"
@@ -97,7 +97,7 @@ class ColumnView:
         view_column_name, _ = self.column_name_mapping.register(name_path)
         selector_pos['as'] = view_column_name
         self.view_attribute.append((view_column_name, \
-            self._get_join_index_name(join_index), table_column_name, join_path_id))
+            self._get_join_index_name(join_index), table_column_name, join_path_id, name_path))
         # ESH config
         col_conf = {'Name': view_column_name}
         if annotations:
@@ -218,6 +218,13 @@ class ColumnView:
         self.selector = self._make_default_selector(self.anchor_entity, [], None)
         self.odata_name = self.anchor_entity['table_name'][len(ENTITY_PREFIX):]
         self.view_name = VIEW_PREFIX + self.odata_name
+
+    def by_default_and_path_list(self, path_list, view_name, odata_name):
+        self.view_name = view_name
+        self.odata_name = odata_name
+        self.selector = self._make_default_selector(self.anchor_entity, [], None)
+        for path in path_list:
+            self._selector_from_path(path, self.selector)
 
     def data_definition(self):
         anchor_table_name = self.anchor_entity['table_name']

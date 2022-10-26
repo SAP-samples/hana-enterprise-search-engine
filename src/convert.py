@@ -1,5 +1,4 @@
 """Mapping between external objects and internal tables using 'tables' as internal runtime-format """
-from turtle import backward
 from uuid import uuid1
 from name_mapping import NameMapping
 import json
@@ -603,3 +602,21 @@ def objects_to_dml(mapping, objects, pk = DefaultPK):
                 row.extend([None]*(length - len(row)))
 
     return {'inserts': inserts}
+
+
+def check_path(mapping:dict, elem_loc:dict, path:list):
+    if 'elements' in elem_loc:
+        if path[0] in elem_loc['elements']:
+            if len(path) > 1:
+                new_elem_loc = elem_loc['elements'][path[0]]
+                if 'definition' in new_elem_loc and 'target' in new_elem_loc['definition']:
+                    cp_res, _ = check_path(mapping, mapping['entities'][new_elem_loc['definition']['target']], path[1:])
+                    return (cp_res, True)
+                return check_path(mapping, new_elem_loc, path[1:])
+            return (True, False)
+        else:
+            return (False, False)
+    elif 'items' in elem_loc:
+        return check_path(mapping, elem_loc['items'], path)
+    else:
+        raise NotImplementedError

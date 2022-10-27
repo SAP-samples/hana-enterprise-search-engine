@@ -70,10 +70,11 @@ def serialize_geometry_collection(collection):
 
 # Expression = ForwardRef('Expression')       
 ExpressionValueInternal = Union[Annotated[Union["UnaryExpressionInternal",  \
-    "ExpressionInternal", "ComparisonInternal","ScopeComparisonInternal", "WithinOperator", "CoveredByOperator", \
-    "IntersectsOperator", "TermInternal", "PointInternal", "LineStringInternal", "CircularStringInternal", "PolygonInternal", \
+    "ExpressionInternal", "ComparisonInternal","WithinOperator", "CoveredByOperator", \
+    "IntersectsOperator",  "PointInternal", "LineStringInternal", "CircularStringInternal", "PolygonInternal", \
     "MultiPointInternal", "MultiLineStringInternal", "MultiPolygonInternal", "GeometryCollectionInternal", "NumberValueInternal", \
-    "BooleanValueInternal", "StringValueInternal", "PhraseInternal", "PropertyInternal",  "MultiValuesInternal"], \
+    "BooleanValueInternal", "StringValueInternal", "AuthInternal", "FilterInternal", "FilterWFInternal", \
+    "PropertyInternal",  "MultiValuesInternal", "BoostInternal"], \
     Field(discriminator="type")], str]
 
 class SearchOptionsInternal(esh_client.SearchOptions):
@@ -146,14 +147,7 @@ class PropertyInternal(esh_client.Property):
         else:
             return property_value
 
-class ScopeComparisonInternal(esh_client.ScopeComparison):
-    type: Literal['ScopeComparisonInternal'] = 'ScopeComparisonInternal'
-    values: str | List[str]
-
-    def to_statement(self):
-        scope_value = self.values if not type(self.values) is list else "(" + " OR ".join(self.values) + ")"
-        return f"SCOPE:{scope_value}"
-
+'''
 class TermInternal(esh_client.Term):
 
     def to_statement(self):
@@ -174,22 +168,27 @@ class PhraseInternal(esh_client.Phrase):
         else:
             final_phrase = self.phrase
         return addFuzzySearchOptions('\"' + final_phrase + '\"', self.searchOptions)
-
+'''
 class StringValueInternal(esh_client.StringValue):
 
     type: Literal['StringValueInternal'] = 'StringValueInternal'
 
+    # isPhrase: bool | None
+    # doEshEscaping: bool | None
+
     def to_statement(self):
         #if self.withoutEnclosing:
         #    return String(Number.parseFloat(this.value));
-        return_value = None
-        if self.isQuoted:
-            return f'"{escapeDoubleQuoteAndBackslash(self.value)}"'
-        if self.isSingleQuoted:
-            return f"'{escapeSingleQuote(self.value)}'"
-        if return_value is None:
+        # return_value = None
+        if self.doEshEscaping:
+            return_value = escapePhrase(self.value)
+        else:
             return_value = self.value
+        if self.isPhrase:
+            # return_value = f'"{escapeDoubleQuoteAndBackslash(self.value)}"'
+            return_value = '\"' + return_value + '\"'
         return addFuzzySearchOptions(return_value, self.searchOptions)
+
 
 class NumberValueInternal(esh_client.NumberValue):
 
@@ -200,17 +199,6 @@ class BooleanValueInternal(esh_client.BooleanValue):
 
     def to_statement(self):
         return json.dumps(self.value)
-
-class ScopeComparisonInternal(esh_client.ScopeComparison):
-
-    def to_statement(self):
-        if isinstance(self.values, str):
-            return f'SCOPE:{self.values}'
-        elif len(self.values) == 1:
-            return f'SCOPE:{self.values[0]}'
-        else:
-            scope_values = ' OR '.join(self.values)
-            return f'SCOPE:({scope_values})'
 
 class ComparisonInternal(BaseModel):
     type: Literal['ComparisonInternal'] = 'ComparisonInternal'
@@ -231,10 +219,6 @@ class ComparisonInternal(BaseModel):
             value = self.value
         return f'{property}{self.operator}{value}'
 
-    @classmethod
-    def from_Comparison(cls, a: esh_client.Comparison):
-        b_obj = ComparisonInternal(property="sss",operator=esh_client.ComparisonOperator.IsNull)
-        return b_obj
         
 class ExpressionInternal(esh_client.Expression):
     type: Literal['ExpressionInternal'] = 'ExpressionInternal'
@@ -242,7 +226,7 @@ class ExpressionInternal(esh_client.Expression):
     
     def get_expression_statement(self, expression_item):
         if isinstance(expression_item, ExpressionInternal): 
-            return f'({expression_item.to_statement()})'
+            return f'{expression_item.to_statement()}'
         else:
             try:
                 return expression_item.to_statement()
@@ -258,9 +242,9 @@ class ExpressionInternal(esh_client.Expression):
         else:
             connect_operator = ' '
         statements = list(map(lambda item: self.get_expression_statement(item), self.items))
-        if len(self.items) > 1 and not isinstance(self.items[0], ExpressionInternal) and not isinstance(self.items[0], ScopeComparisonInternal):
-            # return f"({connect_operator.join(statements)})"
-            return f"{connect_operator.join(statements)}"
+        if len(self.items) > 1:
+            return f"({connect_operator.join(statements)})"
+            # return f"{connect_operator.join(statements)}"
         return connect_operator.join(statements)
 
 
@@ -368,20 +352,82 @@ class MultiValuesInternal(esh_client.MultiValues):
             return_value = f'{return_value}{self.encloseEnd}'
         return return_value
 
+class EshLanguageOperators(BaseModel):
+    value: ExpressionInternal | ComparisonInternal
+
+    def to_statement(self) -> str:
+        auth_statement = self.value.to_statement()
+        if auth_statement.startswith("("):
+            return f"{self.operator}{auth_statement}"
+        else:
+            return f"{self.operator}({auth_statement})"
+class AuthInternal(EshLanguageOperators):
+    type: Literal['AuthInternal'] = 'AuthInternal'  
+    operator: str = "AUTH:"
+
+class FilterInternal(EshLanguageOperators):
+    type: Literal['FilterInternal'] = 'FilterInternal'  
+    operator: str = "FILTER:"
+
+class FilterWFInternal(EshLanguageOperators):
+    type: Literal['FilterWFInternal'] = 'FilterWFInternal'  
+    operator: str = "FILTERWF:"
+
+class BoostInternal(EshLanguageOperators):
+    type: Literal['BoostInternal'] = 'BoostInternal'  
+    operator: str = "BOOST:"
+    
 
 ComparisonInternal.update_forward_refs()
 ExpressionInternal.update_forward_refs()
 UnaryExpressionInternal.update_forward_refs()
+MultiValuesInternal.update_forward_refs()
 class EshObjectInternal(esh_client.EshObject):
     type: Literal['EshObjectInternal'] = 'EshObjectInternal' 
     searchQueryFilter: ExpressionInternal | None
     orderby: List[OrderByInternal] | None
+    auth: AuthInternal | None
+    filter: FilterInternal | FilterWFInternal | None
+    boost: BoostInternal | list[BoostInternal] | None
 
     class Config:
         extra = 'forbid'
 
-    def to_statement(self):
+    def to_statement(self) -> str:
         esh = '/$all' if self.resourcePath is None else self.resourcePath
+        if self.auth:
+            if self.searchQueryFilter:
+                self.searchQueryFilter.items.append(self.auth)
+            else:
+                self.searchQueryFilter = ExpressionInternal(
+                    items=[
+                        self.auth
+                    ]
+                )
+        if self.filter:
+            if self.searchQueryFilter:
+                self.searchQueryFilter.items.append(self.filter)
+            else:
+                self.searchQueryFilter = ExpressionInternal(
+                    items=[
+                        self.filter
+                    ]
+                )
+        if self.boost:
+            if self.searchQueryFilter:
+                if isinstance(self.boost, list):
+                    for o in self.boost:
+                        self.searchQueryFilter.items.append(o)
+                else:
+                    self.searchQueryFilter.items.append(self.boost)
+            else:
+                if isinstance(self.boost, list):
+                    boosts = self.boost
+                else:
+                    boosts = [self.boost]
+                self.searchQueryFilter = ExpressionInternal(
+                    items=boosts
+                )
         searchQueryFilter = self.searchQueryFilter.to_statement() if self.searchQueryFilter else ''
         if self.suggestTerm is not None:
             escaped_suggested_term = self.suggestTerm.replace("'","''")
@@ -397,8 +443,20 @@ class EshObjectInternal(esh_client.EshObject):
                 esh += f'&${Constants.skip}={self.skip}'
             if self.count is not None:
                 esh += f'&${Constants.count}={json.dumps(self.count)}'
+            scope_filter = None
+            if self.scope:
+                if isinstance(self.scope, str):
+                    scope_filter = self.scope
+                elif len(self.scope) == 1:
+                    scope_filter = self.scope[0]
+                else:
+                    scope_filter = f'({" OR ".join(self.scope)})'
             if searchQueryFilter != '':
+                if scope_filter is not None:
+                    searchQueryFilter = f'SCOPE:{scope_filter} {searchQueryFilter}'
                 esh += f"&$apply=filter(Search.search(query='{searchQueryFilter}'))"
+            elif scope_filter is not None:
+                esh += f"&$apply=filter(Search.search(query='SCOPE:{scope_filter}'))"
             if self.whyfound is not None:
                 esh += f'&{Constants.whyfound}={json.dumps(self.whyfound)}'
             if self.select is not None:
@@ -423,6 +481,14 @@ class EshObjectInternal(esh_client.EshObject):
                 esh += f'&{Constants.filteredgroupby}={json.dumps(self.filteredgroupby)}'
         return esh
 
+def map_search_options(result, item):
+    if item.searchOptions is not None:
+        result.searchOptions=SearchOptionsInternal(
+            fuzzinessThreshold=item.searchOptions.fuzzinessThreshold,
+            fuzzySearchOptions=item.searchOptions.fuzzySearchOptions,
+            weight=item.searchOptions.weight
+        )
+
 def map_query(item):
     result = None
 
@@ -433,11 +499,16 @@ def map_query(item):
             case 'StringValue':
                 result = StringValueInternal(
                     value=item.value,
-                    isQuoted=item.isQuoted,
-                    isSingleQuoted=item.isSingleQuoted,
-                    withoutEnclosing=item.withoutEnclosing,
-                    searchOptions=item.searchOptions
+                    isPhrase=item.isPhrase,
+                    doEshEscaping=item.doEshEscaping
                 )
+                map_search_options(result, item)
+                # if item.searchOptions is not None:
+                #    result.searchOptions=SearchOptionsInternal(
+                #        fuzzinessThreshold=item.searchOptions.fuzzinessThreshold,
+                #        fuzzySearchOptions=item.searchOptions.fuzzySearchOptions,
+                #        weight=item.searchOptions.weight
+                #    )
             case 'Property':
                 result = PropertyInternal(
                     property=item.property,
@@ -454,12 +525,6 @@ def map_query(item):
                     operator=item.operator,
                     items=list(map(lambda i: map_query(i),item.items))
                 )
-            case 'Phrase':
-                result = PhraseInternal(
-                    phrase=item.phrase,
-                    searchOptions=item.searchOptions,
-                    doEshEscaping=item.doEshEscaping
-                )
             case 'SearchOptions':
                 result = SearchOptionsInternal(
                     weight=item.weight,
@@ -471,43 +536,46 @@ def map_query(item):
                     coordinates=item.coordinates,
                     searchOptions=item.searchOptions
                 )
+                map_search_options(result, item)
             case 'LineString':
                 result = LineStringInternal(
                     coordinates=item.coordinates,
                     searchOptions=item.searchOptions
-                )        
+                )
+                map_search_options(result, item)        
             case 'CircularString':
                 result = CircularStringInternal(
                     coordinates=item.coordinates,
                     searchOptions=item.searchOptions
-                )        
+                )
+                map_search_options(result, item)     
             case 'Polygon':
                 result = PolygonInternal(
                     coordinates=item.coordinates,
                     searchOptions=item.searchOptions
-                )        
+                )
+                map_search_options(result, item)        
             case 'MultiPoint':
                 result = MultiPointInternal(
                     coordinates=item.coordinates,
                     searchOptions=item.searchOptions
-                ) 
+                )
+                map_search_options(result, item)
             case 'MultiLineString':
                 result = MultiLineStringInternal(
                     coordinates=item.coordinates,
                     searchOptions=item.searchOptions
                 )
+                map_search_options(result, item)
             case 'MultiPolygon':
                 result = MultiPolygonInternal(
                     coordinates=item.coordinates,
                     searchOptions=item.searchOptions
-                )        
+                )
+                map_search_options(result, item)       
             case 'GeometryCollection':
                 result = GeometryCollectionInternal(
                     geometries=list(map(lambda i: map_query(i), item.geometries))
-                )
-            case 'ScopeComparison':
-                result = ScopeComparisonInternal(
-                    values=item.values
                 )
             case 'MultiValues':
                 result = MultiValuesInternal(
@@ -521,12 +589,30 @@ def map_query(item):
                     operator=item.operator,
                     item=map_query(item.item)
                 )
+            # case 'Auth':
+            #     result = AuthInternal(
+            #         value=map_query(item.value)
+            #    )
+            case 'Filter':
+                result = FilterInternal(
+                    value=map_query(item.value)
+                )
+            case 'FilterWF':
+                result = FilterWFInternal(
+                    value=map_query(item.value)
+                )
+            case 'Boost':
+                result = BoostInternal(
+                    value=map_query(item.value)
+                )
             case 'EshObject':
                 result = EshObjectInternal(
                     searchQueryFilter=map_query(item.searchQueryFilter),
                     orderby=list(map(lambda i: map_query(i), item.orderby)) if item.orderby else None,
                     top=item.top,
                     skip=item.skip,
+                    filter=map_query(item.filter),
+                    scope=item.scope,
                     count=item.count,
                     whyfound=item.whyfound,
                     select=item.select,
@@ -538,6 +624,11 @@ def map_query(item):
                     suggestTerm=item.suggestTerm,
                     resourcePath=item.resourcePath
                 )
+                if item.boost:
+                    if isinstance(item.boost, list):  
+                        result.boost = list(map(lambda i: map_query(i), item.boost)) 
+                    else:
+                        result.boost = map_query(item.boost)
             case _:
                 raise Exception(f"map_query: Unexpected type '{item_type}'.")
     else:
@@ -550,13 +641,11 @@ if __name__ == '__main__':
     mapped_object = map_query(esh_client.Property(property='aa'))
     print(mapped_object.to_statement())
 
-    # mapped_comparison = ComparisonInternal.from_Comparison(esh_client.Comparison(property="land",operator=esh_client.ComparisonOperator.EqualCaseInsensitive,value="negde"))
     mapped_comparison = map_query(esh_client.Comparison(property="land",operator=esh_client.ComparisonOperator.EqualCaseInsensitive,value="negde"))
     m_items = [esh_client.StringValue(value='www'), esh_client.StringValue(value='222'), esh_client.StringValue(value='333')]
 
     comp = {'property': "language", \
         'operator': ':EQ:', 'value': { Constants.type: 'StringValue', 'value': 'Python'}}
-    # aas = ComparisonInternal.from_Comparison(esh_client.Comparison.parse_obj(comp))
     aas = map_query(esh_client.Comparison.parse_obj(comp))
     assert aas.to_statement() == 'language:EQ:Python'
 
@@ -569,19 +658,19 @@ if __name__ == '__main__':
 
     exp1 = map_query(esh_client.Expression(items=[esh_client.StringValue(value='MMMM'),\
         esh_client.StringValue(value='KKK')], operator='OR'))
-    assert exp1.to_statement() == 'MMMM OR KKK'
+    assert exp1.to_statement() == '(MMMM OR KKK)'
    
     aa = esh_client.EshObject.parse_obj({'searchQueryFilter': {Constants.type: 'Expression', 'items' : [{'type': 'StringValue', \
        'value': 'aaa'},{'type': 'StringValue', 'value': 'bbb'}], 'operator': 'AND'}})
     bbb = map_query(aa)
-    assert bbb.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='aaa AND bbb'))"
+    assert bbb.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='(aaa AND bbb)'))"
 
     exp2 = ExpressionInternal()
     exp2.operator = 'AND'
     exp2.items = []
     exp2.items.append(StringValueInternal(value='mannheim'))
     exp2.items.append(StringValueInternal(value='heidelberg'))
-    assert exp2.to_statement() == 'mannheim AND heidelberg'
+    assert exp2.to_statement() == '(mannheim AND heidelberg)'
 
 
     json_body={
@@ -592,6 +681,7 @@ if __name__ == '__main__':
         'estimate': True,
         'wherefound': True,
         'facetlimit': 4,
+        'scope': ['S1'],
         'facets': ['city', 'land'],
         'filteredgroupby': False,
         'orderby': [
@@ -607,13 +697,12 @@ if __name__ == '__main__':
                     'key': 'land'
                 }
             ],
-        'searchQueryFilter': {Constants.type: 'Expression', 'items' : [\
-            {Constants.type: 'ScopeComparison', 'values': ['S1']},\
-            {Constants.type: 'Expression', 'items' :[\
+        'searchQueryFilter': {Constants.type: 'Expression',\
+            'operator': 'OR',\
+            'items' :[\
                 {'type': 'StringValue', 'value': 'test'},\
-                {'type': 'StringValue', 'value': 'function'}], 'operator': 'OR'}, \
-                {'type': 'StringValue', 'value': 'aaa'},{'type': 'StringValue', 'value': 'bbb'}\
-            ], 'operator': 'AND'}
+                {'type': 'StringValue', 'value': 'function'}]
+            }
         }
 
 
@@ -623,9 +712,10 @@ if __name__ == '__main__':
     # print(json.dumps(es_objects.searchQueryFilter.to_dict(), indent=4))
     # print(json.dumps(es_objects.to_dict(), indent=4))
     expected_statement = '/$all?$top=10&$count=true&$apply=filter(' \
-        'Search.search(query=\'SCOPE:S1 AND (test OR function)' \
-        ' AND aaa AND bbb\'))&whyfound=true&$select=id,name&$orderby=city ASC,language DESC,' \
+        'Search.search(query=\'SCOPE:S1 (test OR function)\'' \
+        '))&whyfound=true&$select=id,name&$orderby=city ASC,language DESC,' \
         'land&estimate=true&wherefound=true&facetlimit=4&facets=city,land&filteredgroupby=false'
+    print(es_mapped_objects.to_statement())
     assert es_mapped_objects.to_statement() == expected_statement
 
     sv = esh_client.StringValue(value='sss', isQuoted=True)
@@ -651,15 +741,17 @@ if __name__ == '__main__':
 
     searchOpts = SearchOptionsInternal(fuzzinessThreshold=0.5,fuzzySearchOptions='search=typeahead',weight=0.9)
     assert searchOpts.to_statement() == '~0.5[search=typeahead]^0.9'
-        
+
+    '''      
     term = TermInternal(term='mannh"eim', doEshEscaping=True,\
         searchOptions=SearchOptionsInternal(fuzzinessThreshold=0.5,fuzzySearchOptions='search=typeahead',weight=0.9))
     print(term.to_statement())
     assert term.to_statement() == 'mannh"eim~0.5[search=typeahead]^0.9'
     termHD = TermInternal(term='Heidelberg')
     print(json.dumps(termHD.dict()))
+    '''
 
-
+    '''
     phrase_definition = {'type': 'Phrase','phrase': 'heidelberg', \
         Constants.searchOptions: {\
             Constants.fuzzinessThreshold:0.5,\
@@ -668,7 +760,7 @@ if __name__ == '__main__':
     phrase = esh_client.Phrase.parse_obj(phrase_definition)
     phrase_mapped = map_query(phrase)
     assert phrase_mapped.to_statement() == '"heidelberg"~0.5[search=typeahead]^0.9'
-
+    '''
 
 
     suggest_json_body={
@@ -719,7 +811,7 @@ if __name__ == '__main__':
     # print(json.dumps(deserialized_object_expression.to_dict()))
     # print(deserialized_object_expression.to_statement())
     deserialized_object_expression_mapped = map_query(deserialized_object_expression)
-    assert deserialized_object_expression_mapped.to_statement() == 'city country'
+    assert deserialized_object_expression_mapped.to_statement() == '(city country)'
 
     json_property = '''
         {
@@ -771,17 +863,11 @@ if __name__ == '__main__':
             "items":[
                 {
                     "type": "StringValue", 
-                    "value": "one", 
-                    "isQuoted": false, 
-                    "isSingleQuoted": false, 
-                    "withoutEnclosing": false
+                    "value": "one"
                 }, 
                 {
                     "type": "StringValue", 
-                    "value": "two", 
-                    "isQuoted": false, 
-                    "isSingleQuoted": false, 
-                    "withoutEnclosing": false
+                    "value": "two"
                 }
             ]
         }
@@ -986,7 +1072,6 @@ if __name__ == '__main__':
         searchQueryFilter=esh_client.Expression(
             operator='AND',
             items= [
-                esh_client.ScopeComparison(values='Person'),
                 esh_client.Comparison(
                     property= esh_client.Property(property='lastName'),
                     operator= esh_client.ComparisonOperator.Search,
@@ -1002,7 +1087,7 @@ if __name__ == '__main__':
     print(so_mapped.to_statement())
     # print(json.dumps(so.dict(exclude_none=True), indent = 4))
 
-    assert so_mapped.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='SCOPE:Person AND lastName:Doe AND firstName:Jane'))"
+    assert so_mapped.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='(lastName:Doe AND firstName:Jane)'))"
 
 
     mv = esh_client.MultiValues(items=["one", "two"], separator=",", encloseStart="[", encloseEnd="]")
@@ -1028,4 +1113,317 @@ if __name__ == '__main__':
     unary_expression_mapped = map_query(unary_expression)  
     assert unary_expression_mapped.to_statement() == "ROW:(city:EQ:Mannheim AND company:EQ:SAP)"
     
+    so = esh_client.EshObject(
+            count=True,
+            top=10,
+            scope='Person',
+            searchQueryFilter=esh_client.Expression(
+                        operator=esh_client.LogicalOperator.OR,
+                        items=[
+                            esh_client.Expression(
+                                operator=esh_client.LogicalOperator.AND,
+                                        items= [
+                                            esh_client.Comparison(
+                                                property= esh_client.Property(property='lastName'),
+                                                operator= esh_client.ComparisonOperator.Search,
+                                                value= esh_client.StringValue(value='Doe')),
+                                            esh_client.Comparison(
+                                                property= esh_client.Property(property='firstName'),
+                                                operator= esh_client.ComparisonOperator.Search,
+                                                value= esh_client.StringValue(value='John'))
+                                                ]
+                            ),
+                            esh_client.Expression(
+                                operator=esh_client.LogicalOperator.AND,
+                                items= [
+                                        esh_client.Comparison(
+                                            property= esh_client.Property(property='lastName'),
+                                            operator= esh_client.ComparisonOperator.Search,
+                                            value= esh_client.StringValue(value='Doe')),
+                                        esh_client.Comparison(
+                                            property= esh_client.Property(property='firstName'),
+                                            operator= esh_client.ComparisonOperator.Search,
+                                            value= esh_client.StringValue(value='Jane'))
+                                    ]
+                            )
+                        ]
+                    )
+        )
+    so_mapped = map_query(so)
+    #print(f'ESH query statement: {so_mapped.to_statement()}')
+    #print('-----cccc-----')
+    #print(json.dumps(so_mapped.dict(exclude_none=True), indent=2))
+    assert so_mapped.to_statement() == "/$all?$top=10&$count=true&$apply=filter(Search.search(query='SCOPE:Person ((lastName:Doe AND firstName:John) OR (lastName:Doe AND firstName:Jane))'))"
+
+
+    # Term as StringValue without ESH escaping
+    termA = esh_client.StringValue(value='heidelberg')
+    termA_mapped = map_query(termA)
+    assert termA_mapped.to_statement() == 'heidelberg'
+
+    # Term as StringValue with ESH escaping
+    termB = esh_client.StringValue(value='heidel"berg', doEshEscaping=True)
+    termB_mapped = map_query(termB)
+    assert termB_mapped.to_statement() == 'heidel\\"berg' # this means: heidel\"berg
+
+    # Phrase as StringValue without ESHEscaping
+    phraseA = esh_client.StringValue(value='heidel*berg',isPhrase=True)
+    phraseA_mapped = map_query(phraseA)
+    assert phraseA_mapped.to_statement() == '"heidel*berg"'
+
+    # Phrase as StringValue with ESHEscaping
+    phraseB = esh_client.StringValue(value='mann*heim',isPhrase=True,doEshEscaping=True)
+    phraseB_mapped = map_query(phraseB)
+    assert phraseB_mapped.to_statement() == '"mann\*heim"'
+
+    auth_json = '''
+        {
+            "type": "AuthInternal",
+            "value": {
+                        "type": "ComparisonInternal",
+                        "property": {
+                            "type": "PropertyInternal",
+                            "property": "city"
+                        },
+                        "operator": ":",
+                        "value": {
+                            "type": "StringValueInternal",
+                            "value": "Mannheim"
+                        }
+                    }
+        }
+    '''
+    auth_mapped = AuthInternal.parse_obj(json.loads(auth_json))
+    assert auth_mapped.to_statement() == 'AUTH:(city:Mannheim)'
+    auth_object_mapped = AuthInternal(
+        value=ComparisonInternal(
+            property=PropertyInternal(property="city"),
+            operator=esh_client.ComparisonOperator.Search,
+            value=StringValueInternal(value="walldorf")
+        )
+    )
+    assert auth_object_mapped.to_statement() == 'AUTH:(city:walldorf)'
+    esh_object_with_auth_json = '''
+        {
+            "auth": {
+                "type": "AuthInternal",
+                "value": {
+                        "type": "ComparisonInternal",
+                        "property": {
+                            "type": "PropertyInternal",
+                            "property": "city"
+                        },
+                        "operator": ":",
+                        "value": {
+                            "type": "StringValueInternal",
+                            "value": "Mannheim"
+                        }
+                    }
+            }
+        }
+    '''
+    esh_object_with_auth_mapped = EshObjectInternal.parse_obj(json.loads(esh_object_with_auth_json))
+    assert esh_object_with_auth_mapped.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='AUTH:(city:Mannheim)'))"
+
+    filter_json = '''
+        {
+            "type": "Filter",
+            "value": {
+                        "type": "Comparison",
+                        "property": {
+                            "type": "Property",
+                            "property": "city"
+                        },
+                        "operator": ":",
+                        "value": {
+                            "type": "StringValue",
+                            "value": "Mannheim"
+                        }
+                    }
+        }
+    '''
+    filter = esh_client.Filter.parse_obj(json.loads(filter_json))
+    filter_mapped = map_query(filter)
+    assert filter_mapped.to_statement() == 'FILTER:(city:Mannheim)'
+    filter_object = esh_client.Filter(
+        value=esh_client.Comparison(
+            property=esh_client.Property(property="city"),
+            operator=esh_client.ComparisonOperator.Search,
+            value=esh_client.StringValue(value="walldorf")
+        )
+    )
+    filter_object_mapped = map_query(filter_object)
+    assert filter_object_mapped.to_statement() == 'FILTER:(city:walldorf)'
+    esh_object_with_filter_json = '''
+        {
+            "filter": {
+                "type": "Filter",
+                "value": {
+                        "type": "Comparison",
+                        "property": {
+                            "type": "Property",
+                            "property": "city"
+                        },
+                        "operator": ":",
+                        "value": {
+                            "type": "StringValue",
+                            "value": "Mannheim"
+                        }
+                    }
+            }
+        }
+    '''
+    esh_object_with_filter = esh_client.EshObject.parse_obj(json.loads(esh_object_with_filter_json))
+    esh_object_with_filter_mapped = map_query(esh_object_with_filter)
+    assert esh_object_with_filter_mapped.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='FILTER:(city:Mannheim)'))"    
+
+
+    filterwf_json = '''
+        {
+            "type": "FilterWF",
+            "value": {
+                        "type": "Comparison",
+                        "property": {
+                            "type": "Property",
+                            "property": "city"
+                        },
+                        "operator": ":",
+                        "value": {
+                            "type": "StringValue",
+                            "value": "Mannheim"
+                        }
+                    }
+        }
+    '''
+    filterwf = esh_client.FilterWF.parse_obj(json.loads(filterwf_json))
+    filterwf_mapped = map_query(filterwf)
+    assert filterwf_mapped.to_statement() == 'FILTERWF:(city:Mannheim)'
+    filterwf_object = esh_client.FilterWF(
+        value=esh_client.Comparison(
+            property=esh_client.Property(property="city"),
+            operator=esh_client.ComparisonOperator.Search,
+            value=esh_client.StringValue(value="walldorf")
+        )
+    )
+    filterwf_object_mapped = map_query(filterwf_object)
+    assert filterwf_object_mapped.to_statement() == 'FILTERWF:(city:walldorf)'
+    esh_object_with_filterwf_json = '''
+        {
+            "filter": {
+                "type": "FilterWF",
+                "value": {
+                        "type": "Comparison",
+                        "property": {
+                            "type": "Property",
+                            "property": "city"
+                        },
+                        "operator": ":",
+                        "value": {
+                            "type": "StringValue",
+                            "value": "Heidelberg"
+                        }
+                    }
+            }
+        }
+    '''
+    esh_object_with_filterwf = esh_client.EshObject.parse_obj(json.loads(esh_object_with_filterwf_json))
+    esh_object_with_filterwf_mapped = map_query(esh_object_with_filterwf)
+    assert esh_object_with_filterwf_mapped.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='FILTERWF:(city:Heidelberg)'))"   
+
+
+
+    boost_json = '''
+        {
+            "type": "Boost",
+            "value": {
+                        "type": "Comparison",
+                        "property": {
+                            "type": "Property",
+                            "property": "city"
+                        },
+                        "operator": ":",
+                        "value": {
+                            "type": "StringValue",
+                            "value": "Mannheim"
+                        }
+                    }
+        }
+    '''
+    boost = esh_client.Boost.parse_obj(json.loads(boost_json))
+    boost_mapped = map_query(boost)
+    assert boost_mapped.to_statement() == 'BOOST:(city:Mannheim)'
+    boost_object = esh_client.Boost(
+        value=esh_client.Comparison(
+            property=esh_client.Property(property="city"),
+            operator=esh_client.ComparisonOperator.Search,
+            value=esh_client.StringValue(value="walldorf")
+        )
+    )
+    boost_object_mapped = map_query(boost_object)
+    assert boost_object_mapped.to_statement() == 'BOOST:(city:walldorf)'
+    esh_object_with_boost_json = '''
+        {
+            "boost": {
+                "type": "Boost",
+                "value": {
+                        "type": "Comparison",
+                        "property": {
+                            "type": "Property",
+                            "property": "city"
+                        },
+                        "operator": ":",
+                        "value": {
+                            "type": "StringValue",
+                            "value": "Heidelberg"
+                        }
+                    }
+            }
+        }
+    '''
+    esh_object_with_boost = esh_client.EshObject.parse_obj(json.loads(esh_object_with_boost_json))
+    esh_object_with_boost_mapped = map_query(esh_object_with_boost)
+    assert esh_object_with_boost_mapped.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='BOOST:(city:Heidelberg)'))"  
+
+    esh_object_with_boost_array_json = '''
+        {
+            "boost": [
+                {
+                    "type": "Boost",
+                    "value": {
+                                "type": "Comparison",
+                                "property": {
+                                    "type": "Property",
+                                    "property": "language"
+                                },
+                                "operator": ":",
+                                "value": {
+                                    "type": "StringValue",
+                                    "value": "en"
+                                }
+                            }
+                },
+                {
+                    "type": "Boost",
+                    "value": {
+                                "type": "Comparison",
+                                "property": {
+                                    "type": "Property",
+                                    "property": "city"
+                                },
+                                "operator": ":",
+                                "value": {
+                                    "type": "StringValue",
+                                    "value": "mannheim"
+                                }
+                            }
+                }
+
+
+            ]
+        }
+    '''
+    esh_object_with_boost_array = esh_client.EshObject.parse_obj(json.loads(esh_object_with_boost_array_json))
+    esh_object_with_boost_array_mapped = map_query(esh_object_with_boost_array)
+    assert esh_object_with_boost_array_mapped.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='(BOOST:(language:en) BOOST:(city:mannheim))'))"    
+
     print(' -----> everything fine <----- ')

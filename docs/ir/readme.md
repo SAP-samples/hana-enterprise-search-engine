@@ -1,16 +1,16 @@
-This is an example how to build queries on an ICM data model
-
+Documentation of an example how to use the enterprise search HANA technology
 ---------------------------------------------------------------------------------------------------------------------------------------
 # Introduction
 ---------------------------------------------------------------------------------------------------------------------------------------
-The ICM example shows how it is possible to search for queries with the enterprise search technology on HANA. Also it is shown that 
-complex queries can be built on an ICM data model. The objective of this example is that the key-user gets a feeling of how to use this 
-technology wihtin its business processes. In general in this example there are queries where search scenarios are built. For example
-it is searched for persons and their locations or for persons and their cases or just for persons.
+Here it is tested the search engine and as basis to test, it is used the data from SAP ICM. This example is called "investigative 
+research" (shortcut: IR). It is shown how it is possible to search for queries with the enterprise search technology on HANA. 
+Also it is shown how complex queries can be built. The objective of this example is that the key-user gets a 
+feeling of how to use this technology wihtin its business processes. In general in this example there are queries where search 
+scenarios are built. For example it is searched for persons and their locations or for persons and their cases or just for persons.
 ---------------------------------------------------------------------------------------------------------------------------------------
 # Data Model
 ---------------------------------------------------------------------------------------------------------------------------------------
-This data model is a copy of the ICM data model. The data itself is example data. Some attributes of the entities are modified and not 
+The data itself is example data (no real person related data). Some attributes of the entities are modified and not 
 all attributes are exactly the same as ICM. The following points show which files have to be built for a successful data model:
 
 1. It is built a CDS file which is representing the tables and their relations to each other
@@ -68,9 +68,9 @@ location:COVERED_BY:POLYGON((13.4 52.5, 13.5 52.5, 13.5 52.6, 13.4 52.6, 13.4 52
 
 
 ---------------------------------------------------------------------------------------------------------------------------------------
-# ICM Entities and model
+# Entities and model
 ---------------------------------------------------------------------------------------------------------------------------------------
-The data model is copied from ICM. Following entities are created:
+Following entities are created:
 # Cases
 # Person
 # Object
@@ -78,16 +78,16 @@ The data model is copied from ICM. Following entities are created:
 # Location
 # Incidents
 # Leads
-# Relationship
 
 Please have a look on the file "model.cds" for detailed information regarding attributes and relationships.
 Also a class diagram is existing. Please have a look on "icm_model.drawio".
 
 ---------------------------------------------------------------------------------------------------------------------------------------
-# ICM scenario/example
+# Scenario/example
 ---------------------------------------------------------------------------------------------------------------------------------------
 Example:
-•A witness reports that a known criminal was sneaking around a car dealership and for that an incident record is created. 
+• Search for a witness who reported the the "Assault J Kennedy on J Roberts"
+
 •A detective comes to the conclusion  that this incident  might be related to a crime and thus creates a lead and assigns the incident  
 with the previous information.  He also assigns to the lead an unknown  suspect –together with all the information  he got about this 
 person -and the location  of the car dealer. He collects other elements for the investigation  like the records of further 

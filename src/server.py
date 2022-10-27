@@ -30,7 +30,7 @@ from constants import (CONCURRENT_CONNECTIONS, TENANT_ID_MAX_LENGTH,
 from db_connection_pool import (ConnectionPool, Credentials, DBBulkProcessing,
                                 DBConnection)
 from esh_client import EshObject
-from esh_objects import map_query
+from esh_objects import map_query, PropertyInternal
 from request_mapping import map_request
 
 ANNO_RANKING = '@com.sap.vocabularies.Search.v1.Ranking'
@@ -539,7 +539,7 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
         query_mapping.map_query(query, pathes)
         query.scope = esh_scopes
         search_object = map_query(query)
-        search_object.select = ['ID']
+        search_object.select = PropertyInternal(property='ID')
         esh_query = search_object.to_statement()[1:]
         uris.append(f'/{get_esh_version(esh_version)}/{schema_name}/{esh_query}')
         logging.info(uris)

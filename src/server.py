@@ -4,6 +4,7 @@ Provides HTTP(S) interfaces
 import base64
 import json
 import logging
+import re
 import sys
 import uuid
 from datetime import datetime
@@ -31,6 +32,11 @@ from db_connection_pool import (ConnectionPool, Credentials, DBBulkProcessing,
 from esh_client import EshObject
 from esh_objects import map_query
 from request_mapping import map_request
+
+ANNO_RANKING = '@com.sap.vocabularies.Search.v1.Ranking'
+ANNO_WHYFOUND = '@com.sap.vocabularies.Search.v1.WhyFound'
+ANNO_WHEREFOUND = '@com.sap.vocabularies.Search.v1.WhereFound'
+
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
@@ -479,158 +485,6 @@ def get_search(tenant_id, esh_version, path, req: Request):
 def post_search(tenant_id, esh_version, body=Body(...)):
     return perform_bulk_search(get_esh_version(esh_version), tenant_id, body)
 
-'''
-
-# v2 Search
-@app.post('/v2/search/{tenant_id}/{esh_version:path}')
-async def search_v2(tenant_id, esh_version, queries: List[EshObject]):
-    # esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
-    #esh_query = [EshObject.parse_obj(w).to_statement()[1:] for w in queries]
-    #search_object = EshObject.parse_obj(queries)
-    esh_query = [w.to_statement()[1:] for w in queries]
-    return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
-
-def get_list_of_substrings_term_found(string_subject):
-    startterm = '<TERM>'
-    endterm = '</TERM>'
-    startfound= '<FOUND>'
-    endfound = '</FOUND>'
-    intstart=0
-    strlength=len(string_subject)
-    continueloop = 1
-    found_terms = {}
-
-    while intstart < strlength and continueloop == 1:
-        intindex_startterm=string_subject.find(startterm,intstart)
-        if intindex_startterm != -1: #The substring was found, lets proceed
-            intindex_startterm = intindex_startterm+len(startterm)
-            intindex_endterm = string_subject.find(endterm,intindex_startterm)
-            if intindex_endterm != -1:
-                subsequence=string_subject[intindex_startterm:intindex_endterm]
-                found_terms[subsequence] = []
-                intindex_startfound=string_subject.find(startfound,intindex_endterm)
-                intindex_endfound=string_subject.find(endfound,intindex_endterm)
-                intindex_startterm_next=string_subject.find(startterm,intindex_endterm)
-                while intindex_startterm_next == -1 or intindex_startfound < intindex_startterm_next:
-                    if intindex_startfound != -1 and intindex_endfound != 1:
-                        found=string_subject[intindex_startfound+len(startfound):intindex_endfound]
-                        found_terms[subsequence].append(found)
-                    intindex_startfound=string_subject.find(startfound,intindex_startfound+1)
-                    if intindex_startfound == -1:
-                        break
-                    intindex_endfound=string_subject.find(endfound,intindex_endfound+1)
-                intstart=intindex_endterm+len(endterm)
-            else:
-                continueloop=0
-        else:
-            continueloop=0
-    return found_terms
-
-# Search v21
-@app.post('/v21/search/{tenant_id}/{esh_version:path}')
-async def search_v21(tenant_id, esh_version, query=Body(...)):
-    try:
-        with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
-            tenant_schema_name = get_tenant_schema_name(tenant_id)
-            sql = f'select top 1 MAPPING from "{tenant_schema_name}"."_MODEL" order by CREATED_AT desc'
-            db.cur.execute(sql)
-            res = db.cur.fetchone()
-            if not (res and len(res) == 1):
-                logging.error('Tenant %s has no entries in the _MODEL table', tenant_id)
-                handle_error('Configuration inconsistent', 500)
-            mapping = json.loads(res[0])
-            # ddl = sqlcreate.mapping_to_ddl(mapping, tenant_schema_name)
-            # for create_view in ddl['views']:
-            #     db.cur.execute(create_view)
-            # sql = f"CALL ESH_CONFIG('{json.dumps(ddl['eshConfig'])}', ?)"
-            esh_mapped_queries = map_request(mapping, query)
-            if 'scope' in esh_mapped_queries:
-                anchor_entity_name = esh_mapped_queries['scope']
-                cv = ColumnView(mapping, anchor_entity_name, tenant_schema_name)
-                # for free style elements in query take by_default
-                if 'comparison_paths' in esh_mapped_queries and 'exist_free_style' not in esh_mapped_queries:
-                    cv.by_path_list([['id']] + esh_mapped_queries['comparison_paths']\
-                        , mapping['views'][anchor_entity_name]['view_name']\
-                        , mapping['views'][anchor_entity_name]['odata_name'])
-                else:
-                    cv.by_default()
-                view, esh_config = cv.data_definition()
-                print(view)
-                print(esh_config)
-                print(cv.selector)
-                db.cur.execute(view)
-                #db.cur.execute(f"CALL ESH_CONFIG('{json.dumps([esh_config])}', ?)")
-                db.cur.callproc('ESH_CONFIG', (json.dumps([esh_config]), None))
-
-        # esh_mapped_queries = map_request(mapping, query)
-        for w in esh_mapped_queries['incoming_requests']:
-            a = EshObject.parse_obj(w)
-            print(a.to_statement())
-        esh_query = [EshObject.parse_obj(w).to_statement()[1:] for w in esh_mapped_queries['incoming_requests']]
-
-
-        # esh_query = [IESSearchOptions(w).to_statement()[1:] for w in query]
-        # return perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
-        search_results = perform_bulk_search(get_esh_version(esh_version), tenant_id, esh_query)
-        for search_result in search_results:
-            if 'value' in search_result:
-                for matched_object in search_result['value']:
-                    odata_name = matched_object['@odata.context'][LENGTH_ODATA_METADATA_PREFIX:]
-                    if 'views' in mapping:
-                        for view_value in mapping['views'].values():
-                            if view_value['odata_name'] == odata_name:
-                                entity_name = view_value['entity_name']
-                                break
-                    data_request = {
-                        entity_name: [
-                            {
-                                'id': matched_object['ID']
-                            }
-                        ]
-                    }
-                    read_data_query = await read_data(tenant_id, data_request)
-                    for key in read_data_query[entity_name][0]:
-                        matched_object[key] = read_data_query[entity_name][0][key]
-                    del matched_object['ID']
-                    del matched_object['@odata.context']
-                    # matched_object = read_data_query[entity_name][0]
-                    matched_object['@esh.context'] = entity_name
-                    if '@com.sap.vocabularies.Search.v1.WhyFound' in matched_object:
-                        why_found_list = []
-                        for key, values in matched_object['@com.sap.vocabularies.Search.v1.WhyFound'].items():
-                            why_found_list.append({
-                                'selector':  mapping['views'][entity_name]['columns'][key]['path'],
-                                'values': values
-                            })
-                        matched_object['@com.sap.vocabularies.Search.v1.WhyFound'] = why_found_list
-                    if '@com.sap.vocabularies.Search.v1.WhereFound' in matched_object\
-                         and matched_object['@com.sap.vocabularies.Search.v1.WhereFound']:
-                        #alias_list = []
-                        where_found = matched_object['@com.sap.vocabularies.Search.v1.WhereFound']
-                        found_terms = get_list_of_substrings_term_found(where_found)
-                        new_where = {}
-                        for term, where_array in found_terms.items():
-                            new_where[term] = []
-                            for item in where_array:
-                                new_where[term].append(mapping['views'][entity_name]['columns'][item]['path'])
-                            #alias_list.append({
-                            #    'alias': [found_property],
-                            #    'selector': mapping['views'][entity_name]['columns'][found_property]['path']
-                            #})
-                        # matched_object["@com.sap.vocabularies.Search.v1.Aliases"] = alias_list
-                        # matched_object["@com.sap.vocabularies.Search.v1.WhereFoundOriginal"] \
-                        # = matched_object["@com.sap.vocabularies.Search.v1.WhereFound"]
-                        matched_object['@com.sap.vocabularies.Search.v1.WhereFound'] = new_where
-                    for connector_statistic \
-                    in search_result['@com.sap.vocabularies.Search.v1.SearchStatistics']['ConnectorStatistics']:
-                        if 'OdataID' in connector_statistic and connector_statistic['OdataID'] == odata_name:
-                            connector_statistic['@esh.context'] = entity_name
-                            del connector_statistic['OdataID']
-        return search_results
-    except Exception as e:
-        return {'error': f'{e}'}
-'''
-
 def get_column_view(mapping, anchor_entity_name, schema_name, path_list):
     view_id = str(uuid.uuid4()).replace('-', '').upper()
     view_name = f'DYNAMICVIEW/{view_id}'
@@ -732,18 +586,18 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
         result = {'value': []}
         for itm in search_result['value']:
             r = {}
-            if '@com.sap.vocabularies.Search.v1.Ranking' in itm:
-                r['@com.sap.vocabularies.Search.v1.Ranking'] = itm['@com.sap.vocabularies.Search.v1.Ranking']
-            if '@com.sap.vocabularies.Search.v1.WhyFound' in itm:
-                r['@com.sap.vocabularies.Search.v1.WhyFound'] = []
-                for k, v in itm['@com.sap.vocabularies.Search.v1.WhyFound'].items():
-                    wf = {'path': odata_map[itm['@odata.context']]['view_map'][k], 'found': v}
-                    r['@com.sap.vocabularies.Search.v1.WhyFound'].append(wf)
-            #if '@com.sap.vocabularies.Search.v1.WhereFound' in itm:
-            #    r['@com.sap.vocabularies.Search.v1.WhereFound'] = []
-            #    for k, v in itm['@com.sap.vocabularies.Search.v1.WhereFound'].items():
-            #        wf = {'path': odata_map[itm['@odata.context']]['view_map'][k], 'found': v}
-            #        r['@com.sap.vocabularies.Search.v1.WhereFound'].append(wf)
+            if ANNO_RANKING in itm and itm[ANNO_RANKING]:
+                r[ANNO_RANKING] = itm[ANNO_RANKING]
+            if ANNO_WHYFOUND in itm and itm[ANNO_RANKING]:
+                r[ANNO_WHYFOUND] = []
+                for k, v in itm[ANNO_WHYFOUND].items():
+                    wf = {'found': odata_map[itm['@odata.context']]['view_map'][k], 'term': v}
+                    r[ANNO_WHYFOUND].append(wf)
+            if ANNO_WHEREFOUND in itm and itm[ANNO_WHEREFOUND]:
+                wf = itm[ANNO_WHEREFOUND]
+                for prop_name_int in re.findall('(?<=<FOUND>)(.*?)(?=</FOUND>)', itm[ANNO_WHEREFOUND], re.S):
+                    prop_name_ext = '.'.join(odata_map[itm['@odata.context']]['view_map'][prop_name_int])
+                    wf = wf.replace(f'<FOUND>{prop_name_int}</FOUND>', f'<FOUND>{prop_name_ext}</FOUND>')
             res_item = r | full_objects_idx[odata_map[itm['@odata.context']]['entity_type']][itm['ID']]
             result['value'].append(res_item)
         if '@odata.count' in search_result:

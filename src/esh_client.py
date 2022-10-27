@@ -114,8 +114,6 @@ class FuzzySearchOptions(BaseModel):
     stopwordListId: str | None #    stopwordListId=legalform -> freeform string     stopwordListId=mylist1,mylist2,mylist3
     stopwordTable: str | None #    stopwordTable=[<schemaname>.]<tablename> TODO maybe object schema: str, table: str
     termMappingListId: str | None # TODO maybe list is also possible   termMappingListId=01 => free string => check if it is possible as a list (comma separated string)
-
-
     termMappingTable: str | None #  termMappingTable=tm_view
     # TODO maybe with schema as object example with schema: termMappingTable="_SYS_BIC"."tm_map/TM_MAP_VIEW",termMappingListId=01,textSearch=compare
     textSearch: TextSearch | None
@@ -129,33 +127,14 @@ class OrderBySorting(str, Enum):
     asc = "ASC"
     desc = "DESC"
 
-class OrderBy(BaseModel):
-    key: str
-    order: OrderBySorting | None
-
-
 class Property(BaseModel):
     type: Literal['Property'] = 'Property'
     property: str | list[str]
-    prefixOperator: str | None
 
-
-'''  
-class Term(BaseModel):
-    type: Literal['Term'] = 'Term'
-    term: str 
-    isQuoted: bool | None
-    doEshEscaping: bool | None
-    searchOptions: SearchOptions | None
-
-
-
-class Phrase(BaseModel):
-    type: Literal['Phrase'] = 'Phrase'
-    phrase: str
-    searchOptions: SearchOptions | None
-    doEshEscaping: bool | None
-'''
+class OrderBy(BaseModel):
+    type: Literal['OrderBy'] = 'OrderBy'
+    key: Property
+    order: OrderBySorting | None
 
 class StringValue(BaseModel):
     type: Literal['StringValue'] = 'StringValue'
@@ -163,8 +142,6 @@ class StringValue(BaseModel):
     isPhrase: bool | None
     doEshEscaping: bool | None
     searchOptions: SearchOptions | None
-
-
 
 class NumberValue(BaseModel):
     type: Literal['NumberValue'] = 'NumberValue'
@@ -183,7 +160,7 @@ class Comparison(BaseModel):
 class Expression(BaseModel):
     type: Literal['Expression'] = 'Expression'
     operator: LogicalOperator | None
-    items: List[ExpressionValue] | None
+    items: list[ExpressionValue] | None
 
 
 class UnaryOperator(str, Enum):
@@ -248,14 +225,10 @@ class GeometryCollection(BaseModel):
 
 class MultiValues(BaseModel):
     type: Literal['MultiValues'] = 'MultiValues'    
-    items: List[ExpressionValue] = []
+    items: list[ExpressionValue] = []
     separator: str | None = None
     encloseStart: str | None = None
     encloseEnd: str | None = None
-
-# class Auth(BaseModel):
-#     type: Literal['Auth'] = 'Auth'    
-#    value: Expression | Comparison
 
 class Filter(BaseModel):
     type: Literal['Filter'] = 'Filter'   
@@ -285,12 +258,12 @@ class EshObject(BaseModel):
     filter: Filter | FilterWF | None
     searchQueryFilter: Expression | None
     whyfound: bool | None
-    select: list[str] | None
-    orderby: List[OrderBy] | None
+    select: Property | list[Property] | None
+    orderby: list[OrderBy] | None
     estimate: bool | None
     wherefound: bool | None
     facetlimit: int | None
-    facets: list[str] | None
+    facets: Property | list[Property] | None
     filteredgroupby: bool | None
     suggestTerm: str | None
     resourcePath:str | None

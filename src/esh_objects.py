@@ -198,23 +198,22 @@ def addFuzzySearchOptions(item: str, searchOptions: SearchOptionsInternal) -> st
         return item + searchOptions.to_statement()
     return item
 
-
-class OrderByInternal(esh_client.OrderBy):
-
-    def to_statement(self):
-        if self.order:
-            return f'{self.key} {self.order}'
-        else:
-            return self.key
 class PropertyInternal(esh_client.Property):
     type: Literal['PropertyInternal'] = 'PropertyInternal'
+    property: str
 
     def to_statement(self):
-        property_value = self.property if not type(self.property) is list else ".".join(self.property)
-        if self.prefixOperator:
-            return self.prefixOperator + ' ' + property_value
+        return self.property
+
+class OrderByInternal(esh_client.OrderBy):
+    type: Literal['OrderByInternal'] = 'OrderByInternal'
+    key: PropertyInternal
+    def to_statement(self):
+        if self.order:
+            return f'{self.key.to_statement()} {self.order}'
         else:
-            return property_value
+            return self.key.to_statement()
+
 
 '''
 class TermInternal(esh_client.Term):
@@ -461,6 +460,8 @@ class EshObjectInternal(esh_client.EshObject):
     auth: AuthInternal | None
     filter: FilterInternal | FilterWFInternal | None
     boost: BoostInternal | list[BoostInternal] | None
+    facets: PropertyInternal | list[PropertyInternal] | None
+    select: PropertyInternal | list[PropertyInternal] | None
 
     class Config:
         extra = 'forbid'
@@ -532,7 +533,10 @@ class EshObjectInternal(esh_client.EshObject):
             if self.whyfound is not None:
                 esh += f'&{Constants.whyfound}={json.dumps(self.whyfound)}'
             if self.select is not None:
-                select_value = ','.join(self.select)
+                if isinstance(self.select, list):
+                    select_value = ','.join(list(map(lambda i: i.to_statement(),self.select)))
+                else:
+                    select_value = self.select.to_statement()
                 esh += f'&${Constants.select}={select_value}'
             if self.orderby is not None:
                 #order_by_value = ','.join(list(map(lambda x: f'{x[Constants.key]} {x[Constants.order]}' \
@@ -547,7 +551,10 @@ class EshObjectInternal(esh_client.EshObject):
             if self.facetlimit is not None:
                 esh += f'&{Constants.facetlimit}={json.dumps(self.facetlimit)}'
             if self.facets is not None:
-                facets_value = ','.join(self.facets)
+                if isinstance(self.facets, list):
+                    facets_value = ','.join(list(map(lambda i: i.to_statement(),self.facets)))
+                else:
+                    facets_value = self.facets.to_statement()
                 esh += f'&{Constants.facets}={facets_value}'
             if self.filteredgroupby is not None:
                 esh += f'&{Constants.filteredgroupby}={json.dumps(self.filteredgroupby)}'
@@ -645,8 +652,12 @@ def map_query(item):
                 #    )
             case 'Property':
                 result = PropertyInternal(
-                    property=item.property,
-                    prefixOperator=item.prefixOperator
+                    property = item.property if isinstance(item.property, str) else ".".join(item.property)
+                )
+            case 'OrderBy':
+                result = OrderByInternal(
+                    key = map_query(item.key),
+                    order = item.order
                 )
             case 'Comparison':
                 result = ComparisonInternal(
@@ -742,18 +753,18 @@ def map_query(item):
             case 'EshObject':
                 result = EshObjectInternal(
                     searchQueryFilter=map_query(item.searchQueryFilter),
-                    orderby=list(map(lambda i: map_query(i), item.orderby)) if item.orderby else None,
+                    orderby=list(map(lambda i: map_query(i), item.orderby)) if isinstance(item.orderby, list) else map_query(item.orderby),
                     top=item.top,
                     skip=item.skip,
                     filter=map_query(item.filter),
                     scope=item.scope,
                     count=item.count,
                     whyfound=item.whyfound,
-                    select=item.select,
+                    select=list(map(lambda i: map_query(i), item.select)) if isinstance(item.select, list) else map_query(item.select),
                     estimate=item.estimate,
                     wherefound=item.wherefound,
                     facetlimit=item.facetlimit,
-                    facets=item.facets,
+                    facets=list(map(lambda i: map_query(i), item.facets)) if isinstance(item.facets, list) else map_query(item.facets),
                     filteredgroupby=item.filteredgroupby,
                     suggestTerm=item.suggestTerm,
                     resourcePath=item.resourcePath
@@ -773,7 +784,11 @@ def map_query(item):
 if __name__ == '__main__':
 
     mapped_object = map_query(esh_client.Property(property='aa'))
-    print(mapped_object.to_statement())
+    assert mapped_object.to_statement() == 'aa'
+
+    mapped_object_b = map_query(esh_client.Property(property=['bb','cc']))
+    print(mapped_object_b.to_statement())
+    assert mapped_object_b.to_statement() == "bb.cc"
 
     mapped_comparison = map_query(esh_client.Comparison(property="land",operator=esh_client.ComparisonOperator.EqualCaseInsensitive,value="negde"))
     m_items = [esh_client.StringValue(value='www'), esh_client.StringValue(value='222'), esh_client.StringValue(value='333')]
@@ -811,24 +826,43 @@ if __name__ == '__main__':
         'top': 10,
         'count': True,
         'whyfound': True,
-        'select': ['id', 'name'],
+        'select': [
+                    {
+                        'property': 'id'
+                    },
+                    {
+                        'property': 'name'
+                    }
+                ],
         'estimate': True,
         'wherefound': True,
         'facetlimit': 4,
         'scope': ['S1'],
-        'facets': ['city', 'land'],
+        'facets': [
+                    {
+                        'property': 'city'
+                    },
+                    {
+                        'property': 'land'
+                    }],
         'filteredgroupby': False,
         'orderby': [
                 {
-                    'key': 'city',
+                    'key': {
+                        'property': 'city'
+                    },
                     'order': 'ASC'
                 },
                 {
-                    'key': 'language',
+                    'key': {
+                        'property': 'language'
+                    },
                     'order': 'DESC'
                 },
                 {
-                    'key': 'land'
+                    'key': {
+                        'property': 'land'
+                    }
                 }
             ],
         'searchQueryFilter': {Constants.type: 'Expression',\
@@ -1564,7 +1598,7 @@ if __name__ == '__main__':
     fuzzy_search_options = FuzzySearchOptionsInternal()
     fuzzy_search_options.textSearch = esh_client.TextSearch.compare
     fuzzy_search_options.abbreviationSimilarity = 0.9
-    print(fuzzy_search_options.to_statement())
+    assert fuzzy_search_options.to_statement() == "abbreviationSimilarity=0.9,textSearch=compare"
 
     string_value_with_fuzzy_options_json = '''
         {
@@ -1580,6 +1614,6 @@ if __name__ == '__main__':
     '''
     string_value_with_fuzzy_options = esh_client.StringValue.parse_obj(json.loads(string_value_with_fuzzy_options_json))
     string_value_with_fuzzy_options_mapped = map_query(string_value_with_fuzzy_options)
-    print(string_value_with_fuzzy_options_mapped.to_statement())
+    assert string_value_with_fuzzy_options_mapped.to_statement() == "frankfurt~0.78[considerNonMatchingTokens=input]"
 
     print(' -----> everything fine <----- ')

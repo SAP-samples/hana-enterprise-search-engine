@@ -168,7 +168,7 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
         created_at = datetime.now()
         try:
             mapping = convert.cson_to_mapping(cson)
-            ddl = sqlcreate.mapping_to_ddl(mapping, tenant_schema_name)
+            ddl = sqlcreate.mapping_to_ddl(mapping, tenant_schema_name, int(glob.esh_apiversion[1]))
         except convert.ModelException as e:
             handle_error(str(e), 400)
         try:
@@ -176,7 +176,7 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
             with DBBulkProcessing(glob.connection_pools[DBUserType.SCHEMA_MODIFY], block_size) as db_bulk:
                 try:
                     await db_bulk.execute(ddl['tables'])
-                    await db_bulk.execute(ddl['views'])
+                    await db_bulk.execute(ddl['indices'] + ddl['views'])
                     await db_bulk.commit()
                 except HDBException as e:
                     await db_bulk.rollback()

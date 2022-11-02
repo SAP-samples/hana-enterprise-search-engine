@@ -518,9 +518,7 @@ class EshObjectInternal(esh_client.EshObject):
                 esh += f'&${Constants.count}={json.dumps(self.count)}'
             scope_filter = None
             if self.scope:
-                if isinstance(self.scope, str):
-                    scope_filter = self.scope
-                elif len(self.scope) == 1:
+                if len(self.scope) == 1:
                     scope_filter = self.scope[0]
                 else:
                     scope_filter = f'({" OR ".join(self.scope)})'
@@ -1285,7 +1283,7 @@ if __name__ == '__main__':
     so = esh_client.EshObject(
             count=True,
             top=10,
-            scope='Person',
+            scope=['Person'],
             searchQueryFilter=esh_client.Expression(
                         operator=esh_client.LogicalOperator.OR,
                         items=[

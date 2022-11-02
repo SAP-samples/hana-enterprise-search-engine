@@ -253,7 +253,7 @@ class EshObject(BaseModel):
     top: int | None
     skip: int | None
     count: bool | None
-    scope: str | List[str] | None
+    scope: List[str] | None
     boost: Boost | list[Boost] | None
     filter: Filter | FilterWF | None
     searchQueryFilter: Expression | None

@@ -201,9 +201,16 @@ def get_mapping(tenant_id, schema_name):
         return glob.mapping[schema_name]
     else:
         with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
-            sql = f'select top 1 MAPPING from "{schema_name}"."_MODEL" order by CREATED_AT desc'
-            db.cur.execute(sql)
-            res = db.cur.fetchone()
+            try:
+                sql = f'select top 1 MAPPING from "{schema_name}"."_MODEL" order by CREATED_AT desc'
+                db.cur.execute(sql)
+                res = db.cur.fetchone()
+            except HDBException as e:
+                db.cur.connection.rollback()
+                if e.errorcode == 362:
+                    handle_error(f"Tennant id '{tenant_id}' does not exist", 404)
+                else:
+                    handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
             if not (res and len(res) == 1):
                 logging.error('Tenant %s has no entries in the _MODEL table', tenant_id)
                 handle_error('Configuration inconsistent', 500)

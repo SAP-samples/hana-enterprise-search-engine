@@ -94,7 +94,7 @@ content-type: application/json
 [
   {
     "name": "hp74CDXIUsikzsuL478ZLroYESIYKvDS",
-    "createdAt": "2022-08-23T13:35:29.977000"
+    "createdAt": "2022-11-02T14:09:32.425000"
   }
 ]
 ```
@@ -145,7 +145,7 @@ content-type: application/json
 
 ```json
 {
-  "detail": "Tennant id 'hp74CDXIUsikzsuL478ZLroYESIYKvDS' does not exist"
+  "detail": "Tenant deletion failed. Tennant id 'hp74CDXIUsikzsuL478ZLroYESIYKvDS' does not exist"
 }
 ```
 
@@ -554,10 +554,10 @@ content-type: application/json
 {
   "example.Person": [
     {
-      "id": "b241e6a6-22d7-11ed-b6b4-98fa9b3c3838"
+      "id": "98ab4efb-5aaf-11ed-a56d-98fa9b3c3838"
     },
     {
-      "id": "b241e6a7-22d7-11ed-b03e-98fa9b3c3838"
+      "id": "98ab4efc-5aaf-11ed-b9ee-98fa9b3c3838"
     }
   ]
 }
@@ -603,10 +603,10 @@ Content-Type: application/json
 {
   "example.Person": [
     {
-      "id": "b33edfab-22d7-11ed-b813-98fa9b3c3838"
+      "id": "99b8c203-5aaf-11ed-9bd3-98fa9b3c3838"
     },
     {
-      "id": "b33edfac-22d7-11ed-bf9d-98fa9b3c3838"
+      "id": "99b8c204-5aaf-11ed-a92f-98fa9b3c3838"
     }
   ]
 }
@@ -623,12 +623,12 @@ content-type: application/json
 {
   "example.Person": [
     {
-      "id": "b33edfab-22d7-11ed-b813-98fa9b3c3838",
+      "id": "99b8c203-5aaf-11ed-9bd3-98fa9b3c3838",
       "firstName": "John",
       "lastName": "Doe"
     },
     {
-      "id": "b33edfac-22d7-11ed-bf9d-98fa9b3c3838",
+      "id": "99b8c204-5aaf-11ed-a92f-98fa9b3c3838",
       "firstName": "Jane",
       "lastName": "Doe"
     }
@@ -661,10 +661,10 @@ Content-Type: application/json
 {
   "example.Person": [
     {
-      "id": "b33edfab-22d7-11ed-b813-98fa9b3c3838"
+      "id": "99b8c203-5aaf-11ed-9bd3-98fa9b3c3838"
     },
     {
-      "id": "b33edfac-22d7-11ed-bf9d-98fa9b3c3838"
+      "id": "99b8c204-5aaf-11ed-a92f-98fa9b3c3838"
     }
   ]
 }
@@ -730,15 +730,15 @@ content-type: application/json
     }
   ],
   "@odata.count": 1,
-  "@com.sap.vocabularies.Search.v1.ResponseTime": 0.105429001,
-  "@com.sap.vocabularies.Search.v1.SearchTime": 0.0805659964,
+  "@com.sap.vocabularies.Search.v1.ResponseTime": 0.193131998,
+  "@com.sap.vocabularies.Search.v1.SearchTime": 0.0894810035,
   "@com.sap.vocabularies.Search.v1.SearchStatistics": {
     "ConnectorStatistics": [
       {
         "OdataID": "EXAMPLEPERSON",
         "StatusCode": 200,
-        "@com.sap.vocabularies.Search.v1.SearchTime": 0.0805659964,
-        "@com.sap.vocabularies.Search.v1.CPUTime": 0.0820650011
+        "@com.sap.vocabularies.Search.v1.SearchTime": 0.0894810035,
+        "@com.sap.vocabularies.Search.v1.CPUTime": 0.0899429991
       }
     ],
     "StatusCode": 200
@@ -879,15 +879,15 @@ content-type: application/json
       }
     ],
     "@odata.count": 1,
-    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.045398999,
-    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0210539996,
+    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.127348005,
+    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0223789997,
     "@com.sap.vocabularies.Search.v1.SearchStatistics": {
       "ConnectorStatistics": [
         {
           "OdataID": "EXAMPLEPERSON",
           "StatusCode": 200,
-          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0210539996,
-          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0232500005
+          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0223789997,
+          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0243660006
         }
       ],
       "StatusCode": 200
@@ -896,15 +896,15 @@ content-type: application/json
   {
     "value": [],
     "@odata.count": 0,
-    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.0448010005,
-    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0208260007,
+    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.126947,
+    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0223699994,
     "@com.sap.vocabularies.Search.v1.SearchStatistics": {
       "ConnectorStatistics": [
         {
           "OdataID": "EXAMPLEPERSON",
           "StatusCode": 200,
-          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0208260007,
-          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0271499995
+          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0223699994,
+          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0295979995
         }
       ],
       "StatusCode": 200
@@ -913,9 +913,9 @@ content-type: application/json
 ]
 ```
 
-## Enterprise Search using new Request-Format (Bulk)
+## OpenAPI API for search (Bulk)
 
-This is an experimental format using a JSON-serialized version of the search request. It will evolve during the next months.
+This is a new API with additional features. It will evolve during the next months. Expect incompatible changes.
 
 ### API Maturity
 
@@ -924,30 +924,29 @@ Experimental, expect major changes / rework.
 ### URL
 
 ```http
-POST /v2/search/{tenant-id}/{esh-version}
+POST /v1/query/{tenant-id}/{esh-version}
 ```
 
 ### Example Request
 
 ```http
-POST {host}:{port}/v2/search/hp74CDXIUsikzsuL478ZLroYESIYKvDS/latest
+POST {host}:{port}/v1/query/hp74CDXIUsikzsuL478ZLroYESIYKvDS/latest
 Content-Type: application/json
 ```
 
 ```json
 [
   {
+    "type": "EshObject",
     "top": 10,
     "count": true,
+    "scope": [
+      "example.Person"
+    ],
     "searchQueryFilter": {
       "type": "Expression",
+      "operator": "AND",
       "items": [
-        {
-          "type": "ScopeComparison",
-          "values": [
-            "EXAMPLEPERSON"
-          ]
-        },
         {
           "type": "StringValue",
           "value": "John"
@@ -956,37 +955,37 @@ Content-Type: application/json
           "type": "StringValue",
           "value": "Doe"
         }
-      ],
-      "operator": "AND"
+      ]
     },
     "whyfound": true,
-    "select": [
-      "FIRSTNAME",
-      "LASTNAME"
-    ],
     "orderby": [
       {
-        "key": "LASTNAME",
-        "order": "ASC"
+        "type": "OrderBy",
+        "key": {
+          "type": "Property",
+          "property": [
+            "lastName"
+          ]
+        }
       }
     ],
     "estimate": true,
     "wherefound": true
   },
   {
+    "type": "EshObject",
     "top": 10,
     "count": true,
+    "scope": [
+      "example.Person"
+    ],
     "searchQueryFilter": {
       "type": "Expression",
+      "operator": "AND",
       "items": [
         {
-          "type": "ScopeComparison",
-          "values": [
-            "EXAMPLEPERSON"
-          ]
-        },
-        {
           "type": "Expression",
+          "operator": "AND",
           "items": [
             {
               "type": "StringValue",
@@ -996,8 +995,7 @@ Content-Type: application/json
               "type": "StringValue",
               "value": "Doe"
             }
-          ],
-          "operator": "AND"
+          ]
         },
         {
           "type": "StringValue",
@@ -1007,18 +1005,18 @@ Content-Type: application/json
           "type": "StringValue",
           "value": "bbb"
         }
-      ],
-      "operator": "AND"
+      ]
     },
     "whyfound": true,
-    "select": [
-      "FIRSTNAME",
-      "LASTNAME"
-    ],
     "orderby": [
       {
-        "key": "LASTNAME",
-        "order": "ASC"
+        "type": "OrderBy",
+        "key": {
+          "type": "Property",
+          "property": [
+            "lastName"
+          ]
+        }
       }
     ],
     "estimate": true,
@@ -1040,51 +1038,35 @@ content-type: application/json
     "value": [
       {
         "@com.sap.vocabularies.Search.v1.Ranking": 1,
-        "@com.sap.vocabularies.Search.v1.WhereFound": "<TERM>Doe</TERM><FOUND>LASTNAME</FOUND><TERM>John</TERM><FOUND>FIRSTNAME</FOUND>",
-        "@com.sap.vocabularies.Search.v1.WhyFound": {
-          "FIRSTNAME": [
-            "<b>John</b>"
-          ],
-          "LASTNAME": [
-            "<b>Doe</b>"
-          ]
-        },
-        "@odata.context": "$metadata#EXAMPLEPERSON",
-        "FIRSTNAME": "John",
-        "LASTNAME": "Doe"
+        "@com.sap.vocabularies.Search.v1.WhyFound": [
+          {
+            "found": [
+              "firstName"
+            ],
+            "term": [
+              "<b>John</b>"
+            ]
+          },
+          {
+            "found": [
+              "lastName"
+            ],
+            "term": [
+              "<b>Doe</b>"
+            ]
+          }
+        ],
+        "@type": "example.Person",
+        "id": "99d4c249-5aaf-11ed-9710-98fa9b3c3838",
+        "firstName": "John",
+        "lastName": "Doe"
       }
     ],
-    "@odata.count": 1,
-    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.0414530001,
-    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0181450005,
-    "@com.sap.vocabularies.Search.v1.SearchStatistics": {
-      "ConnectorStatistics": [
-        {
-          "OdataID": "EXAMPLEPERSON",
-          "StatusCode": 200,
-          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0181450005,
-          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0200130008
-        }
-      ],
-      "StatusCode": 200
-    }
+    "@odata.count": 1
   },
   {
     "value": [],
-    "@odata.count": 0,
-    "@com.sap.vocabularies.Search.v1.ResponseTime": 0.041037999,
-    "@com.sap.vocabularies.Search.v1.SearchTime": 0.0180440004,
-    "@com.sap.vocabularies.Search.v1.SearchStatistics": {
-      "ConnectorStatistics": [
-        {
-          "OdataID": "EXAMPLEPERSON",
-          "StatusCode": 200,
-          "@com.sap.vocabularies.Search.v1.SearchTime": 0.0180440004,
-          "@com.sap.vocabularies.Search.v1.CPUTime": 0.0254050008
-        }
-      ],
-      "StatusCode": 200
-    }
+    "@odata.count": 0
   }
 ]
 ```

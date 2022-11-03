@@ -8,10 +8,8 @@ from pydantic import BaseModel, Field
 
 import esh_client
 
-# reservedCharacters = ['\\', '-', '(', ')', '~', '^', '?', '\'', ':', "'", '[', ']'] # Placeholders * and ?
 reservedCharacters = ['\\', '-', '(', ')', '~', '^', '\'', ':', "'", '[', ']'] # Placeholders * and ?
 reservedWords = ['AND', 'OR', 'NOT']
-reservedPlaceholders = ['?', '*']
 
 #pylint: disable=invalid-name
 #pylint: disable=missing-class-docstring
@@ -1641,17 +1639,21 @@ if __name__ == '__main__':
     termJune_mapped = map_query(termJune)
     assert termJune_mapped.to_statement() == 'June\\:'
 
-    termJune_fuzziness = esh_client.StringValue(value='June:', searchOptions=esh_client.SearchOptions(fuzzinessThreshold=0.73))
+    termJune_fuzziness = esh_client.StringValue(value='J?une:', searchOptions=esh_client.SearchOptions(fuzzinessThreshold=0.73))
     termJune_fuzziness_mapped = map_query(termJune_fuzziness)
-    assert termJune_fuzziness_mapped.to_statement() == 'June\\:~0.73'
+    assert termJune_fuzziness_mapped.to_statement() == 'J?une\\:~0.73'
+
+    termJune_fuzziness_placeholder = esh_client.StringValue(value='J?une:', escapePlaceholders=True, searchOptions=esh_client.SearchOptions(fuzzinessThreshold=0.73))
+    termJune_fuzziness_placeholder_mapped = map_query(termJune_fuzziness_placeholder)
+    assert termJune_fuzziness_placeholder_mapped.to_statement() == 'J\\?une\\:~0.73'
 
     termJune_fuzziness_phrase = esh_client.StringValue(value='J?une:', isPhrase=True, searchOptions=esh_client.SearchOptions(fuzzinessThreshold=0.73))
     termJune_fuzziness_mapped_phrase = map_query(termJune_fuzziness_phrase)
-    assert termJune_fuzziness_mapped_phrase.to_statement() == '"June\\\\:"~0.73'
+    assert termJune_fuzziness_mapped_phrase.to_statement() == '"J?une\\\\:"~0.73'
 
-    termJune_fuzziness_phrase = esh_client.StringValue(value='June:', isPhrase=True, searchOptions=esh_client.SearchOptions(fuzzinessThreshold=0.73))
+    termJune_fuzziness_phrase = esh_client.StringValue(value='J?une:', isPhrase=True, escapePlaceholders=True, searchOptions=esh_client.SearchOptions(fuzzinessThreshold=0.73))
     termJune_fuzziness_mapped_phrase = map_query(termJune_fuzziness_phrase)
-    assert termJune_fuzziness_mapped_phrase.to_statement() == '"June\\\\:"~0.73'
+    assert termJune_fuzziness_mapped_phrase.to_statement() == '"J\\\\?une\\\\:"~0.73'
 
 
     print(' -----> everything fine <----- ')

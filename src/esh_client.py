@@ -140,7 +140,7 @@ class StringValue(BaseModel):
     type: Literal['StringValue'] = 'StringValue'
     value: str
     isPhrase: bool | None
-    doEshEscaping: bool | None
+    escapePlaceholders: bool | None
     searchOptions: SearchOptions | None
 
 class NumberValue(BaseModel):

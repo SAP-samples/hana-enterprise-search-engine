@@ -7,6 +7,7 @@ entity RelTypeCode : Identifier {
 
 
 entity Cases : Identifier {
+    @sap.esh.isText
     entityDesc    : String;
     entityTime    : String;
     caseType      : String;
@@ -17,6 +18,7 @@ entity Cases : Identifier {
     caseStartTime : String;
     caseEndDate   : Date;
     caseEndTime   : String;
+    @sap.esh.isText
     caseSummary   : String;
     @sap.esh.isVirtual
     relPerson     : Association to RelCasesPerson;
@@ -68,6 +70,7 @@ entity RelCasesPerson : Identifier {
 }
 
 entity Object : Identifier {
+    @sap.esh.isText
     entityDesc     : String;
     origin         : String;
     objectCategory : String;
@@ -94,6 +97,7 @@ entity RelPersonObject : Identifier {
 }
 
 entity Activity : Identifier {
+    @sap.esh.isText
     entityDesc        : String;
     entityTime        : String;
     origin            : String;
@@ -128,6 +132,7 @@ entity RelActivityObject : Identifier {
 }
 
 entity Location : Identifier {
+    @sap.esh.isText
     entityDesc       : String;
     position         : hana.ST_POINT(4326); //Position
     locationCategory : String;
@@ -159,9 +164,11 @@ entity RelLocationPerson : Identifier {
 }
 
 entity Incidents : Identifier {
+    @sap.esh.isText
     entityDesc  : String;
     entityTime  : String;
     position    : hana.ST_POINT; //Position
+    @sap.esh.isText
     location    : String;
     @sap.esh.isVirtual
     relLocation : Association to RelIncidentLocation;
@@ -191,8 +198,10 @@ entity RelCasesIncident : Identifier {
 }
 
 entity Leads : Identifier {
+    @sap.esh.isText
     entityDesc  : String;
     entityTime  : String;
+    @sap.esh.isText
     leadSummary : String;
     leadStatus  : String;
     @sap.esh.isVirtual

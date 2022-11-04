@@ -1,12 +1,13 @@
 using {sap.esh.Identifier} from '../../../model/esh';
 
-
+@EnterpriseSearch.enabled : false
 entity RelTypeCode : Identifier {
     description : String(256)
 }
 
-
+@Search.defaultSearchElement : true
 entity Cases : Identifier {
+    @Search.defaultSearchElement : true
     @sap.esh.isText
     entityDesc    : String;
     entityTime    : String;
@@ -32,9 +33,11 @@ entity Cases : Identifier {
     relLeads      : Association to RelLeadsCases;
 }
 
-
+@EnterpriseSearch.enabled : true
 entity Person : Identifier {
+    @Search.defaultSearchElement : true
     firstName         : String;
+    @Search.defaultSearchElement : true
     lastName          : String;
     dob               : String;
     age               : Integer;
@@ -62,7 +65,7 @@ entity Person : Identifier {
     relLeads          : Association to many RelLeadsPerson;
 }
 
-
+@EnterpriseSearch.enabled : false
 entity RelCasesPerson : Identifier {
     cases       : Association to Cases;
     person      : Association to Person;
@@ -84,12 +87,14 @@ entity Object : Identifier {
     relLocation    : Association to RelObjectLocation;
 }
 
+@EnterpriseSearch.enabled : false
 entity RelCasesObject : Identifier {
     cases       : Association to Cases;
     object      : Association to Object;
     relTypeCode : Association to RelTypeCode;
 }
 
+@EnterpriseSearch.enabled : false
 entity RelPersonObject : Identifier {
     person      : Association to many Person;
     object      : Association to many Object;
@@ -112,25 +117,28 @@ entity Activity : Identifier {
     relObject         : Association to RelActivityObject;
 }
 
+@EnterpriseSearch.enabled : false
 entity RelCasesActivity : Identifier {
     cases       : Association to Cases;
     activity    : Association to Activity;
     relTypeCode : Association to RelTypeCode;
 }
 
+@EnterpriseSearch.enabled : false
 entity RelActivityPerson : Identifier {
     activity    : Association to Activity;
     person      : Association to Person;
     relTypeCode : Association to RelTypeCode;
 }
 
-
+@EnterpriseSearch.enabled : false
 entity RelActivityObject : Identifier {
     activity    : Association to Activity;
     object      : Association to Object;
     relTypeCode : Association to RelTypeCode;
 }
 
+@EnterpriseSearch.enabled : true
 entity Location : Identifier {
     @sap.esh.isText
     entityDesc       : String;
@@ -139,6 +147,7 @@ entity Location : Identifier {
     houseNumber      : String;
     street           : String;
     city             : String;
+    @Search.defaultSearchElement : true
     postalCode       : String;
     country          : String;
     locationType     : String;
@@ -150,13 +159,14 @@ entity Location : Identifier {
     relIncidents     : Association to RelIncidentLocation;
 }
 
-
+@EnterpriseSearch.enabled : false
 entity RelObjectLocation : Identifier {
     object      : Association to Object;
     location    : Association to Location;
     relTypeCode : Association to RelTypeCode;
 }
 
+@EnterpriseSearch.enabled : false
 entity RelLocationPerson : Identifier {
     location    : Association to Location;
     person      : Association to Person;
@@ -178,12 +188,14 @@ entity Incidents : Identifier {
     relCases    : Association to RelCasesIncident;
 }
 
+@EnterpriseSearch.enabled : false
 entity RelIncidentLocation : Identifier {
     incident    : Association to Incidents;
     location    : Association to Location;
     relTypeCode : Association to RelTypeCode;
 }
 
+@EnterpriseSearch.enabled : false
 entity RelIncidentPerson : Identifier {
     incident    : Association to Incidents;
     person      : Association to Person;
@@ -191,6 +203,7 @@ entity RelIncidentPerson : Identifier {
 
 }
 
+@EnterpriseSearch.enabled : false
 entity RelCasesIncident : Identifier {
     cases       : Association to Cases;
     incident    : Association to Incidents;
@@ -210,12 +223,14 @@ entity Leads : Identifier {
     relPerson   : Association to many RelLeadsPerson;
 }
 
+@EnterpriseSearch.enabled : false
 entity RelLeadsCases : Identifier {
     lead        : Association to Leads;
     cases       : Association to Cases;
     relTypeCode : Association to RelTypeCode;
 }
 
+@EnterpriseSearch.enabled : false
 entity RelLeadsPerson : Identifier {
     lead        : Association to Leads;
     person      : Association to Person;

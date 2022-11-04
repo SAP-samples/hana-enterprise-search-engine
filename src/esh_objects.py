@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 import esh_client
 
-reservedCharacters = ['\\', '-', '(', ')', '~', '^', '?', '\'', ':', "'", '[', ']']
+reservedCharacters = ['\\', '-', '(', ')', '~', '^', '\'', ':', "'", '[', ']'] # Placeholders * and ?
 reservedWords = ['AND', 'OR', 'NOT']
 
 #pylint: disable=invalid-name
@@ -28,7 +28,7 @@ class Constants(object):
     searchOptions = 'searchOptions'
     fuzzySearchOptions = 'fuzzySearchOptions'
     isQuoted = 'isQuoted'
-    doEshEscaping = 'doEshEscaping'
+    escapePlaceholders = 'escapePlaceholders'
     weight = 'weight'
     fuzzinessThreshold = 'fuzzinessThreshold'
     type = 'type'
@@ -190,6 +190,9 @@ def escapeSingleQuote(value: str) -> str:
 def escapeDoubleQuoteAndBackslash(value: str) -> str:
     return value.replace('\\', '\\\\').replace('"', '\\"')
 
+def doEscapePlaceholders(value: str) -> str:
+    return value.replace('?', '\?').replace('*', '\*')
+
 def escapePhrase(value: str) -> str:
     return value.replace('\\','\\\\').replace('"','\\"').replace('*','\\*').replace('?','\\?').replace("'","''")
 
@@ -242,20 +245,19 @@ class StringValueInternal(esh_client.StringValue):
     type: Literal['StringValueInternal'] = 'StringValueInternal'
 
     # isPhrase: bool | None
-    # doEshEscaping: bool | None
+    # escapePlaceholders: bool | None: bool | None
 
     def to_statement(self):
         #if self.withoutEnclosing:
         #    return String(Number.parseFloat(this.value));
         # return_value = None
-        if self.doEshEscaping:
-            return_value = escapePhrase(self.value)
-        else:
-            return_value = self.value
+        escaped_value = escapeQuery(self.value)
+        if self.escapePlaceholders:
+            escaped_value = doEscapePlaceholders(escaped_value)
         if self.isPhrase:
-            # return_value = f'"{escapeDoubleQuoteAndBackslash(self.value)}"'
-            return_value = '\"' + return_value + '\"'
-        return addFuzzySearchOptions(return_value, self.searchOptions)
+            escaped_value = f'"{escapeDoubleQuoteAndBackslash(escaped_value)}"'
+            # return_value = '\"' + return_value + '\"'
+        return addFuzzySearchOptions(escaped_value, self.searchOptions)
 
 
 class NumberValueInternal(esh_client.NumberValue):
@@ -629,6 +631,10 @@ def map_search_options(result, item):
 
 
 def map_query(item):
+
+    def remove2(x):
+        return x[1:-1].replace('\\\\','\\')
+
     result = None
 
     if hasattr(item, 'type'):
@@ -639,7 +645,7 @@ def map_query(item):
                 result = StringValueInternal(
                     value=item.value,
                     isPhrase=item.isPhrase,
-                    doEshEscaping=item.doEshEscaping
+                    escapePlaceholders=item.escapePlaceholders
                 )
                 map_search_options(result, item)
                 # if item.searchOptions is not None:
@@ -897,7 +903,7 @@ if __name__ == '__main__':
     esc_query = 'n AND a OR c'
     #print(escapeQuery(esc_query))
 
-    term_definition = {Constants.term: 'mannh"eim', Constants.doEshEscaping: True,\
+    term_definition = {Constants.term: 'mannh"eim', Constants.escapePlaceholders: True,\
         Constants.searchOptions: { \
             Constants.fuzzinessThreshold:0.5,\
             Constants.weight:0.9,\
@@ -1329,19 +1335,33 @@ if __name__ == '__main__':
     assert termA_mapped.to_statement() == 'heidelberg'
 
     # Term as StringValue with ESH escaping
-    termB = esh_client.StringValue(value='heidel"berg', doEshEscaping=True)
+    termB = esh_client.StringValue(value='heidel"berg', escapePlaceholders=True)
     termB_mapped = map_query(termB)
-    assert termB_mapped.to_statement() == 'heidel\\"berg' # this means: heidel\"berg
+    assert termB_mapped.to_statement() == 'heidel"berg' # this means: heidel\"berg
+
+    # Term as StringValue with ESH escaping
+    termC = esh_client.StringValue(value='heidel"berg', escapePlaceholders=True, isPhrase=True)
+    termC_mapped = map_query(termC)
+    assert termC_mapped.to_statement() == '"heidel\\"berg"' # this means: heidel\"berg
 
     # Phrase as StringValue without ESHEscaping
     phraseA = esh_client.StringValue(value='heidel*berg',isPhrase=True)
     phraseA_mapped = map_query(phraseA)
     assert phraseA_mapped.to_statement() == '"heidel*berg"'
 
+    termD = esh_client.StringValue(value='heidel*berg', escapePlaceholders=True)
+    termD_mapped = map_query(termD)
+    assert termD_mapped.to_statement() == 'heidel\\*berg' # this means: heidel\*berg
+
+    termE = esh_client.StringValue(value='heidel*berg')
+    termE_mapped = map_query(termE)
+    assert termE_mapped.to_statement() == 'heidel*berg'
+
+
     # Phrase as StringValue with ESHEscaping
-    phraseB = esh_client.StringValue(value='mann*heim',isPhrase=True,doEshEscaping=True)
+    phraseB = esh_client.StringValue(value='mann*heim',isPhrase=True,escapePlaceholders=True)
     phraseB_mapped = map_query(phraseB)
-    assert phraseB_mapped.to_statement() == '"mann\*heim"'
+    assert phraseB_mapped.to_statement() == '"mann\\\\*heim"'
 
     auth_json = '''
         {
@@ -1613,5 +1633,27 @@ if __name__ == '__main__':
     string_value_with_fuzzy_options = esh_client.StringValue.parse_obj(json.loads(string_value_with_fuzzy_options_json))
     string_value_with_fuzzy_options_mapped = map_query(string_value_with_fuzzy_options)
     assert string_value_with_fuzzy_options_mapped.to_statement() == "frankfurt~0.78[considerNonMatchingTokens=input]"
+
+
+    termJune = esh_client.StringValue(value='June:')
+    termJune_mapped = map_query(termJune)
+    assert termJune_mapped.to_statement() == 'June\\:'
+
+    termJune_fuzziness = esh_client.StringValue(value='J?une:', searchOptions=esh_client.SearchOptions(fuzzinessThreshold=0.73))
+    termJune_fuzziness_mapped = map_query(termJune_fuzziness)
+    assert termJune_fuzziness_mapped.to_statement() == 'J?une\\:~0.73'
+
+    termJune_fuzziness_placeholder = esh_client.StringValue(value='J?une:', escapePlaceholders=True, searchOptions=esh_client.SearchOptions(fuzzinessThreshold=0.73))
+    termJune_fuzziness_placeholder_mapped = map_query(termJune_fuzziness_placeholder)
+    assert termJune_fuzziness_placeholder_mapped.to_statement() == 'J\\?une\\:~0.73'
+
+    termJune_fuzziness_phrase = esh_client.StringValue(value='J?une:', isPhrase=True, searchOptions=esh_client.SearchOptions(fuzzinessThreshold=0.73))
+    termJune_fuzziness_mapped_phrase = map_query(termJune_fuzziness_phrase)
+    assert termJune_fuzziness_mapped_phrase.to_statement() == '"J?une\\\\:"~0.73'
+
+    termJune_fuzziness_phrase = esh_client.StringValue(value='J?une:', isPhrase=True, escapePlaceholders=True, searchOptions=esh_client.SearchOptions(fuzzinessThreshold=0.73))
+    termJune_fuzziness_mapped_phrase = map_query(termJune_fuzziness_phrase)
+    assert termJune_fuzziness_mapped_phrase.to_statement() == '"J\\\\?une\\\\:"~0.73'
+
 
     print(' -----> everything fine <----- ')

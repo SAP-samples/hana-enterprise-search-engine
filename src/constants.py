@@ -25,6 +25,8 @@ CSON_TYPES = set(['cds.UUID','cds.String','cds.LargeString','cds.Varchar','cds.I
     ,'cds.hana.ST_POINT','cds.hana.ST_GEOMETRY','cds.Association',
 ])
 
+COLUMN_ANNOTATIONS = set(['@sap.esh.isVirtual', '@sap.esh.isText'])
+
 class DBUserType(Enum):
     ADMIN = 'admin'
     SCHEMA_MODIFY = 'schema_modify'

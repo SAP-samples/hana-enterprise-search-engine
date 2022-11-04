@@ -11,7 +11,7 @@ _ESH_CONFIG_TEMPLATE = {
         'EntityType': {
             '@EnterpriseSearch.enabled': True,
             '@Search.searchable': True,
-            '@EnterpriseSearchHana.identifier': 'VORGANG_MODEL',
+            '@EnterpriseSearchHana.identifier': None,
             '@EnterpriseSearchHana.passThroughAllAnnotations': True,
             'Properties': []}}}
 
@@ -30,10 +30,11 @@ def sequence_int(i = 10, step = 10):
 
 class ColumnView:
     """Column view definition"""
-    def __init__(self, mapping, anchor_entity_name, schema_name) -> None:
+    def __init__(self, mapping, anchor_entity_name, schema_name, default_annotations) -> None:
         self.mapping = mapping
         self.anchor_entity = mapping['entities'][anchor_entity_name]
         self.schema_name = schema_name
+        self.default_annotations = default_annotations
         self.esh_config = deepcopy(_ESH_CONFIG_TEMPLATE)
         self.column_name_mapping = NameMapping()
         self.join_index = {}
@@ -57,6 +58,13 @@ class ColumnView:
             return table_name
         else:
             return f'{table_name}.temp{str(index).zfill(2)}'
+
+    @staticmethod
+    def _cleanup_labels(annotations:dict):
+        # for UI5 enterprise search UI to work
+        if '@EndUserText.Label' in annotations and not '@SAP.Common.Label' in annotations:
+            annotations['@SAP.Common.Label'] = annotations['@EndUserText.Label']
+            del annotations['@SAP.Common.Label']
 
     def _table(self, table_name):
         if not table_name in self.join_index:
@@ -101,22 +109,18 @@ class ColumnView:
         # ESH config
         col_conf = {'Name': view_column_name}
         if annotations:
+            self._cleanup_labels(annotations)
             col_conf |= annotations
-        elif 'annotations' in self.mapping['tables'][table_name]['columns'][table_column_name]:
-            col_conf |= self.mapping['tables'][table_name]['columns'][table_column_name]['annotations']
-        # for UI5 enterprise search UI to work
         is_enteprise_search_key = \
             not join_path_id and table_column_name == self.mapping['tables'][table_name]['pk']
         if is_enteprise_search_key:
             col_conf['@EnterpriseSearch.key'] = True
             col_conf['@UI.hidden'] = True
-        if not(is_enteprise_search_key or self.mapping['tables'][table_name]['columns'][table_column_name]['type'] in ['ST_POINT', 'ST_GEOMETRY']):
-        # if is_enteprise_search_key ^ self.auto_default_search_element:
-            col_conf['@Search.defaultSearchElement'] = True
-        if annotations and '@EndUserText.Label' in annotations and '@SAP.Common.Label' not in annotations:
-            col_conf['@SAP.Common.Label'] = annotations['@EndUserText.Label']
-        if not join_path_id and not is_enteprise_search_key:
-            col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]
+        elif self.default_annotations:
+            if self.mapping['tables'][table_name]['columns'][table_column_name]['type'] not in ['ST_POINT', 'ST_GEOMETRY']:
+                col_conf['@Search.defaultSearchElement'] = True
+            if not join_path_id:
+                col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]
         self.esh_config['content']['EntityType']['Properties'].append(col_conf)
 
     def _add_join(self, join_path_id, source_join_index, target_entity_pos\
@@ -228,12 +232,10 @@ class ColumnView:
 
     def data_definition(self):
         anchor_table_name = self.anchor_entity['table_name']
-        if 'annotations' in self.mapping['tables'][anchor_table_name]:
-            annotations = self.mapping['tables'][anchor_table_name]['annotations']
+        if 'annotations' in self.anchor_entity:
+            annotations = self.anchor_entity['annotations']
+            self._cleanup_labels(annotations)
             self.esh_config['content']['EntityType'] |= annotations
-            # for UI5 enterprise search UI to work
-            if '@EndUserText.Label' in annotations and not '@SAP.Common.Label' in annotations:
-                self.esh_config['content']['EntityType']['@SAP.Common.Label'] = annotations['@EndUserText.Label']
         self.esh_config['content']['Fullname'] = f'{self.schema_name}/{self.view_name}'
         self.esh_config['content']['EntityType']['@EnterpriseSearchHana.identifier'] = self.odata_name
         self._traverse(self.selector, self.anchor_entity, [], self._table(anchor_table_name))

@@ -196,6 +196,14 @@ def add_key_columns_to_table(table, subtable_level, pk):
     table['pkParent'] = pk_parent_name
     table['columns'] = key_properties
 
+def process_property(cson, pk, table, entity, element_name, table_name_mapping, element_name_ext, sur_prop_path, element, referred_element):
+    table['columns'][element_name] = get_sql_type(table_name_mapping, cson, referred_element, pk)
+    table['columns'][element_name]['external_path'] = sur_prop_path + [element_name_ext]
+    entity['elements'][element_name_ext]['column_name'] = element_name
+    property_annotations = {k:v for k,v in element.items() if k.startswith('@') and k not in COLUMN_ANNOTATIONS}
+    if property_annotations:
+        entity['elements'][element_name_ext]['annotations'] = property_annotations
+
 def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, type_definition,\
     subtable_level = 0, is_table = True, has_pc = False, pk = DefaultPK, parent_table_name = None,
     sur_table = None, sur_prop_name_mapping = None, sur_prop_path = [], entity = {}):
@@ -298,17 +306,9 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                             sur_prop_path=sur_prop_path + [element_name_ext],
                             entity=entity['elements'][element_name_ext])
                     else:
-                        table['columns'][element_name] =\
-                            get_sql_type(table_name_mapping, cson, cson['definitions'][element['type']], pk)
-                        table['columns'][element_name]['external_path'] = sur_prop_path + [element_name_ext]
-                        entity['elements'][element_name_ext]['column_name'] = element_name
+                        process_property(cson, pk, table, entity, element_name, table_name_mapping, element_name_ext, sur_prop_path, element, cson['definitions'][element['type']])
                 else:
-                    table['columns'][element_name] = get_sql_type(table_name_mapping, cson, element, pk)
-                    table['columns'][element_name]['external_path'] = sur_prop_path + [element_name_ext]
-                    entity['elements'][element_name_ext]['column_name'] = element_name
-                    property_annotations = {k:v for k,v in element.items() if k.startswith('@') and k not in COLUMN_ANNOTATIONS}
-                    if property_annotations:
-                        entity['elements'][element_name_ext]['annotations'] = property_annotations
+                    process_property(cson, pk, table, entity, element_name, table_name_mapping, element_name_ext, sur_prop_path, element, element)
             elif 'elements' in element: # nested definition
                 element['kind'] = 'type'
                 entity['elements'][element_name_ext]['elements'] = {}
@@ -361,7 +361,6 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
             table_map['columns'] = {}
         tables[table_name] = table
     return table
-
 
 def is_many_rel(column_rel):
     return 'cardinality' in column_rel\

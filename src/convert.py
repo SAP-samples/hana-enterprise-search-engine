@@ -3,7 +3,7 @@ from uuid import uuid1
 from name_mapping import NameMapping
 import json
 import base64
-from constants import TYPES_B64_DECODE, TYPES_SPATIAL, SPATIAL_DEFAULT_SRID, ENTITY_PREFIX, VIEW_PREFIX
+from constants import TYPES_B64_DECODE, TYPES_SPATIAL, SPATIAL_DEFAULT_SRID, ENTITY_PREFIX, COLUMN_ANNOTATIONS
 
 
 PRIVACY_CATEGORY_COLUMN_DEFINITION = ('_PRIVACY_CATEGORY', {'type':'TINY'})
@@ -26,6 +26,28 @@ class DataException(Exception):
     pass
 
 
+'''
+        case 'cds.String':
+            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
+                sql_type['type'] = 'SHORTTEXT'
+            else:
+                sql_type['type'] = 'NVARCHAR'
+            if not 'length' in cap_type:
+                sql_type['length'] = 5000
+        case 'cds.LargeString':
+            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
+                sql_type['type'] = 'TEXT'
+            else:
+                sql_type['type'] = 'NCLOB'
+        case 'cds.LargeBinary':
+            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
+                sql_type['type'] = 'BINTEXT'
+            else:
+                sql_type['type'] = 'BLOB'
+'''
+
+
+
 def get_sql_type(table_name_mapping, cson, cap_type, pk):
     ''' get SQL type from CAP type'''
     if cap_type['type'] in cson['definitions'] and 'type' in cson['definitions'][cap_type['type']]:
@@ -39,17 +61,11 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
             sql_type['type'] = 'NVARCHAR'
             sql_type['length'] = 36
         case 'cds.String':
-            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
-                sql_type['type'] = 'SHORTTEXT'
-            else:
-                sql_type['type'] = 'NVARCHAR'
+            sql_type['type'] = 'NVARCHAR'
             if not 'length' in cap_type:
                 sql_type['length'] = 5000
         case 'cds.LargeString':
-            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
-                sql_type['type'] = 'TEXT'
-            else:
-                sql_type['type'] = 'NCLOB'
+            sql_type['type'] = 'NCLOB'
         case 'cds.Varchar':
             sql_type['type'] = 'VARCHAR'
             if not 'length' in cap_type:
@@ -82,16 +98,10 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
             sql_type['type'] = 'VARBINARY'
             if 'length' in cap_type:
                 sql_type['length'] = cap_type['length']
-            #sql_type['isBinary'] = True
         case 'cds.LargeBinary':
-            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
-                sql_type['type'] = 'BINTEXT'
-            else:
-                sql_type['type'] = 'BLOB'
-            #sql_type['isBinary'] = True
+            sql_type['type'] = 'BLOB'
         case 'cds.hana.BINARY':
             sql_type['type'] = 'BINARY'
-            #sql_type['isBinary'] = True
         case 'cds.hana.VARCHAR':
             sql_type['type'] = 'VARCHAR'
             if not 'length' in cap_type:
@@ -137,7 +147,7 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
             raise ModelException(f'Unexpected cds type {t}')
 
     # Copy annotations
-    annotations = {k:v for k,v in cap_type.items() if k.startswith('@')}
+    annotations = {k:v for k,v in cap_type.items() if k in COLUMN_ANNOTATIONS}
     if annotations:
         sql_type['annotations'] = annotations
 
@@ -200,12 +210,15 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
         column_name_mapping = NameMapping()
         if parent_table_name:
             table['parent'] = parent_table_name
-        if subtable_level == 0:
-            annotations = {k:v for k,v in type_definition.items() if k.startswith('@')}
-            if annotations:
-                table['annotations'] = annotations
+        #if subtable_level == 0:
+        #    annotations = {k:v for k,v in type_definition.items() if k.startswith('@')}
+        #    if annotations:
+        #        table['annotations'] = annotations
         if is_table:
             if subtable_level == 0:
+                annotations = {k:v for k,v in type_definition.items() if k.startswith('@')}
+                if annotations:
+                    entity['annotations'] = annotations
                 pk_column_name, _ = column_name_mapping.register([type_definition['pk']])
                 entity['elements'][type_definition['pk']] = {'column_name': pk_column_name}
                 table['pk'] = pk_column_name
@@ -293,6 +306,9 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                     table['columns'][element_name] = get_sql_type(table_name_mapping, cson, element, pk)
                     table['columns'][element_name]['external_path'] = sur_prop_path + [element_name_ext]
                     entity['elements'][element_name_ext]['column_name'] = element_name
+                    property_annotations = {k:v for k,v in element.items() if k.startswith('@') and k not in COLUMN_ANNOTATIONS}
+                    if property_annotations:
+                        entity['elements'][element_name_ext]['annotations'] = property_annotations
             elif 'elements' in element: # nested definition
                 element['kind'] = 'type'
                 entity['elements'][element_name_ext]['elements'] = {}

@@ -53,13 +53,16 @@ def tables_dd(tables, schema_name):
 def mapping_to_ddl(mapping, schema_name, hana_version  = 2):
     tables = tables_dd(mapping['tables'], schema_name)
     indices = get_indices(mapping['tables'], schema_name, hana_version)
-    #sdd = search_dd(schema_name, mapping, [v for v in mapping['views'].values()])
-    #return {'tables': tables, 'views': sdd['views'], 'eshConfig':sdd['eshConfig']}
-    
     views = []
     esh_configs = []
-    for anchor_entity_name in mapping['entities'].keys():
-        cv = ColumnView(mapping, anchor_entity_name, schema_name)
+    for anchor_entity_name, anchor_entity in mapping['entities'].items():
+        if 'annotations' in anchor_entity and '@EnterpriseSearch.enabled' in anchor_entity['annotations']:
+            if anchor_entity['annotations']['@EnterpriseSearch.enabled']:
+                cv = ColumnView(mapping, anchor_entity_name, schema_name, False)
+            else:
+                continue
+        else: 
+            cv = ColumnView(mapping, anchor_entity_name, schema_name, True)
         cv.by_default()
         view, esh_config = cv.data_definition()
         views.append(view)

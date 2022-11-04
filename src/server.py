@@ -496,7 +496,11 @@ def get_column_view(mapping, anchor_entity_name, schema_name, path_list):
     view_id = str(uuid.uuid4()).replace('-', '').upper()
     view_name = f'DYNAMICVIEW/{view_id}'
     odata_name = f'DYNAMICVIEW_{view_id}'
-    cv = ColumnView(mapping, anchor_entity_name, schema_name)
+    anchor_entity = mapping['entities'][anchor_entity_name]
+    if 'annotations' in anchor_entity and '@EnterpriseSearch.enabled' in anchor_entity['annotations'] and anchor_entity['annotations']['@EnterpriseSearch.enabled']:
+        cv = ColumnView(mapping, anchor_entity_name, schema_name, False)
+    else: 
+        cv = ColumnView(mapping, anchor_entity_name, schema_name, True)
     cv.by_default_and_path_list(path_list, view_name, odata_name)
     return cv
 

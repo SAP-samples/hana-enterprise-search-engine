@@ -2,28 +2,31 @@
 E2E test cases using the REST API
 '''
 import os
+import re
 import json
 import argparse
+from xml.etree.ElementInclude import default_loader
 from requests import Request, Session
 import requests
 import sys
 from enum import Enum
 from copy import deepcopy
+import gzip
+from time import time
 class TestType(Enum):
     '''File types used in test'''
     FOLDER_ONLY = 'folder'
     CDS = 'model.cds'
     CSON = 'cson.json'
     CSON_DIRECT = 'model.json'
+    QUERY_PY = 'query.py'
+    QUERY_JSON = 'query.json'
     DATA = 'data.json'
     SEARCH_REQ_ODATA = 'searchRequestOData.json'
-    SEARCH_REQ_OPENAPI = 'searchRequestOpenAPI.json'
-    QUERY_REQ = 'queryRequest.json'
     SEARCH_REQ_V2 = 'searchRequestV2.json'
     SEARCH_RESP_ODATA_GET = 'ODataGET'
     SEARCH_RESP_ODATA_POST = 'ODataPOST'
-    SEARCH_RESP_OPENAPI = 'OpenAPI'
-    QUERY_RESP = 'Query'
+    QUERY_RESP = 'queryResponse.json'
     SEARCH_V2_INPUT_MAPPING_SEARCH_OBJECTS = 'searchV2InputMapping.json'
     GET_ALL_TENANTS = 'serviceResponseGetAllTenants.json'
     DELETE_TENANT = 'serviceResponseDeleteTenant.json'
@@ -46,21 +49,25 @@ class MessageType(Enum):
     TODO = 'todo'
     ERROR = 'error'
 
+class DummyResponse:
+    def __init__(self, status_code, json_res) -> None:
+        self.status_code = status_code
+        self.json_res = json_res
+    def json(self) -> None:
+        return self.json_res
+
 def file_name(package_name, test_name, typ:TestType, location:FileLocation = None):
     root = os.path.join(folder_to_use,package_name, test_name)
 
     if typ == TestType.FOLDER_ONLY:
         res = os.path.join(root, location.value)
-    elif typ in (TestType.CDS, TestType.CSON_DIRECT, TestType.DATA, TestType.SEARCH_REQ_ODATA, TestType.SEARCH_REQ_OPENAPI, TestType.QUERY_REQ):
+    elif typ in (TestType.CDS, TestType.CSON_DIRECT, TestType.DATA, TestType.SEARCH_REQ_ODATA, TestType.QUERY_PY):
         res = os.path.join(root,  typ.value)
-    elif typ in (TestType.SEARCH_RESP_ODATA_GET, TestType.SEARCH_RESP_ODATA_POST, TestType.SEARCH_RESP_OPENAPI, TestType.QUERY_RESP):
+    elif typ in (TestType.SEARCH_RESP_ODATA_GET, TestType.SEARCH_RESP_ODATA_POST):
         if location == FileLocation.OUTPUT:
             res = os.path.join(root, location.value, f'search{typ.value}.json')
         elif FileLocation.REFERENCE:
-            if typ in (TestType.QUERY_RESP,):
-                res = os.path.join(root, location.value, f'search{typ.value}.json')
-            else: 
-                res = os.path.join(root, location.value, 'search.json')
+            res = os.path.join(root, location.value, 'search.json')
     else:
         res = os.path.join(root, location.value, typ.value)
     return res
@@ -90,9 +97,9 @@ class Test():
     def file_name(self, typ:TestType, location:FileLocation = None):
         if typ == TestType.FOLDER_ONLY:
             res = os.path.join(self.root, location.value)
-        elif typ in (TestType.CDS, TestType.DATA, TestType.SEARCH_REQ_ODATA, TestType.SEARCH_REQ_OPENAPI, TestType.QUERY_REQ):
+        elif typ in (TestType.CDS, TestType.DATA, TestType.SEARCH_REQ_ODATA):
             res = os.path.join(self.root,  typ.value)
-        elif typ in (TestType.SEARCH_RESP_ODATA_GET, TestType.SEARCH_RESP_ODATA_POST, TestType.SEARCH_RESP_OPENAPI, TestType.QUERY_RESP):
+        elif typ in (TestType.SEARCH_RESP_ODATA_GET, TestType.SEARCH_RESP_ODATA_POST, TestType.QUERY_RESP):
             if location == FileLocation.OUTPUT:
                 res = os.path.join(self.root, location.value, f'search{typ.value}.json')
             elif FileLocation.REFERENCE:
@@ -207,7 +214,7 @@ def process_search_result(package_name, test_name, file_type, response_obj):
 
 def process_search_result_v2_1(package_name, test_name, file_type, response_obj):
     result_obj = [round_esh_response(w) for w in response_obj]
-    mask_uuid(result_obj, 'ID')
+    mask_uuid(result_obj, 'id')
     result_fn = file_name(package_name, test_name, file_type\
         , FileLocation.OUTPUT)
     with open(result_fn, 'w', encoding='utf-8') as fw_res:
@@ -229,8 +236,12 @@ def mask_uuid(obj, key_name):
 def process_service_response(package_name, test_name, requst_type: TestType, response):
     result = {'statusCode': response.status_code}
     r = response.json()
-    if requst_type in (TestType.LOAD_DATA, TestType.READ_DATA):
-        for obj_typ, obj_list in r.items():
+    if response.status_code == 500:
+        if 'detail' in r:
+            r['detail'] = re.sub('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', 
+            '********-****-****-****-************', r['detail'])
+    if requst_type in (TestType.LOAD_DATA, TestType.READ_DATA, TestType.QUERY_RESP):
+        for obj_list in r.values():
             for obj in obj_list:
                 mask_uuid(obj, 'id')
     result['body'] = r
@@ -260,7 +271,7 @@ if __name__ == '__main__':
         , action=argparse.BooleanOptionalAction, default=False\
         , help='update test reference data')
     parser.add_argument('--service-tests', metavar='service_tests'\
-        , action=argparse.BooleanOptionalAction, default=False\
+        , action=argparse.BooleanOptionalAction, default=True\
         , help='runs HTTP-REST service tests')
 
 
@@ -306,6 +317,7 @@ if __name__ == '__main__':
 
     for package, tests in packages.items():
         for test in tests:
+            tstart = time()
             print(f'Test {package}.{test} started')
             cson_direct = os.path.exists(file_name(package, test, TestType.CSON_DIRECT))
             if not ( os.path.exists(file_name(package, test, TestType.CDS)) or cson_direct):
@@ -326,12 +338,16 @@ if __name__ == '__main__':
                     or not os.path.exists(file_name(package, test, TestType.CSON, FileLocation.OUTPUT)):
                     command_line_statement = (
                         f'cds compile {file_name(package, test, TestType.CDS)}'
-                        f' --to json > {file_name(package, test, TestType.CSON, FileLocation.OUTPUT)}')
+                        f' --to json -o {file_name(package, test, TestType.CSON, FileLocation.OUTPUT)}')
                     print(command_line_statement)
                     os.system(command_line_statement)
                     cson_file_name = file_name(package, test, TestType.CSON, FileLocation.OUTPUT)
-                    with open(cson_file_name, encoding = 'utf-8') as fr:
-                        cson = json.load(fr)
+                    try:
+                        with open(cson_file_name, encoding = 'utf-8') as fr:
+                            cson = json.load(fr)
+                    except json.JSONDecodeError:
+                        add_message(package, test, MessageType.ERROR, TestType.CDS, 'wrong')
+                        continue
                     del cson['meta']
                     with open(cson_file_name, 'w', encoding = 'utf-8') as fw:
                         json.dump(cson, fw, indent = 4)
@@ -340,20 +356,29 @@ if __name__ == '__main__':
                 with open(file_name(package, test, TestType.CSON, FileLocation.OUTPUT), encoding='utf-8') as f:
                     cson = json.load(f)
             data_exist = os.path.exists(file_name(package, test, TestType.DATA))
+            gz_data_exist = os.path.exists(file_name(package, test, TestType.DATA) + '.gz')
             if data_exist:
                 with open(file_name(package, test, TestType.DATA), encoding='utf-8') as f:
                     data = json.load(f)
+            elif gz_data_exist:
+                with gzip.open(file_name(package, test, TestType.DATA) + '.gz') as f:
+                    data = json.loads(f.read().decode('utf-8'))
             else:
                 add_message(package, test, MessageType.TODO, TestType.DATA, 'missing')
             if args.service_tests:
                 r = requests.get(f'{base_url}/v1/tenant')
-                process_service_response(package, test, TestType.GET_ALL_TENANTS, r)
+                #process_service_response(package, test, TestType.GET_ALL_TENANTS, r)
                 if [w for w in r.json() if w['name'] == tenant_name]:
                     r = requests.delete(f'{base_url}/v1/tenant/{tenant_name}')
-                    process_service_response(package, test, TestType.DELETE_TENANT, r)
-
+                    #process_service_response(package, test, TestType.DELETE_TENANT, r)
                 r = requests.post(f'{base_url}/v1/tenant/{tenant_name}')
                 process_service_response(package, test, TestType.CREATE_TENANT, r)
+                r = requests.get(f'{base_url}/v1/tenant')
+                r1 = DummyResponse(r.status_code,
+                    [w for w in r.json() if w['name'] == tenant_name])
+                r1.json_res[0]['name'] = 'testTenanat'
+                r1.json_res[0]['createdAt'] = '2000-01-01T00:00:00.000000'
+                process_service_response(package, test, TestType.GET_ALL_TENANTS, r1)
                 r = requests.post(f'{base_url}/v1/deploy/{tenant_name}', json=cson\
                     , params={'simulate': True})
                 process_service_response(package, test, TestType.CREATE_MODEL_SIMULATE, r)
@@ -372,6 +397,7 @@ if __name__ == '__main__':
                             r = requests.post(f'{base_url}/v1/read/{tenant_name}', json= ids)
                             process_service_response(package, test, TestType.READ_DATA, r)
                 # OpenAPI
+                '''
                 query_fn = file_name(package, test, TestType.SEARCH_REQ_OPENAPI)
                 if os.path.exists(query_fn):
                     with open(query_fn, encoding = 'utf-8') as f:
@@ -383,8 +409,29 @@ if __name__ == '__main__':
                 else:
                     add_message(package, test, MessageType.TODO\
                         , TestType.SEARCH_REQ_OPENAPI, 'does not exist')
+                '''
+                # Query
 
-                # OpenAPIv2.1
+                if os.path.exists(file_name(package, test, TestType.QUERY_PY)):
+                    spec = importlib.util.spec_from_file_location('querypy', file_name(package, test, TestType.QUERY_PY))
+                    querypy = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(querypy)
+                    query_obj = [w.dict(exclude_none=True) for w in querypy.get_search_objects()]
+                    fn = file_name(package, test, TestType.QUERY_JSON, FileLocation.OUTPUT)
+                    with open(fn, 'w', encoding='utf-8') as fw:
+                        json.dump(query_obj, fw, indent=4)
+                    check(package, test, TestType.QUERY_JSON)
+
+                    url = f'{base_url}/v1/query/{tenant_name}/latest'
+                    r = requests.post(url, json=query_obj)
+                    process_search_result_v2_1(package, test\
+                        , TestType.QUERY_RESP, r.json())
+
+                else:
+                    add_message(package, test, MessageType.TODO\
+                        , TestType.QUERY_PY, 'does not exist')
+
+                '''
                 query_fn = file_name(package, test, TestType.QUERY_REQ)
                 if os.path.exists(query_fn):
                     with open(query_fn, encoding = 'utf-8') as f:
@@ -395,7 +442,8 @@ if __name__ == '__main__':
                         , TestType.QUERY_RESP, r.json())
                 else:
                     add_message(package, test, MessageType.TODO\
-                        , TestType.SEARCH_REQ_OPENAPI, 'does not exist')
+                        , TestType.QUERY_REQ, 'does not exist')
+                '''
                 # OData
                 query_fn = file_name(package, test, TestType.SEARCH_REQ_ODATA)
                 if os.path.exists(query_fn):
@@ -418,7 +466,8 @@ if __name__ == '__main__':
                     r = requests.delete(f'{base_url}/v1/data/{tenant_name}', json= object_ids)
                     process_service_response(package, test, TestType.DELETE_DATA, r)
 
-            print(f'Test {package}.{test} finished')
+            trun = round(time() - tstart)
+            print(f'Test {package}.{test} finished in {trun} sec')
             if args.service_tests and args.cleanup:
                 r = requests.delete(f'{base_url}/v1/tenant/{tenant_name}')
                 process_service_response(package, test, TestType.DELETE_TENANT, r)

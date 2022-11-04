@@ -132,3 +132,4 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .vscode/settings.json
+demo/examples/DocResearch/internDocuments/Implementation Report 2020.pdf

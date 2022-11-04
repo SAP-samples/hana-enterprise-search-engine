@@ -49,17 +49,17 @@ entity Person : Identifier {
     secondNationality : String;
     additionalRemarks : String;
     @sap.esh.isVirtual
-    relCases          : Association to RelCasesPerson;
+    relCases          : Association to many RelCasesPerson;
     @sap.esh.isVirtual
-    relObject         : Association to RelPersonObject;
+    relObject         : Association to many RelPersonObject;
     @sap.esh.isVirtual
-    relActivity       : Association to RelActivityPerson;
+    relActivity       : Association to many RelActivityPerson;
     @sap.esh.isVirtual
-    relLocation       : Association to RelLocationPerson;
+    relLocation       : Association to many RelLocationPerson;
     @sap.esh.isVirtual
-    relIncident       : Association to RelIncidentPerson;
+    relIncident       : Association to many RelIncidentPerson;
     @sap.esh.isVirtual
-    relLeads          : Association to RelLeadsPerson;
+    relLeads          : Association to many RelLeadsPerson;
 }
 
 
@@ -77,7 +77,7 @@ entity Object : Identifier {
     @sap.esh.isVirtual
     relCases       : Association to RelCasesObject;
     @sap.esh.isVirtual
-    relPerson      : Association to RelPersonObject;
+    relPerson      : Association to many RelPersonObject;
     @sap.esh.isVirtual
     relActivity    : Association to RelActivityObject;
     @sap.esh.isVirtual
@@ -91,8 +91,8 @@ entity RelCasesObject : Identifier {
 }
 
 entity RelPersonObject : Identifier {
-    person      : Association to Person;
-    object      : Association to Object;
+    person      : Association to many Person;
+    object      : Association to many Object;
     relTypeCode : Association to RelTypeCode;
 }
 
@@ -107,7 +107,7 @@ entity Activity : Identifier {
     @sap.esh.isVirtual
     relCases          : Association to RelCasesActivity;
     @sap.esh.isVirtual
-    relPerson         : Association to RelActivityPerson;
+    relPerson         : Association to many RelActivityPerson;
     @sap.esh.isVirtual
     relObject         : Association to RelActivityObject;
 }
@@ -145,7 +145,7 @@ entity Location : Identifier {
     @sap.esh.isVirtual
     relObject        : Association to RelObjectLocation;
     @sap.esh.isVirtual
-    relPerson        : Association to RelLocationPerson;
+    relPerson        : Association to many RelLocationPerson;
     @sap.esh.isVirtual
     relIncidents     : Association to RelIncidentLocation;
 }
@@ -173,7 +173,7 @@ entity Incidents : Identifier {
     @sap.esh.isVirtual
     relLocation : Association to RelIncidentLocation;
     @sap.esh.isVirtual
-    relPerson   : Association to RelIncidentPerson;
+    relPerson   : Association to many RelIncidentPerson;
     @sap.esh.isVirtual
     relCases    : Association to RelCasesIncident;
 }
@@ -207,7 +207,7 @@ entity Leads : Identifier {
     @sap.esh.isVirtual
     relCases    : Association to RelLeadsCases;
     @sap.esh.isVirtual
-    relPerson   : Association to RelLeadsPerson;
+    relPerson   : Association to many RelLeadsPerson;
 }
 
 entity RelLeadsCases : Identifier {

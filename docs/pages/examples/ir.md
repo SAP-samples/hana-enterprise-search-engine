@@ -33,7 +33,7 @@ all attributes are exactly the same as ICM. The following points show which file
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 Following process should be executed firstly to create a tenant:
-- [Setup.ipynb(https://github.com/SAP-samples/hana-enterprise-search-engine/blob/dev/demo/notebooks/setup.ipynb)] (For deletion of tenant use [delete_tenant.ipynb](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/dev/demo/notebooks/delete_tenant.ipynb))
+- [Setup.ipynb](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/notebooks/setup.ipynb) (For deletion of tenant use [delete_tenant.ipynb](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/notebooks/delete_tenant.ipynb))
 
 Please consider the following notes to test the queries:
 1. Configure your server configuration (.config.json) and then start server.py before you start executing the queries
@@ -45,10 +45,10 @@ Please consider the following notes to test the queries:
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 Relevant notebooks:
-- [simple_searches.ipynb]: Shows simple requests on entities 
-- [fuzzy_searches.ipynb]: Shows incomplete parameter searches
-- [complex_relation_searches.ipynb]: Shows complex searches in several entities
-- [geo_searches.ipynb]: Shows locations/coordinates searches with the result of latitude and longitude
+- [simple_searches.ipynb](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/notebooks/simple_searches.ipynb): Shows simple requests on entities 
+- [fuzzy_searches.ipynb](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/notebooks/fuzzy_searches.ipynb): Shows incomplete parameter searches
+- [complex_relation_searches.ipynb](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/notebooks/complex_relation_searches.ipynb): Shows complex searches in several entities
+- [geo_searches.ipynb](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/notebooks/geo_searches.ipynb): Shows locations/coordinates searches with the result of latitude and longitude
 
 Relevant files:
 - icm2.model.json -> generated JSON File for creating tenant
@@ -92,16 +92,16 @@ Relevant files:
 # Entities and model
 ---------------------------------------------------------------------------------------------------------------------------------------
 Following entities are created:
-- [Cases](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/dev/demo/examples/ir/model.cds?plain=1#L9)
-- [Person](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/dev/demo/examples/ir/model.cds?plain=1#L37)
-- [Object](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/dev/demo/examples/ir/model.cds?plain=1#L75)
-- [Activity](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/dev/demo/examples/ir/model.cds?plain=1#L104)
-- [Location](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/dev/demo/examples/ir/model.cds?plain=1#L142)
-- [Incidents](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/dev/demo/examples/ir/model.cds?plain=1#L176)
-- [Leads](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/dev/demo/examples/ir/model.cds?plain=1#L213)
+- [Cases](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/model.cds?plain=1#L9)
+- [Person](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/model.cds?plain=1#L37)
+- [Object](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/model.cds?plain=1#L75)
+- [Activity](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/model.cds?plain=1#L104)
+- [Location](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/model.cds?plain=1#L142)
+- [Incidents](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/model.cds?plain=1#L176)
+- [Leads](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/model.cds?plain=1#L213)
 
-Please have a look on the file "[model.cds](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/dev/demo/examples/ir/model.cds)" for detailed information regarding attributes and relationships.
-Also a class diagram is existing. Please have a look on "[ir_model.png](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/dev/docs/images/examples/ir/ir_model.png)".
+Please have a look on the file "[model.cds](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/model.cds)" for detailed information regarding attributes and relationships.
+Also a class diagram is existing. Please have a look on "[ir_model.png](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/docs/images/examples/ir/ir_model.png)".
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 # Scenario/example

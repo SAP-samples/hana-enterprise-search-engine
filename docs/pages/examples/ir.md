@@ -59,26 +59,26 @@ Relevant files:
 # Notebooks description
 ---------------------------------------------------------------------------------------------------------------------------------------
 
-- simple_searches.ipynb:
+- [simple_searches.ipynb](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/notebooks/simple_searches.ipynb):
 
     This notebook demonstrates basic queries e.g. search for a name, name AND age, age less than 30, name with wildcard(*), etc. It serves
     to get a feeling how the queries works. There are different condition attributes which can be used e.g. "equals", "notequals",
     case-(in)sensitive, etc.
 
-- fuzzy_searches.ipynb:
+- [fuzzy_searches.ipynb](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/notebooks/fuzzy_searches.ipynb):
 
     These queries shows incomplete search statements. When user wants to search for the name "Kennedy" but searches for "Kenne" then the 
     program searches for the best matches in the database. You can configure how high should be the percentage of the match. 
     For example you can configure the number 0.5 for 50 percent of match.
 
-- complex_relation_searches.ipynb:
+- [complex_relation_searches.ipynb](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/notebooks/complex_relation_searches.ipynb):
 
     This example is about the relations between the entities and the complexity of the queries. It will be demonstrated that queries
     can be built also for several objects (e.g. search for persons location). Entity cross queries are presented.
     Important notes: If you want to search for a text, but you only know a few words, you can use the "doEshEscape=True" function.
     If you want to search for explicit text, then you can use the "isPhrase=True" function. For an exact example see notebook.
 
-- geo_searches.ipynb:
+- [geo_searches.ipynb](https://github.com/SAP-samples/hana-enterprise-search-engine/blob/main/demo/examples/ir/notebooks/geo_searches.ipynb):
 
     This notebook contains queries about to figure out locations with(in) coordinates. It can be searched for exact coordinates or coordinates
     which are in a radius. Therefore, it has to be defined a polygon. 

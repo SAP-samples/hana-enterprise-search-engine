@@ -16,7 +16,7 @@ nav_order: 2
 # Preconditions
 ## Preconditions to run the example
 - Up-to date SAP HANA (on-prem or cloud)
-- Latest version of [Python 3.10](https://www.python.org/downloads/ "download")
+- Latest version of [Python 3.10](https://www.python.org/downloads/ "download"). **Attention: Python 3.11 is not yet supported**
 - [SAP CAP](https://cap.cloud.sap/docs/get-started/ "getting started")
 
 ## Preconditions for development

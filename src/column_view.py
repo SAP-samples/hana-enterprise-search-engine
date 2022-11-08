@@ -64,7 +64,7 @@ class ColumnView:
         # for UI5 enterprise search UI to work
         if '@EndUserText.Label' in annotations and not '@SAP.Common.Label' in annotations:
             annotations['@SAP.Common.Label'] = annotations['@EndUserText.Label']
-            del annotations['@SAP.Common.Label']
+            del annotations['@EndUserText.Label']
 
     def _table(self, table_name):
         if not table_name in self.join_index:

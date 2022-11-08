@@ -183,6 +183,10 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
                     handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
             with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
                 db.cur.callproc('ESH_CONFIG', (json.dumps(ddl['eshConfig']),None))
+                res = db.cur.fetchone()
+                print(res[0])
+                if res[0]:
+                    handle_error(res[0], 422)
                 sql = f'insert into "{tenant_schema_name}"._MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
                 db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(mapping)))
                 db.cur.connection.commit()

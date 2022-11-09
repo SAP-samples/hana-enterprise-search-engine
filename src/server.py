@@ -29,8 +29,8 @@ from constants import (CONCURRENT_CONNECTIONS, TENANT_ID_MAX_LENGTH,
                        DBUserType, ENTITY_PREFIX)
 from db_connection_pool import (ConnectionPool, Credentials, DBBulkProcessing,
                                 DBConnection)
-from esh_client import EshObject
-from esh_objects import map_query, PropertyInternal
+from esh_client import EshObject, SearchRuleSet
+from esh_objects import convert_search_rule_set_query_to_string, generate_search_rule_set_query, map_query, PropertyInternal
 from request_mapping import map_request
 
 ANNO_RANKING = '@com.sap.vocabularies.Search.v1.Ranking'
@@ -620,13 +620,42 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
         results.append(result)
     return results
 
+@app.post('/v0.2/ruleset/{tenant_id}')
+async def query_v1(tenant_id, queries: List[EshObject]):
+    schema_name = get_tenant_schema_name(tenant_id)
+    mapping = get_mapping(tenant_id, schema_name)
+    return mapping
+
+@app.post('/v0.1/ruleset/{tenant_id}')
+async def query_v1(tenant_id, ruleset: SearchRuleSet):
+    schema_name = get_tenant_schema_name(tenant_id)
+    data = generate_search_rule_set_query(ruleset)
+    result = []
+    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+        params = (convert_search_rule_set_query_to_string(data),)
+        db.cur.callproc('EXECUTE_SEARCH_RULE_SET', params)
+        # search_results = [json.loads(w[0]) for w in db.cur.fetchall()]
+        rows = db.cur.fetchall()
+        column_headers = [i[0] for i in db.cur.description]  # get column headers
+        # result = [column_headers]  # insert header
+        
+        for row in rows:
+            # current_row = []
+            result_row = {}
+            for idx, col in enumerate(row):
+                # current_row.append(col)
+                result_row[column_headers[idx]] = col
+            result.append(result_row)
+    print(result)
+    return { 'value': result}
+    # return Response(content=data, media_type="application/xml")
 
 @app.get('/{path:path}')
 async def tile_request(path: str, response: Response):
     logging.info(path)
-    logging.info('https://sapui5.hana.ondemand.com/%s', path)
+    # logging.info('https://sapui5.hana.ondemand.com/1.108.0/resources/%s', path)
     async with httpx.AsyncClient() as client:
-        proxy = await client.get(f'https://sapui5.hana.ondemand.com/{path}')
+        proxy = await client.get(f'https://sapui5.hana.ondemand.com/1.105.0/{path}')
     response.body = proxy.content
     response.status_code = proxy.status_code
     return response

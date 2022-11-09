@@ -271,3 +271,34 @@ class EshObject(BaseModel):
     class Config:
         extra = 'forbid'
 
+
+
+class AttributeView(BaseModel):
+    db_schema: str | None = Field(..., alias='schema')
+    name: str | None
+    key_column: str | None
+
+class Column(BaseModel):
+    name: str | None
+    value: str | None
+    minFuzziness: float | None
+    ifMissingAction: str | None
+class Rule(BaseModel):
+    name: str | None
+    column: Column | None
+class RuleSet(BaseModel):
+    # scoreSelection currently only firstRule
+    attributeView: AttributeView | None
+    rule: Rule | None
+    # name: str
+
+class ResultSetColumn(BaseModel):
+    name: str
+class Query(BaseModel):
+    limit: int | None
+    offset: int | None
+    ruleset: list[RuleSet] | None # TODO check if it can be a list
+    column: list[Column] | None # TODO make it as list
+    resultsetcolumn: list[ResultSetColumn] | None
+class SearchRuleSet(BaseModel):
+    query: Query | None

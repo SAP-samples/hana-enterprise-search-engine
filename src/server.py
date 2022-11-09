@@ -454,7 +454,7 @@ async def get_static_index():
 @app.get('/v1/searchui/{tenant_id:path}',response_class=RedirectResponse, status_code=302)
 async def get_search_by_tenant(tenant_id):
     redirect_url = (
-        '/sap/esh/search/ui/container/SearchUI.html?sinaConfiguration='
+        '/resources/sap/esh/search/ui/container/SearchUI.html?sinaConfiguration='
         f'{{"provider":"hana_odata","url":"/v1/search/{tenant_id}"}}#Action-search&/top=10'
     )
     return RedirectResponse(redirect_url)
@@ -654,8 +654,9 @@ async def query_v1(tenant_id, ruleset: SearchRuleSet):
 async def tile_request(path: str, response: Response):
     logging.info(path)
     # logging.info('https://sapui5.hana.ondemand.com/1.108.0/resources/%s', path)
+    sapui5_version = '' # or '1.108.0/'
     async with httpx.AsyncClient() as client:
-        proxy = await client.get(f'https://sapui5.hana.ondemand.com/1.105.0/{path}')
+        proxy = await client.get(f'https://sapui5.hana.ondemand.com/{sapui5_version}{path}')
     response.body = proxy.content
     response.status_code = proxy.status_code
     return response

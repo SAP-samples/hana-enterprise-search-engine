@@ -119,8 +119,8 @@ class ColumnView:
         elif self.default_annotations:
             if self.mapping['tables'][table_name]['columns'][table_column_name]['type'] not in ['ST_POINT', 'ST_GEOMETRY']:
                 col_conf['@Search.defaultSearchElement'] = True
-            if not join_path_id:
-                col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]
+            #if not join_path_id:
+            #    col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]
         self.esh_config['content']['EntityType']['Properties'].append(col_conf)
 
     def _add_join(self, join_path_id, source_join_index, target_entity_pos\

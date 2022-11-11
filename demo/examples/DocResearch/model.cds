@@ -8,7 +8,8 @@ entity Document {
     key id        : UUID;
         @UI.Identification                       : [{Position : 10}]
         // @EndUserText.Label                       : 'Image'
-        @Semantics.imageUrl : true
+        @Semantics.imageUrl                      : true
+        @UI.IsImageURL
         image     : String;
         @sap.esh.isText
         @UI.Identification                       : [{Position : 20}]

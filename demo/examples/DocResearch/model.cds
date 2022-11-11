@@ -9,7 +9,7 @@ entity Document {
         @UI.Identification                       : [{Position : 10}]
         // @EndUserText.Label                       : 'Image'
         @Semantics.imageUrl : true
-        image     : LargeBinary;
+        image     : String;
         @sap.esh.isText
         @UI.Identification                       : [{Position : 20}]
         @EndUserText.Label                       : 'Title'

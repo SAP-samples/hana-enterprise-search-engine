@@ -649,7 +649,11 @@ def check_path(mapping:dict, elem_loc:dict, path:list):
                     cp_res, _ = check_path(mapping, mapping['entities'][new_elem_loc['items']['definition']['target']], path[1:])
                     return (cp_res, True)
                 return check_path(mapping, new_elem_loc, path[1:])
-            return (True, False)
+            else:
+                if 'column_name' in elem_loc['elements'][path[0]]:
+                    return (True, False)
+                else:
+                    return (False, False)
         else:
             return (False, False)
     elif 'items' in elem_loc:

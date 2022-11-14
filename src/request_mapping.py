@@ -1,3 +1,4 @@
+from esh_client import AttributeView, Column, EshObject, Query, ResultSetColumn, Rule, RuleSet, SearchRuleSet
 import esh_objects
 import json
 class Constants(object):
@@ -106,3 +107,145 @@ def map_request(mapping: dict, incoming_requests: list):
     if 'exist_free_style' in result_items:
         returning_object['exist_free_style'] = result_items['exist_free_style']
     return returning_object
+
+def map_request_to_rule_set(schema_name: str, mapping: dict, incoming_request: EshObject):
+    query = Query()
+    if incoming_request.scope is not None:
+        if len(incoming_request.scope) != 1:
+            raise Exception("only one element is allowed in the 'scope'")
+        scope = incoming_request.scope[0]
+        ruleset = RuleSet()
+        scope_entity = mapping["entities"][scope]
+        table_name = scope_entity["table_name"]
+        view_name = table_name.replace("ENTITY/", "VIEW/") # TODO only temp
+        mapping_table = mapping["tables"][table_name]
+        if incoming_request.searchQueryFilter is not None:
+            for item in incoming_request.searchQueryFilter.items:
+                if query.column is None:
+                    query.column = []
+                property_name = item.property.property[0]
+                operator = item.operator
+                value = item.value.value
+
+                db_column_name = scope_entity["elements"][property_name]["column_name"]
+                # column_fuzziness = mapping_table["columns"][db_column_name]["annotations"]["@Search.fuzzinessThreshold"]
+                # if column_fuzziness is None:
+                #    column_fuzziness = 0.77
+                column_fuzziness = 0.85
+                column=Column(
+                    name = db_column_name,
+                    minFuzziness = column_fuzziness,
+                    ifMissingAction = "skipRule"
+                )
+                ruleset.rule = Rule(name="rule1", column=column)
+
+                # print(property_name, operator,value, db_column_name)
+                query.column.append(Column(name=db_column_name, value=value))
+        primary_key_column = mapping_table["pk"]
+        ruleset.attributeView = AttributeView(schema=schema_name,name=view_name,key_column=primary_key_column)
+        query.ruleset = [ruleset]
+    else:
+        raise Exception("missing mandatory parameter 'scope'")
+    if incoming_request.top is not None:
+        query.limit = incoming_request.top
+    if incoming_request.skip is not None:
+        query.offset = incoming_request.skip
+    if incoming_request.select is not None:
+        for select_property in incoming_request.select:
+            if query.resultsetcolumn is None:
+                query.resultsetcolumn = []
+            query.resultsetcolumn.append(ResultSetColumn(name=scope_entity["elements"][select_property.property]["column_name"]))
+
+    return_value = SearchRuleSet(query=query)
+    return return_value
+
+if __name__ == "__main__":
+    import esh_client
+    testEsh = EshObject()
+    testEsh.top = 23
+    testEsh.scope = ["Document"]
+    testEsh.searchQueryFilter = esh_client.Expression(items=[
+        esh_client.Comparison(
+            property=esh_client.Property(property=["title"]),
+            operator=esh_client.ComparisonOperator.Search,
+            value=esh_client.StringValue(value="First Document")
+        )
+    ])
+
+    model_mapping_json = '''
+        {
+            "tables": {
+                "ENTITY/DOCUMENT": {
+                "external_path": [
+                    "Document"
+                ],
+                "level": 0,
+                "annotations": {
+                    "@EndUserText.Label": "Document",
+                    "@EnterpriseSearchHana.passThroughAllAnnotations": true
+                },
+                "pk": "ID",
+                "columns": {
+                    "ID": {
+                    "type": "NVARCHAR",
+                    "length": 36,
+                    "external_path": [
+                        "id"
+                    ]
+                    },
+                    "TITLE": {
+                    "length": 5000,
+                    "type": "NVARCHAR",
+                    "annotations": {
+                        "@EndUserText.Label": "Title",
+                        "@Search.fuzzinessThreshold": 0.85,
+                        "@UI.identification.position": 10
+                    },
+                    "external_path": [
+                        "title"
+                    ]
+                    },
+                    "TEXT": {
+                    "type": "BLOB",
+                    "annotations": {
+                        "@EndUserText.Label": "Text",
+                        "@UI.multiLineText": true,
+                        "@sap.esh.isText": true,
+                        "@UI.identification.position": 20,
+                        "@EnterpriseSearch.snippets.enabled": true,
+                        "@EnterpriseSearch.snippets.maximumLength": 800,
+                        "@Semantics.text": true
+                    },
+                    "external_path": [
+                        "text"
+                    ]
+                    }
+                },
+                "table_name": "ENTITY/DOCUMENT"
+                }
+            },
+            "entities": {
+                "Document": {
+                    "elements": {
+                        "id": {
+                        "column_name": "ID"
+                        },
+                        "title": {
+                        "column_name": "TITLE"
+                        },
+                        "text": {
+                        "column_name": "TEXT"
+                        }
+                    },
+                "table_name": "ENTITY/DOCUMENT"
+                }
+            }
+        }
+    '''
+
+
+    mapped_rule_set = map_request_to_rule_set("TEST_Schema", json.loads(model_mapping_json), testEsh)
+    print(json.dumps(mapped_rule_set.dict(exclude_none=True), indent=2))
+
+    search_rule_set_query= esh_objects.generate_search_rule_set_query(mapped_rule_set)
+    print(esh_objects.convert_search_rule_set_query_to_string(search_rule_set_query))

@@ -117,7 +117,11 @@ class ColumnView:
             col_conf['@EnterpriseSearch.key'] = True
             col_conf['@UI.hidden'] = True
         elif self.default_annotations:
-            if self.mapping['tables'][table_name]['columns'][table_column_name]['type'] not in ['ST_POINT', 'ST_GEOMETRY']:
+            column = self.mapping['tables'][table_name]['columns'][table_column_name]
+            if column['type'] in ['BLOB', 'CLOB', 'NCLOB']:
+                if 'annotations' in column and '@sap.esh.isText' in column['annotations'] and column['annotations']['@sap.esh.isText']:
+                    col_conf['@Search.defaultSearchElement'] = True
+            elif column['type'] not in ['ST_POINT', 'ST_GEOMETRY']:
                 col_conf['@Search.defaultSearchElement'] = True
             if not join_path_id:
                 col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]

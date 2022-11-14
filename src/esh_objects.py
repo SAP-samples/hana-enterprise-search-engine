@@ -814,7 +814,7 @@ def generate_search_rule_set_query(search_result_set: esh_client.SearchRuleSet):
                     ruleset = ET.Element("ruleset", scoreSelection='firstRule')
                     if rule_set_request.attributeView is not None:
                         # attributeview = ET.Element("attributeview", scoreSelection='firstRule')
-                        attributeView = ET.SubElement(ruleset, "attributeView", name=f'{rule_set_request.attributeView.db_schema}.{rule_set_request.attributeView.name}')
+                        attributeView = ET.SubElement(ruleset, "attributeView", name=f'"{rule_set_request.attributeView.db_schema}"."{rule_set_request.attributeView.name}"')
                         keyColumn = ET.SubElement(attributeView, "keyColumn", name=rule_set_request.attributeView.key_column)
 
                     if rule_set_request.rule is not None:
@@ -858,6 +858,7 @@ def generate_search_rule_set_query(search_result_set: esh_client.SearchRuleSet):
 
             # query = ET.Element("query")
     tree = ET.ElementTree(query)
+    ET.indent(tree, space=" ", level=0)
 
     # root = tree.getroot()  
     # return tostring(root, encoding='utf8',xml_declaration=False).decode('utf8')

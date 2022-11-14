@@ -117,10 +117,14 @@ class ColumnView:
             col_conf['@EnterpriseSearch.key'] = True
             col_conf['@UI.hidden'] = True
         elif self.default_annotations:
-            if self.mapping['tables'][table_name]['columns'][table_column_name]['type'] not in ['ST_POINT', 'ST_GEOMETRY']:
+            column = self.mapping['tables'][table_name]['columns'][table_column_name]
+            if column['type'] in ['BLOB', 'CLOB', 'NCLOB']:
+                if 'annotations' in column and '@sap.esh.isText' in column['annotations'] and column['annotations']['@sap.esh.isText']:
+                    col_conf['@Search.defaultSearchElement'] = True
+            elif column['type'] not in ['ST_POINT', 'ST_GEOMETRY']:
                 col_conf['@Search.defaultSearchElement'] = True
-            #if not join_path_id:
-            #    col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]
+            if not join_path_id:
+                col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]
         self.esh_config['content']['EntityType']['Properties'].append(col_conf)
 
     def _add_join(self, join_path_id, source_join_index, target_entity_pos\
@@ -151,6 +155,22 @@ class ColumnView:
         self._add_view_column(join_index, join_path_id,\
             name_path, ep['column_name'], annotations, selector_pos)
 
+    def _traverse_association(self, selected_property, entity_property, name_path, join_index, join_path_id, selected_property_name):
+        target_entity = self.mapping['entities'][entity_property['definition']['target']]                        
+        if '@sap.esh.isVirtual' in entity_property['definition']\
+            and entity_property['definition']['@sap.esh.isVirtual']:
+            source_table = self.mapping['tables'][join_index[0]]
+            source_column = source_table['pk']
+            target_column = source_table['columns'][entity_property['column_name']]['rel']['column_name']
+        else:
+            source_column = entity_property['column_name']
+            target_column = self.mapping['tables'][target_entity['table_name']]['pk']
+        target_join_index, jp_id = \
+            self._add_join(join_path_id, join_index, target_entity, source_column, target_column)
+        self._traverse(selected_property, target_entity\
+            , name_path + [selected_property_name], target_join_index, jp_id)
+
+
 
     def _traverse(self, selector_pos, entity_pos, name_path, join_index, join_path_id = ''):
         if 'elements' in selector_pos:
@@ -162,25 +182,19 @@ class ColumnView:
                         self._traverse(selected_property, entity_property\
                             , name_path + [selected_property_name], join_index, join_path_id)
                     elif 'items' in entity_property and 'elements' in entity_property['items']:
-                        target_join_index, jp_id = \
-                            self._add_join(join_path_id, join_index, entity_property['items'])
-                        self._traverse(selected_property, entity_property['items']\
-                            , name_path + [selected_property_name], target_join_index, jp_id)
+                        if 'definition' in entity_property['items'] and 'type' in entity_property['items']['definition']\
+                            and entity_property['items']['definition']['type'] == 'cds.Association':
+                            target_join_index, jp_id = \
+                                self._add_join(join_path_id, join_index, entity_property['items'])
+                            self._traverse_association(selected_property, entity_property['items'], name_path, target_join_index, jp_id, selected_property_name)
+                        else:
+                            target_join_index, jp_id = \
+                                self._add_join(join_path_id, join_index, entity_property['items'])
+                            self._traverse(selected_property, entity_property['items']\
+                                , name_path + [selected_property_name], target_join_index, jp_id)
                     elif 'definition' in entity_property and 'type' in entity_property['definition']\
                         and entity_property['definition']['type'] == 'cds.Association':
-                        target_entity = self.mapping['entities'][entity_property['definition']['target']]
-                        if '@sap.esh.isVirtual' in entity_property['definition']\
-                            and entity_property['definition']['@sap.esh.isVirtual']:
-                            source_table = self.mapping['tables'][join_index[0]]
-                            source_column = source_table['pk']
-                            target_column = source_table['columns'][entity_property['column_name']]['rel']['column_name']
-                        else:
-                            source_column = entity_property['column_name']
-                            target_column = self.mapping['tables'][target_entity['table_name']]['pk']
-                        target_join_index, jp_id = \
-                            self._add_join(join_path_id, join_index, target_entity, source_column, target_column)
-                        self._traverse(selected_property, target_entity\
-                            , name_path + [selected_property_name], target_join_index, jp_id)
+                        self._traverse_association(selected_property, entity_property, name_path, join_index, join_path_id, selected_property_name)
                     else:
                         raise NotImplementedError
                 else:

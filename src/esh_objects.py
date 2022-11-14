@@ -5,6 +5,8 @@ from typing import List, Literal, Annotated, Union
 import json
 from unittest import result
 from pydantic import BaseModel, Field
+import xml.etree.ElementTree as ET 
+from xml.etree.ElementTree import tostring
 
 import esh_client
 
@@ -422,6 +424,11 @@ class MultiValuesInternal(esh_client.MultiValues):
             return_value = f'{return_value}{self.encloseEnd}'
         return return_value
 
+class ComparisonPropertiesListInternal(MultiValuesInternal):
+
+    def __init__(self, items):
+        super(MultiValuesInternal, self).__init__(items=items, separator=", ",encloseStart="(",encloseEnd=")")
+
 class EshLanguageOperators(BaseModel):
     value: ExpressionInternal | ComparisonInternal
 
@@ -784,6 +791,82 @@ def map_query(item):
         result = item
     return result
 
+
+def generate_search_rule_set_query(search_result_set: esh_client.SearchRuleSet):
+    if search_result_set.query:
+            if search_result_set.query is not None:
+                offset_value = None
+                if search_result_set.query.limit is not None:
+                    limit_value = str(search_result_set.query.limit)
+                else:
+                    limit_value = "10" # default value is 10
+                if search_result_set.query.offset is not None:
+                    offset_value = str(search_result_set.query.offset)
+                if offset_value is not None:
+                    query = ET.Element("query", limit=limit_value, offset=offset_value)
+                else:
+                    query = ET.Element("query", limit=limit_value)
+            else:
+                query = ET.Element("query", limit="10")
+
+            if search_result_set.query.ruleset is not None:
+                for rule_set_request in search_result_set.query.ruleset:
+                    ruleset = ET.Element("ruleset", scoreSelection='firstRule')
+                    if rule_set_request.attributeView is not None:
+                        # attributeview = ET.Element("attributeview", scoreSelection='firstRule')
+                        attributeView = ET.SubElement(ruleset, "attributeView", name=f'"{rule_set_request.attributeView.db_schema}"."{rule_set_request.attributeView.name}"')
+                        keyColumn = ET.SubElement(attributeView, "keyColumn", name=rule_set_request.attributeView.key_column)
+
+                    if rule_set_request.rule is not None:
+                        rule = ET.SubElement(ruleset, "rule", name=rule_set_request.rule.name)
+
+
+                        
+                        rule1column1 = ET.SubElement(rule, "column", name=rule_set_request.rule.column.name, minFuzziness=str(rule_set_request.rule.column.minFuzziness))
+                        ifMissing = ET.SubElement(rule1column1, "ifMissing", action=rule_set_request.rule.column.ifMissingAction)
+
+
+                        '''
+                        if search_result_set.query.ruleset.rule.column is not None:
+                            column = ET.SubElement(rule, "column", name='Rule 1')
+                            if search_result_set.query.ruleset.rule.column.ifMissingAction is not None:
+                                ifMissing = ET.SubElement(column, "ifMissing", action=search_result_set.query.ruleset.rule.column.ifMissingAction.ifMissingAction)
+                        '''
+                        # keyColumn = ET.SubElement(attributeView, "keyColumn", name='EMPLOYEE_ID')
+
+                    query.append(ruleset)
+
+            
+            
+
+            if search_result_set.query.column is not None:
+                for column_request in search_result_set.query.column:
+                    column = ET.Element("column", name=column_request.name)
+                    if column_request.value is not None:
+                        column.text = column_request.value
+                    query.append(column)
+
+            # resultsetcolumnSCORE = ET.Element("resultsetcolumn", name="_SCORE")
+            # resultsetcolumnRULE_ID = ET.Element("resultsetcolumn", name="_RULE_ID")
+            # resultsetcolumnID = ET.Element("resultsetcolumn", name="ID")
+            if search_result_set.query.resultsetcolumn is not None:
+                query.append(ET.Element("resultsetcolumn", name="_SCORE"))
+                query.append(ET.Element("resultsetcolumn", name="_RULE_ID"))
+                query.append(ET.Element("resultsetcolumn", name="ID"))
+                for resultSetColumn in search_result_set.query.resultsetcolumn:
+                    query.append(ET.Element("resultsetcolumn", name=resultSetColumn.name))
+
+            # query = ET.Element("query")
+    tree = ET.ElementTree(query)
+    ET.indent(tree, space=" ", level=0)
+
+    # root = tree.getroot()  
+    # return tostring(root, encoding='utf8',xml_declaration=False).decode('utf8')
+
+    return tree
+
+def convert_search_rule_set_query_to_string(search_result_set_tree: ET.ElementTree):
+    return tostring(search_result_set_tree.getroot(), encoding='utf8',xml_declaration=False).decode('utf8')
 
 if __name__ == '__main__':
 
@@ -1655,5 +1738,15 @@ if __name__ == '__main__':
     termJune_fuzziness_mapped_phrase = map_query(termJune_fuzziness_phrase)
     assert termJune_fuzziness_mapped_phrase.to_statement() == '"J\\\\?une\\\\:"~0.73'
 
+    mv = esh_client.MultiValues(items=["firstName", "lastName"])
+    co = esh_client.Comparison(
+        property= esh_client.MultiValues(items=["firstName", "lastName"],separator=",",encloseStart="(", encloseEnd=")"),
+        operator=esh_client.ComparisonOperator.Search,
+        value= esh_client.MultiValues(items=["Max", "Mustermann"],encloseStart="(", encloseEnd=")")
+    )
+    
+    
+    co_mapped = map_query(co)
+    print(co_mapped.to_statement())
 
     print(' -----> everything fine <----- ')

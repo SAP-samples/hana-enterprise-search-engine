@@ -29,9 +29,9 @@ from constants import (CONCURRENT_CONNECTIONS, TENANT_ID_MAX_LENGTH,
                        DBUserType, ENTITY_PREFIX)
 from db_connection_pool import (ConnectionPool, Credentials, DBBulkProcessing,
                                 DBConnection)
-from esh_client import EshObject
-from esh_objects import map_query, PropertyInternal
-from request_mapping import map_request
+from esh_client import EshObject, SearchRuleSet
+from esh_objects import convert_search_rule_set_query_to_string, generate_search_rule_set_query, map_query, PropertyInternal
+from request_mapping import map_request, map_request_to_rule_set
 
 ANNO_RANKING = '@com.sap.vocabularies.Search.v1.Ranking'
 ANNO_WHYFOUND = '@com.sap.vocabularies.Search.v1.WhyFound'
@@ -183,6 +183,10 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
                     handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
             with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
                 db.cur.callproc('ESH_CONFIG', (json.dumps(ddl['eshConfig']),None))
+                res = db.cur.fetchone()
+                print(res[0])
+                if res[0]:
+                    handle_error(res[0], 422)
                 sql = f'insert into "{tenant_schema_name}"._MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
                 db.cur.execute(sql, (created_at, json.dumps(cson), json.dumps(mapping)))
                 db.cur.connection.commit()
@@ -450,7 +454,7 @@ async def get_static_index():
 @app.get('/v1/searchui/{tenant_id:path}',response_class=RedirectResponse, status_code=302)
 async def get_search_by_tenant(tenant_id):
     redirect_url = (
-        '/sap/esh/search/ui/container/SearchUI.html?sinaConfiguration='
+        '/resources/sap/esh/search/ui/container/SearchUI.html?sinaConfiguration='
         f'{{"provider":"hana_odata","url":"/v1/search/{tenant_id}"}}#Action-search&/top=10'
     )
     return RedirectResponse(redirect_url)
@@ -616,13 +620,65 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
         results.append(result)
     return results
 
+@app.post('/v0.2/ruleset/{tenant_id}')
+async def ruleset_v02(tenant_id, query: EshObject):
+    try:
+        schema_name = get_tenant_schema_name(tenant_id)
+        mapping = get_mapping(tenant_id, schema_name)
+        mapping_rule_set = map_request_to_rule_set(schema_name, mapping, query)
+    except Exception as e:
+        handle_error(str(e))
+    search_rule_set_query= generate_search_rule_set_query(mapping_rule_set)
+    result = []
+    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+        params = (convert_search_rule_set_query_to_string(search_rule_set_query),)
+        db.cur.callproc('EXECUTE_SEARCH_RULE_SET', params)
+        # search_results = [json.loads(w[0]) for w in db.cur.fetchall()]
+        rows = db.cur.fetchall()
+        column_headers = [i[0] for i in db.cur.description]  # get column headers
+        # result = [column_headers]  # insert header
+        
+        for row in rows:
+            # current_row = []
+            result_row = {}
+            for idx, col in enumerate(row):
+                # current_row.append(col)
+                result_row[column_headers[idx]] = col
+            result.append(result_row)
+    # return mapping_rule_set.dict()
+    # return Response(content=convert_search_rule_set_query_to_string(search_rule_set_query), media_type="application/xml")
+    return { 'value': result}
+
+@app.post('/v0.1/ruleset/{tenant_id}')
+async def ruleset_v01(tenant_id, ruleset: SearchRuleSet):
+    data = generate_search_rule_set_query(ruleset)
+    result = []
+    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+        params = (convert_search_rule_set_query_to_string(data),)
+        db.cur.callproc('EXECUTE_SEARCH_RULE_SET', params)
+        # search_results = [json.loads(w[0]) for w in db.cur.fetchall()]
+        rows = db.cur.fetchall()
+        column_headers = [i[0] for i in db.cur.description]  # get column headers
+        # result = [column_headers]  # insert header
+        
+        for row in rows:
+            # current_row = []
+            result_row = {}
+            for idx, col in enumerate(row):
+                # current_row.append(col)
+                result_row[column_headers[idx]] = col
+            result.append(result_row)
+    print(result)
+    return { 'value': result}
+    # return Response(content=data, media_type="application/xml")
 
 @app.get('/{path:path}')
 async def tile_request(path: str, response: Response):
     logging.info(path)
-    logging.info('https://sapui5.hana.ondemand.com/%s', path)
+    # logging.info('https://sapui5.hana.ondemand.com/1.108.0/resources/%s', path)
+    sapui5_version = '' # or '1.108.0/'
     async with httpx.AsyncClient() as client:
-        proxy = await client.get(f'https://sapui5.hana.ondemand.com/{path}')
+        proxy = await client.get(f'https://sapui5.hana.ondemand.com/{sapui5_version}{path}')
     response.body = proxy.content
     response.status_code = proxy.status_code
     return response

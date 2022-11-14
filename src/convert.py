@@ -312,6 +312,12 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                             entity=entity['elements'][element_name_ext])
                     else:
                         process_property(cson, pk, table, entity, element_name, table_name_mapping, element_name_ext, sur_prop_path, element, cson['definitions'][element['type']])
+                        elem_annotations = {k:v for k,v in element.items() if k in COLUMN_ANNOTATIONS}
+                        if elem_annotations:
+                            if 'annotations' in table['columns'][element_name]:
+                                table['columns'][element_name]['annotations'] |= elem_annotations
+                            else:
+                                table['columns'][element_name]['annotations'] = elem_annotations
                 else:
                     process_property(cson, pk, table, entity, element_name, table_name_mapping, element_name_ext, sur_prop_path, element, element)
             elif 'elements' in element: # nested definition
@@ -649,7 +655,11 @@ def check_path(mapping:dict, elem_loc:dict, path:list):
                     cp_res, _ = check_path(mapping, mapping['entities'][new_elem_loc['items']['definition']['target']], path[1:])
                     return (cp_res, True)
                 return check_path(mapping, new_elem_loc, path[1:])
-            return (True, False)
+            else:
+                if 'definition' in elem_loc['elements'][path[0]]:
+                    return (False, False)
+                else:
+                    return (True, False)
         else:
             return (False, False)
     elif 'items' in elem_loc:

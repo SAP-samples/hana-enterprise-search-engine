@@ -31,7 +31,7 @@ from db_connection_pool import (ConnectionPool, Credentials, DBBulkProcessing,
                                 DBConnection)
 from esh_client import EshObject, SearchRuleSet
 from esh_objects import convert_search_rule_set_query_to_string, generate_search_rule_set_query, map_query, PropertyInternal
-from request_mapping import map_request
+from request_mapping import map_request, map_request_to_rule_set
 
 ANNO_RANKING = '@com.sap.vocabularies.Search.v1.Ranking'
 ANNO_WHYFOUND = '@com.sap.vocabularies.Search.v1.WhyFound'
@@ -621,14 +621,36 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
     return results
 
 @app.post('/v0.2/ruleset/{tenant_id}')
-async def query_v1(tenant_id, queries: List[EshObject]):
-    schema_name = get_tenant_schema_name(tenant_id)
-    mapping = get_mapping(tenant_id, schema_name)
-    return mapping
+async def ruleset_v02(tenant_id, query: EshObject):
+    try:
+        schema_name = get_tenant_schema_name(tenant_id)
+        mapping = get_mapping(tenant_id, schema_name)
+        mapping_rule_set = map_request_to_rule_set(schema_name, mapping, query)
+    except Exception as e:
+        handle_error(str(e))
+    search_rule_set_query= generate_search_rule_set_query(mapping_rule_set)
+    result = []
+    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+        params = (convert_search_rule_set_query_to_string(search_rule_set_query),)
+        db.cur.callproc('EXECUTE_SEARCH_RULE_SET', params)
+        # search_results = [json.loads(w[0]) for w in db.cur.fetchall()]
+        rows = db.cur.fetchall()
+        column_headers = [i[0] for i in db.cur.description]  # get column headers
+        # result = [column_headers]  # insert header
+        
+        for row in rows:
+            # current_row = []
+            result_row = {}
+            for idx, col in enumerate(row):
+                # current_row.append(col)
+                result_row[column_headers[idx]] = col
+            result.append(result_row)
+    # return mapping_rule_set.dict()
+    # return Response(content=convert_search_rule_set_query_to_string(search_rule_set_query), media_type="application/xml")
+    return { 'value': result}
 
 @app.post('/v0.1/ruleset/{tenant_id}')
-async def query_v1(tenant_id, ruleset: SearchRuleSet):
-    schema_name = get_tenant_schema_name(tenant_id)
+async def ruleset_v01(tenant_id, ruleset: SearchRuleSet):
     data = generate_search_rule_set_query(ruleset)
     result = []
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:

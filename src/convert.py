@@ -313,7 +313,7 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                     else:
                         process_property(cson, pk, table, entity, element_name, table_name_mapping, element_name_ext, sur_prop_path, element, cson['definitions'][element['type']])
                         elem_annotations = {k:v for k,v in element.items() if k in COLUMN_ANNOTATIONS}
-                        if annotations:
+                        if elem_annotations:
                             if 'annotations' in table['columns'][element_name]:
                                 table['columns'][element_name]['annotations'] |= elem_annotations
                             else:

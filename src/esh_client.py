@@ -263,16 +263,16 @@ class EshObject(BaseModel):
     skip: int | None
     count: bool | None
     scope: List[str] | None
-    boost: Boost | list[Boost] | None
+    boost: list[Boost] | None
     filter: Filter | FilterWF | None
     searchQueryFilter: Expression | None
     whyfound: bool | None
-    select: Property | list[Property] | None
+    select: list[Property] | None
     orderby: list[OrderBy] | None
     estimate: bool | None
     wherefound: bool | None
     facetlimit: int | None
-    facets: Property | list[Property] | None
+    facets: list[Property] | None
     filteredgroupby: bool | None
     suggestTerm: str | None
     resourcePath:str | None

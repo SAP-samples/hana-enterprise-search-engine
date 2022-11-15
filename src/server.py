@@ -182,6 +182,7 @@ async def post_model(tenant_id: str, cson = Body(...), simulate: bool = False):
                     await db_bulk.rollback()
                     handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
             with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
+                print(json.dumps(ddl['eshConfig'], indent=4))
                 db.cur.callproc('ESH_CONFIG', (json.dumps(ddl['eshConfig']),None))
                 res = db.cur.fetchone()
                 print(res[0])
@@ -643,7 +644,13 @@ async def ruleset_v02(tenant_id, query: EshObject):
             result_row = {}
             for idx, col in enumerate(row):
                 # current_row.append(col)
-                result_row[column_headers[idx]] = col
+                match column_headers[idx]:
+                    case "_SCORE":
+                        result_row["@com.sap.vocabularies.Search.v1.Ranking"] = col
+                    case "_RULE_ID":
+                        result_row["@com.sap.esh.ruleid"] = col
+                    case _:
+                        result_row[column_headers[idx]] = col
             result.append(result_row)
     # return mapping_rule_set.dict()
     # return Response(content=convert_search_rule_set_query_to_string(search_rule_set_query), media_type="application/xml")

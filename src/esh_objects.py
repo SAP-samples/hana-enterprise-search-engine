@@ -480,10 +480,9 @@ class EshObjectInternal(esh_client.EshObject):
     orderby: List[OrderByInternal] | None
     auth: AuthInternal | None
     filter: FilterInternal | FilterWFInternal | None
-    boost: BoostInternal | list[BoostInternal] | None
-    facets: PropertyInternal | list[PropertyInternal] | None
-
-    select: PropertyInternal | list[PropertyInternal] | None
+    boost: list[BoostInternal] | None
+    facets: list[PropertyInternal] | None
+    select: list[PropertyInternal] | None
     class Config:
         extra = 'forbid'
 
@@ -1666,26 +1665,28 @@ if __name__ == '__main__':
     assert boost_object_mapped.to_statement() == 'BOOST:(city:walldorf)'
     esh_object_with_boost_json = '''
         {
-            "boost": {
-                "type": "Boost",
-                "value": {
-                        "type": "Comparison",
-                        "property": {
-                            "type": "Property",
-                            "property": "city"
-                        },
-                        "operator": ":",
-                        "value": {
-                            "type": "StringValue",
-                            "value": "Heidelberg"
+            "boost": [
+                {
+                    "type": "Boost",
+                    "value": {
+                            "type": "Comparison",
+                            "property": {
+                                "type": "Property",
+                                "property": "city"
+                            },
+                            "operator": ":",
+                            "value": {
+                                "type": "StringValue",
+                                "value": "Heidelberg"
+                            }
                         }
-                    }
-            }
+                }
+            ]
         }
     '''
     esh_object_with_boost = esh_client.EshObject.parse_obj(json.loads(esh_object_with_boost_json))
     esh_object_with_boost_mapped = map_query(esh_object_with_boost)
-    assert esh_object_with_boost_mapped.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='BOOST:(city:Heidelberg)'))"  
+    assert_got_expected(esh_object_with_boost_mapped.to_statement(), "/$all?$top=10&$apply=filter(Search.search(query='BOOST:(city:Heidelberg)'))" )
 
     esh_object_with_boost_array_json = '''
         {

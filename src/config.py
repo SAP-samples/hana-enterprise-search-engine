@@ -134,13 +134,13 @@ if __name__ == '__main__':
                                 sqls = [f'GRANT CREATE SCHEMA TO {user_name}']
                             case DBUserType.SCHEMA_MODIFY:
                                 sqls = [\
-                                    f'GRANT EXECUTE ON SYS.ESH_CONFIG TO {user_name} WITH GRANT OPTION',\
+                                    f'GRANT EXECUTE ON {schema}.ESH_CONFIG TO {user_name} WITH GRANT OPTION',\
                                     f'GRANT SELECT ON {schema}.ESH_MODEL TO {user_name} WITH GRANT OPTION',\
                                     f'GRANT SELECT ON {schema}.ESH_MODEL_PROPERTY TO {user_name} WITH GRANT OPTION'\
                                     ]
                             case DBUserType.DATA_READ:
                                 sqls = [\
-                                    f'GRANT EXECUTE ON SYS.ESH_SEARCH TO {user_name} WITH GRANT OPTION',\
+                                    f'GRANT EXECUTE ON {schema}.ESH_SEARCH TO {user_name} WITH GRANT OPTION',\
                                     f'GRANT SELECT ON {schema}.ESH_MODEL TO {user_name} WITH GRANT OPTION',\
                                     f'GRANT SELECT ON {schema}.ESH_MODEL_PROPERTY TO {user_name} WITH GRANT OPTION'\
                                     ]

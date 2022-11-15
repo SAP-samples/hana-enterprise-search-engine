@@ -34,7 +34,8 @@ ExpressionValue = Union[Annotated[Union["UnaryExpression", \
     "Expression", "Comparison", "WithinOperator", "CoveredByOperator", \
     "IntersectsOperator", "Point", "LineString", "CircularString", "Polygon", \
     "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection", "NumberValue", \
-    "BooleanValue", "StringValue",  "Property",  "MultiValues", "Filter", "FilterWF", "Boost"], \
+    "BooleanValue", "StringValue",  "Property",  "MultiValues", "Filter", "FilterWF", \
+    "Boost", "RangeValue"], \
     Field(discriminator="type")], str]
 
 class NonMatchingTokens(str, Enum):
@@ -145,12 +146,19 @@ class StringValue(BaseModel):
 
 class NumberValue(BaseModel):
     type: Literal['NumberValue'] = 'NumberValue'
-    value: int | float
+    value: float
 
 
 class BooleanValue(BaseModel):
     type: Literal['BooleanValue'] = 'BooleanValue'
     value: bool
+
+class RangeValue(BaseModel):
+    type: Literal['RangeValue'] = 'RangeValue'
+    start: ExpressionValue
+    end: ExpressionValue
+    excludeStart: bool | None
+    excludeEnd: bool | None
 class Comparison(BaseModel):
     type: Literal['Comparison'] = 'Comparison'
     property: str | ExpressionValue
@@ -247,6 +255,7 @@ Comparison.update_forward_refs()
 Expression.update_forward_refs()
 UnaryExpression.update_forward_refs()
 MultiValues.update_forward_refs()
+RangeValue.update_forward_refs()
 
 class EshObject(BaseModel):
     type: Literal['EshObject'] = 'EshObject'

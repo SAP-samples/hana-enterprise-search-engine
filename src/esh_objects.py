@@ -144,7 +144,7 @@ ExpressionValueInternal = Union[Annotated[Union["UnaryExpressionInternal",  \
     "IntersectsOperator",  "PointInternal", "LineStringInternal", "CircularStringInternal", "PolygonInternal", \
     "MultiPointInternal", "MultiLineStringInternal", "MultiPolygonInternal", "GeometryCollectionInternal", "NumberValueInternal", \
     "BooleanValueInternal", "StringValueInternal", "AuthInternal", "FilterInternal", "FilterWFInternal", \
-    "PropertyInternal",  "MultiValuesInternal", "BoostInternal"], \
+    "PropertyInternal",  "MultiValuesInternal", "BoostInternal", "RangeValueInternal"], \
     Field(discriminator="type")], str]
 
 class SearchOptionsInternal(esh_client.SearchOptions):
@@ -271,6 +271,17 @@ class BooleanValueInternal(esh_client.BooleanValue):
 
     def to_statement(self):
         return json.dumps(self.value)
+
+class RangeValueInternal(esh_client.RangeValue):
+
+    type: Literal['RangeValueInternal'] = 'RangeValueInternal'
+    start: ExpressionValueInternal
+    end: ExpressionValueInternal
+
+    def to_statement(self):
+        start_bracket = "]" if self.excludeStart else "["
+        end_bracket = "[" if self.excludeEnd else "]"
+        return f'{start_bracket}{self.start.to_statement()} {self.end.to_statement()}{end_bracket}'
 
 class ComparisonInternal(BaseModel):
     type: Literal['ComparisonInternal'] = 'ComparisonInternal'
@@ -462,16 +473,16 @@ ComparisonInternal.update_forward_refs()
 ExpressionInternal.update_forward_refs()
 UnaryExpressionInternal.update_forward_refs()
 MultiValuesInternal.update_forward_refs()
+RangeValueInternal.update_forward_refs()
 class EshObjectInternal(esh_client.EshObject):
     type: Literal['EshObjectInternal'] = 'EshObjectInternal' 
     searchQueryFilter: ExpressionInternal | None
     orderby: List[OrderByInternal] | None
     auth: AuthInternal | None
     filter: FilterInternal | FilterWFInternal | None
-    boost: BoostInternal | list[BoostInternal] | None
-    facets: PropertyInternal | list[PropertyInternal] | None
-    select: PropertyInternal | list[PropertyInternal] | None
-
+    boost: list[BoostInternal] | None
+    facets: list[PropertyInternal] | None
+    select: list[PropertyInternal] | None
     class Config:
         extra = 'forbid'
 
@@ -639,9 +650,6 @@ def map_search_options(result, item):
 
 def map_query(item):
 
-    def remove2(x):
-        return x[1:-1].replace('\\\\','\\')
-
     result = None
 
     if hasattr(item, 'type'):
@@ -661,6 +669,21 @@ def map_query(item):
                 #        fuzzySearchOptions=item.searchOptions.fuzzySearchOptions,
                 #        weight=item.searchOptions.weight
                 #    )
+            case 'NumberValue':
+                result = NumberValueInternal(
+                    value= item.value
+                )
+            case 'BooleanValue':
+                result = BooleanValueInternal(
+                    value=item.value
+                )
+            case 'RangeValue':
+                result = RangeValueInternal(
+                    start=map_query(item.start),
+                    end=map_query(item.end),
+                    excludeStart=item.excludeStart,
+                    excludeEnd=item.excludeEnd
+                )
             case 'Property':
                 result = PropertyInternal(
                     property = item.property if isinstance(item.property, str) else ".".join(item.property)
@@ -869,6 +892,15 @@ def convert_search_rule_set_query_to_string(search_result_set_tree: ET.ElementTr
     return tostring(search_result_set_tree.getroot(), encoding='utf8',xml_declaration=False).decode('utf8')
 
 if __name__ == '__main__':
+
+    def assert_got_expected(got, expected):
+        try:
+            assert got == expected
+        except Exception as e:
+            print(f'actual:   {got}')
+            print(f'expected: {expected}')
+            raise e
+
 
     mapped_object = map_query(esh_client.Property(property='aa'))
     assert mapped_object.to_statement() == 'aa'
@@ -1633,26 +1665,28 @@ if __name__ == '__main__':
     assert boost_object_mapped.to_statement() == 'BOOST:(city:walldorf)'
     esh_object_with_boost_json = '''
         {
-            "boost": {
-                "type": "Boost",
-                "value": {
-                        "type": "Comparison",
-                        "property": {
-                            "type": "Property",
-                            "property": "city"
-                        },
-                        "operator": ":",
-                        "value": {
-                            "type": "StringValue",
-                            "value": "Heidelberg"
+            "boost": [
+                {
+                    "type": "Boost",
+                    "value": {
+                            "type": "Comparison",
+                            "property": {
+                                "type": "Property",
+                                "property": "city"
+                            },
+                            "operator": ":",
+                            "value": {
+                                "type": "StringValue",
+                                "value": "Heidelberg"
+                            }
                         }
-                    }
-            }
+                }
+            ]
         }
     '''
     esh_object_with_boost = esh_client.EshObject.parse_obj(json.loads(esh_object_with_boost_json))
     esh_object_with_boost_mapped = map_query(esh_object_with_boost)
-    assert esh_object_with_boost_mapped.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='BOOST:(city:Heidelberg)'))"  
+    assert_got_expected(esh_object_with_boost_mapped.to_statement(), "/$all?$top=10&$apply=filter(Search.search(query='BOOST:(city:Heidelberg)'))" )
 
     esh_object_with_boost_array_json = '''
         {
@@ -1748,5 +1782,38 @@ if __name__ == '__main__':
     
     co_mapped = map_query(co)
     print(co_mapped.to_statement())
+
+    range_value_1 = esh_client.RangeValue(
+                        start=esh_client.StringValue(value="fromSomething"),
+                        end=esh_client.StringValue(value="toSomething"),
+                        excludeStart=True,
+                        excludeEnd=True
+                    )
+    range_value_1_mapped = map_query(range_value_1)
+    assert range_value_1_mapped.to_statement() == "]fromSomething toSomething["
+
+    range_value_2 = esh_client.RangeValue(
+                        start=esh_client.StringValue(value="fromSomething"),
+                        end=esh_client.StringValue(value="toSomething")
+                    )
+    range_value_2_mapped = map_query(range_value_2)
+    assert range_value_2_mapped.to_statement() == "[fromSomething toSomething]"
+
+    number_value_float = esh_client.NumberValue(value=2.3)
+    number_value_float_mapped = map_query(number_value_float)
+    assert number_value_float_mapped.to_statement() == "2.3"
+
+
+    number_value_int = esh_client.NumberValue(value=5)
+    number_value_int_mapped = map_query(number_value_int)
+    assert number_value_int_mapped.to_statement() == "5.0"
+
+    bool_value_true = esh_client.BooleanValue(value=True)
+    bool_value_true_mapped = map_query(bool_value_true)
+    assert bool_value_true_mapped.to_statement() == "true"
+
+    bool_value_false = esh_client.BooleanValue(value=False)
+    bool_value_false_mapped = map_query(bool_value_false)
+    assert_got_expected(bool_value_false_mapped.to_statement(), "false")
 
     print(' -----> everything fine <----- ')

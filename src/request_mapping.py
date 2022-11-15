@@ -1,3 +1,4 @@
+from constants import ENTITY_PREFIX, VIEW_PREFIX
 from esh_client import AttributeView, Column, EshObject, Query, ResultSetColumn, Rule, RuleSet, SearchRuleSet
 import esh_objects
 import json
@@ -117,7 +118,8 @@ def map_request_to_rule_set(schema_name: str, mapping: dict, incoming_request: E
         ruleset = RuleSet()
         scope_entity = mapping["entities"][scope]
         table_name = scope_entity["table_name"]
-        view_name = table_name.replace("ENTITY/", "VIEW/") # TODO only temp
+        # view_name = table_name.replace("ENTITY/", "VIEW/") # TODO only temp
+        view_name = VIEW_PREFIX + table_name[len(ENTITY_PREFIX):]
         mapping_table = mapping["tables"][table_name]
         if incoming_request.searchQueryFilter is not None:
             for item in incoming_request.searchQueryFilter.items:

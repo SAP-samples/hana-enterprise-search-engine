@@ -894,6 +894,15 @@ def convert_search_rule_set_query_to_string(search_result_set_tree: ET.ElementTr
 
 if __name__ == '__main__':
 
+    def assert_got_expected(got, expected):
+        try:
+            assert got == expected
+        except Exception as e:
+            print(f'actual:   {got}')
+            print(f'expected: {expected}')
+            raise e
+
+
     mapped_object = map_query(esh_client.Property(property='aa'))
     assert mapped_object.to_statement() == 'aa'
 
@@ -1804,6 +1813,6 @@ if __name__ == '__main__':
 
     bool_value_false = esh_client.BooleanValue(value=False)
     bool_value_false_mapped = map_query(bool_value_false)
-    assert bool_value_false_mapped.to_statement() == "false" 
+    assert_got_expected(bool_value_false_mapped.to_statement(), "false")
 
     print(' -----> everything fine <----- ')

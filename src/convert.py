@@ -4,7 +4,7 @@ from name_mapping import NameMapping
 import json
 import base64
 from constants import TYPES_B64_DECODE, TYPES_SPATIAL, SPATIAL_DEFAULT_SRID, ENTITY_PREFIX, COLUMN_ANNOTATIONS
-
+from copy import deepcopy
 
 PRIVACY_CATEGORY_COLUMN_DEFINITION = ('_PRIVACY_CATEGORY', {'type':'TINY'})
 PRIVACY_CATEGORY_ANNOTATION = '@EnterpriseSearchIndex.privacyCategory'
@@ -249,7 +249,12 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
     if type_definition['kind'] == 'entity' or (path and 'elements' in type_definition):
         for element_name_ext, element in type_definition['elements'].items():
             is_virtual = '@sap.esh.isVirtual' in element and element['@sap.esh.isVirtual']
-            is_association = 'type' in element and element['type'] == 'cds.Association'
+            if not is_virtual and 'type' in element and element['type'] == 'cds.Association' and 'cardinality' in element and element['cardinality'] == {'max': '*'}:
+                element = {'items':deepcopy(element)}
+                del element['items']['cardinality']
+                is_association = False
+            else:
+                is_association = 'type' in element and element['type'] == 'cds.Association'
             entity['elements'][element_name_ext] = {}
             if is_virtual:
                 if not is_association:
@@ -273,7 +278,7 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                 entity['elements'][element_name_ext]['definition'] = element
             else:
                 element_name, _ = column_name_mapping.register(sur_prop_path + [element_name_ext])
-                
+            
             element_needs_pc = PRIVACY_CATEGORY_ANNOTATION in element
             if 'items' in element or element_needs_pc: # collection (many keyword)
                 if 'items' in element and 'elements' in element['items']: # nested definition
@@ -307,6 +312,12 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                             entity=entity['elements'][element_name_ext])
                     else:
                         process_property(cson, pk, table, entity, element_name, table_name_mapping, element_name_ext, sur_prop_path, element, cson['definitions'][element['type']])
+                        elem_annotations = {k:v for k,v in element.items() if k in COLUMN_ANNOTATIONS}
+                        if elem_annotations:
+                            if 'annotations' in table['columns'][element_name]:
+                                table['columns'][element_name]['annotations'] |= elem_annotations
+                            else:
+                                table['columns'][element_name]['annotations'] = elem_annotations
                 else:
                     process_property(cson, pk, table, entity, element_name, table_name_mapping, element_name_ext, sur_prop_path, element, element)
             elif 'elements' in element: # nested definition
@@ -325,6 +336,11 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
         entity['column_name'] = '_VALUE'
         if not type_definition['type'] in cson['definitions']:
             table['columns']['_VALUE'] = get_sql_type(table_name_mapping, cson, type_definition, pk)
+            if 'type' in type_definition and type_definition['type'] == 'cds.Association':
+                entity['definition'] = type_definition
+                entity['definition']['target_table_name'], _ = table_name_mapping.register([type_definition['target']], ENTITY_PREFIX)
+                entity['definition']['target_pk'] = cson['definitions'][type_definition['target']]['pk']
+
         #elif '@EnterpriseSearchIndex.type' in cson['definitions'][type_definition['type']] and\
         #    cson['definitions'][type_definition['type']]['@EnterpriseSearchIndex.type'] == 'CodeList':
             # this is for codelist TODO, change this harcoded value
@@ -470,7 +486,9 @@ def value_ext_to_int(typ, value):
     return value
 
 
-def array_to_dml(mapping, inserts, objects, subtable_level, parent_object_id, pk, entity):
+def array_to_dml(idmapping, mapping, inserts, objects, subtable_level, parent_object_id, pk, entity, k):
+    is_association = 'definition' in entity and 'type' in entity['definition']\
+        and entity['definition']['type'] == 'cds.Association'
     full_table_name = entity['table_name']
     if not full_table_name in inserts:
         _, _, key_columns = get_key_columns(subtable_level, pk)
@@ -482,9 +500,39 @@ def array_to_dml(mapping, inserts, objects, subtable_level, parent_object_id, pk
         row.append(parent_object_id)
         object_id = pk.get_pk(full_table_name, subtable_level)
         row.append(object_id)
+        if is_association:
+            value = association_to_dml(pk, idmapping, entity, k, obj)
+        else:
+            value = obj
         row.append(value_ext_to_int(\
-            mapping['tables'][full_table_name]['columns']['_VALUE']['type'], obj))
+            mapping['tables'][full_table_name]['columns']['_VALUE']['type'], value))
         inserts[full_table_name]['rows'].append(row)
+
+
+def association_to_dml(pk, idmapping, prop, k, v):
+    if 'isVirtual' in prop['definition'] and prop['definition']['isVirtual']:
+        raise DataException(f'Data must not be provided for virtual property {k}')
+    if prop['definition']['target_pk'] in v:
+        value = v[prop['definition']['target_pk']]
+    elif 'source' in v:
+        if isinstance(v['source'], list):
+            hashable_keys = set([json.dumps(w) for w in v['source']])
+            if len(hashable_keys) == 0:
+                raise DataException(f'Association property {k} has no source')
+            elif len(hashable_keys) > 1:
+                raise DataException(f'Association property {k} has conflicting sources')
+            hashable_key = list(hashable_keys)[0]
+            if hashable_key in idmapping:
+                value = idmapping[hashable_key]['id']
+            else:
+                target_table_name = prop['definition']['target_table_name']
+                value = pk.get_pk(target_table_name, 0)
+                idmapping[hashable_key] = {'id':value, 'resolved':False}
+        else:
+            raise DataException(f'Association property {k} is not a list')
+    else:
+        raise DataException(f'Association property {k} has no source property')
+    return value
 
 
 
@@ -534,39 +582,15 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
         else:
             row = propagated_row
             object_id = propagated_object_id
-
         for k, v in obj.items():
             value = None
             if k in entity['elements']:
                 prop = entity['elements'][k]
                 if 'definition' in prop and 'type' in prop['definition']\
                     and prop['definition']['type'] == 'cds.Association':
-                    if 'isVirtual' in prop['definition'] and prop['definition']['isVirtual']:
-                        raise DataException(f'Data must not be provided for virtual property {k}')
-                    if prop['definition']['target_pk'] in v:
-                        value = v[prop['definition']['target_pk']]
-                    elif 'source' in v:
-                        if isinstance(v['source'], list):
-                            hashable_keys = set([json.dumps(w) for w in v['source']])
-                            if len(hashable_keys) == 0:
-                                raise DataException(f'Association property {k} has no source')
-                            elif len(hashable_keys) > 1:
-                                raise DataException(f'Association property {k} has conflicting sources')
-                            hashable_key = list(hashable_keys)[0]
-                            if hashable_key in idmapping:
-                                value = idmapping[hashable_key]['id']
-                            else:
-                                target_table_name = prop['definition']['target_table_name']
-                                value = pk.get_pk(target_table_name, 0)
-                                idmapping[hashable_key] = {'id':value, 'resolved':False}
-                        else:
-                            raise DataException(f'Association property {k} is not a list')
-                    else:
-                        raise DataException(f'Association property {k} has no source property')
+                    value = association_to_dml(pk, idmapping, prop, k, v)
             else:
                 raise DataException(f'Unknown property {k}')
-            
-            
             if value is None and isinstance(v, list):
                 if not 'items' in entity['elements'][k]:
                     raise DataException(f'{k} is not an array property')
@@ -575,8 +599,8 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
                         parent_object_id = object_id, pk = pk, 
                         entity=entity['elements'][k]['items'], parent_table_name=full_table_name)
                 else:
-                    array_to_dml(mapping, inserts, v, subtable_level + 1, object_id, pk
-                    , entity['elements'][k]['items'])
+                    array_to_dml(idmapping, mapping, inserts, v, subtable_level + 1, object_id, pk
+                    , entity['elements'][k]['items'], k)
             elif value is None and isinstance(v, dict) and (not 'column_name' in entity['elements'][k] or not \
                 mapping['tables'][full_table_name]['columns'][entity['elements'][k]['column_name']]['type'] in TYPES_SPATIAL):
                 object_to_dml(mapping, inserts, [v], idmapping, subtable_level, col_prefix + [k],\
@@ -627,8 +651,15 @@ def check_path(mapping:dict, elem_loc:dict, path:list):
                 if 'definition' in new_elem_loc and 'target' in new_elem_loc['definition']:
                     cp_res, _ = check_path(mapping, mapping['entities'][new_elem_loc['definition']['target']], path[1:])
                     return (cp_res, True)
+                elif 'items' in new_elem_loc and 'definition' in new_elem_loc['items'] and 'target' in new_elem_loc['items']['definition']:
+                    cp_res, _ = check_path(mapping, mapping['entities'][new_elem_loc['items']['definition']['target']], path[1:])
+                    return (cp_res, True)
                 return check_path(mapping, new_elem_loc, path[1:])
-            return (True, False)
+            else:
+                if 'definition' in elem_loc['elements'][path[0]]:
+                    return (False, False)
+                else:
+                    return (True, False)
         else:
             return (False, False)
     elif 'items' in elem_loc:

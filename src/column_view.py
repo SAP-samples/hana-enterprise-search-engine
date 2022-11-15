@@ -108,9 +108,6 @@ class ColumnView:
             self._get_join_index_name(join_index), table_column_name, join_path_id, name_path))
         # ESH config
         col_conf = {'Name': view_column_name}
-        if annotations:
-            self._cleanup_labels(annotations)
-            col_conf |= annotations
         is_enteprise_search_key = \
             not join_path_id and table_column_name == self.mapping['tables'][table_name]['pk']
         if is_enteprise_search_key:
@@ -118,9 +115,12 @@ class ColumnView:
             col_conf['@UI.hidden'] = True
         elif self.default_annotations:
             if self.mapping['tables'][table_name]['columns'][table_column_name]['type'] not in ['ST_POINT', 'ST_GEOMETRY']:
-                col_conf['@Search.defaultSearchElement'] = True
-            #if not join_path_id:
-            #    col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]
+               col_conf['@Search.defaultSearchElement'] = True
+        if not join_path_id:
+            col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]
+        if annotations:
+            self._cleanup_labels(annotations)
+            col_conf |= annotations
         self.esh_config['content']['EntityType']['Properties'].append(col_conf)
 
     def _add_join(self, join_path_id, source_join_index, target_entity_pos\

@@ -108,6 +108,9 @@ class ColumnView:
             self._get_join_index_name(join_index), table_column_name, join_path_id, name_path))
         # ESH config
         col_conf = {'Name': view_column_name}
+        if annotations:
+            self._cleanup_labels(annotations)
+            col_conf |= annotations
         is_enteprise_search_key = \
             not join_path_id and table_column_name == self.mapping['tables'][table_name]['pk']
         if is_enteprise_search_key:

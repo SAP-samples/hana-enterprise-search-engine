@@ -35,7 +35,7 @@ ExpressionValue = Union[Annotated[Union["UnaryExpression", \
     "IntersectsOperator", "Point", "LineString", "CircularString", "Polygon", \
     "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection", "NumberValue", \
     "BooleanValue", "StringValue",  "Property",  "MultiValues", "Filter", "FilterWF", \
-    "Boost", "RangeValue"], \
+    "Boost", "RangeValue", "DateValue"], \
     Field(discriminator="type")], str]
 
 class NonMatchingTokens(str, Enum):
@@ -143,6 +143,10 @@ class StringValue(BaseModel):
     isPhrase: bool | None
     escapePlaceholders: bool | None
     searchOptions: SearchOptions | None
+
+class DateValue(BaseModel):
+    type: Literal['DateValue'] = 'DateValue'
+    value: str
 
 class NumberValue(BaseModel):
     type: Literal['NumberValue'] = 'NumberValue'

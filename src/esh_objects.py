@@ -144,7 +144,7 @@ ExpressionValueInternal = Union[Annotated[Union["UnaryExpressionInternal",  \
     "IntersectsOperator",  "PointInternal", "LineStringInternal", "CircularStringInternal", "PolygonInternal", \
     "MultiPointInternal", "MultiLineStringInternal", "MultiPolygonInternal", "GeometryCollectionInternal", "NumberValueInternal", \
     "BooleanValueInternal", "StringValueInternal", "AuthInternal", "FilterInternal", "FilterWFInternal", \
-    "PropertyInternal",  "MultiValuesInternal", "BoostInternal", "RangeValueInternal"], \
+    "PropertyInternal",  "MultiValuesInternal", "BoostInternal", "RangeValueInternal", "DateValueInternal"], \
     Field(discriminator="type")], str]
 
 class SearchOptionsInternal(esh_client.SearchOptions):
@@ -267,6 +267,11 @@ class NumberValueInternal(esh_client.NumberValue):
     def to_statement(self):
         return f'{self.value}'
 
+class DateValueInternal(esh_client.DateValue):
+
+    def to_statement(self):
+        return f'{self.value}'
+
 class BooleanValueInternal(esh_client.BooleanValue):
 
     def to_statement(self):
@@ -281,7 +286,19 @@ class RangeValueInternal(esh_client.RangeValue):
     def to_statement(self):
         start_bracket = "]" if self.excludeStart else "["
         end_bracket = "[" if self.excludeEnd else "]"
-        return f'{start_bracket}{self.start.to_statement()} {self.end.to_statement()}{end_bracket}'
+
+        start_to_statement = getattr(self.start, "to_statement", None)
+        if callable(start_to_statement):
+            start_value = self.start.to_statement()
+        else:
+            start_value = self.start
+        end_to_statement = getattr(self.end, "to_statement", None)
+        if callable(end_to_statement):
+            end_value = self.end.to_statement()
+        else:
+            end_value = self.end
+
+        return f'{start_bracket}{start_value} {end_value}{end_bracket}'
 
 class ComparisonInternal(BaseModel):
     type: Literal['ComparisonInternal'] = 'ComparisonInternal'
@@ -671,6 +688,10 @@ def map_query(item):
                 #    )
             case 'NumberValue':
                 result = NumberValueInternal(
+                    value= item.value
+                )
+            case 'DateValue':
+                result = DateValueInternal(
                     value= item.value
                 )
             case 'BooleanValue':
@@ -1815,5 +1836,42 @@ if __name__ == '__main__':
     bool_value_false = esh_client.BooleanValue(value=False)
     bool_value_false_mapped = map_query(bool_value_false)
     assert_got_expected(bool_value_false_mapped.to_statement(), "false")
+
+    so1 = esh_client.EshObject(
+        count=True,
+        top=4,
+        scope=['Document'],
+        searchQueryFilter=esh_client.Expression(
+        operator=esh_client.LogicalOperator.AND,
+        items=[
+            esh_client.Comparison(
+                property=esh_client.Property(property=['createdAt']),
+                operator=esh_client.ComparisonOperator.BetweenCaseInsensitive,
+                value=esh_client.RangeValue(start='2022-10-01', end='2022-10-31')
+            )]
+
+    ))
+    so1_mapped = map_query(so1)
+    print(so1_mapped.to_statement())
+
+
+    so2 = esh_client.EshObject(
+        count=True,
+        top=4,
+        scope=['Document'],
+        searchQueryFilter=esh_client.Expression(
+            operator=esh_client.LogicalOperator.AND,
+            items=[
+                esh_client.Comparison(
+                    property=esh_client.Property(property=['createdAt']),
+                    operator=esh_client.ComparisonOperator.BetweenCaseInsensitive,
+                    value=esh_client.RangeValue(
+                        start=esh_client.DateValue(value='2022-12-01'),
+                        end=esh_client.DateValue(value='2022-12-31'))
+                )]
+        )
+    )
+    so2_mapped = map_query(so2)
+    print(so2_mapped.to_statement())
 
     print(' -----> everything fine <----- ')

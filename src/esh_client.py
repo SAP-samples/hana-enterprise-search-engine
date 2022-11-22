@@ -1,6 +1,6 @@
 """Classes to define a query"""
 from enum import Enum
-from typing import List, Literal, Annotated, Union
+from typing import Any, List, Literal, Annotated, Union
 from pydantic import BaseModel, Field
 
 class LogicalOperator(str, Enum):
@@ -29,6 +29,19 @@ class ComparisonOperator(str, Enum):
     DescendantOf = ":DESCENDANT_OF:"
     ChildOf = ":CHILD_OF:"
 
+class WithinOperator(BaseModel):
+    type: Literal['WithinOperator'] = 'WithinOperator'
+    id: int | None
+
+
+class CoveredByOperator(BaseModel):
+    type: Literal['CoveredByOperator'] = 'CoveredByOperator'
+    id: int | None
+
+
+class IntersectsOperator(BaseModel):
+    type: Literal['IntersectsOperator'] = 'IntersectsOperator'
+    id: int | None
  
 ExpressionValue = Union[Annotated[Union["UnaryExpression", \
     "Expression", "Comparison", "WithinOperator", "CoveredByOperator", \
@@ -166,7 +179,7 @@ class RangeValue(BaseModel):
 class Comparison(BaseModel):
     type: Literal['Comparison'] = 'Comparison'
     property: str | ExpressionValue
-    operator: ComparisonOperator
+    operator: str |  WithinOperator | CoveredByOperator | IntersectsOperator
     value: str | ExpressionValue | None
 
 class Expression(BaseModel):
@@ -189,21 +202,6 @@ class UnaryExpression(BaseModel):
     item: ExpressionValue
 
 
-class WithinOperator(BaseModel):
-    type: Literal['WithinOperator'] = 'WithinOperator'
-    id: int | None
-
-
-class CoveredByOperator(BaseModel):
-    type: Literal['CoveredByOperator'] = 'CoveredByOperator'
-    id: int | None
-
-
-class IntersectsOperator(BaseModel):
-    type: Literal['IntersectsOperator'] = 'IntersectsOperator'
-    id: int | None
-
-
 class GeometryBase(BaseModel):
     type: str
     coordinates: list
@@ -220,6 +218,7 @@ class CircularString(GeometryBase):
 
 class Polygon(GeometryBase):
     type: Literal['Polygon'] = 'Polygon'
+    coordinates: List[List[List[float]]]
 
 class MultiPoint(GeometryBase):
     type: Literal['MultiPoint'] = 'MultiPoint'

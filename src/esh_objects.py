@@ -140,8 +140,8 @@ def serialize_geometry_collection(collection):
 
 # Expression = ForwardRef('Expression')       
 ExpressionValueInternal = Union[Annotated[Union["UnaryExpressionInternal",  \
-    "ExpressionInternal", "ComparisonInternal","WithinOperator", "CoveredByOperator", \
-    "IntersectsOperator",  "PointInternal", "LineStringInternal", "CircularStringInternal", "PolygonInternal", \
+    "ExpressionInternal", "ComparisonInternal","WithinOperatorInternal", "CoveredByOperatorInternal", \
+    "IntersectsOperatorInternal",  "PointInternal", "LineStringInternal", "CircularStringInternal", "PolygonInternal", \
     "MultiPointInternal", "MultiLineStringInternal", "MultiPolygonInternal", "GeometryCollectionInternal", "NumberValueInternal", \
     "BooleanValueInternal", "StringValueInternal", "AuthInternal", "FilterInternal", "FilterWFInternal", \
     "PropertyInternal",  "MultiValuesInternal", "BoostInternal", "RangeValueInternal", "DateValueInternal"], \
@@ -303,7 +303,7 @@ class RangeValueInternal(esh_client.RangeValue):
 class ComparisonInternal(BaseModel):
     type: Literal['ComparisonInternal'] = 'ComparisonInternal'
     property: str | ExpressionValueInternal
-    operator: esh_client.ComparisonOperator
+    operator: esh_client.ComparisonOperator | ExpressionValueInternal
     value: str | ExpressionValueInternal | None
 
     def to_statement(self):
@@ -312,12 +312,17 @@ class ComparisonInternal(BaseModel):
             property = self.property.to_statement()
         else:
             property = self.property
+        operator_to_statement = getattr(self.operator, "to_statement", None)
+        if callable(operator_to_statement):
+            operator_to_statement = self.operator.to_statement()
+        else:
+            operator_to_statement = self.operator
         value_to_statement = getattr(self.value, "to_statement", None)
         if callable(value_to_statement):
             value = self.value.to_statement()
         else:
             value = self.value
-        return f'{property}{self.operator}{value}'
+        return f'{property}{operator_to_statement}{value}'
 
         
 class ExpressionInternal(esh_client.Expression):
@@ -363,9 +368,8 @@ class UnaryExpressionInternal(esh_client.UnaryExpression):
         return f"{self.operator}:({item_statement})"
 
 
-class WithinOperator(BaseModel):
-    type: Literal['WithinOperator'] = 'WithinOperator'
-    id: int | None
+class WithinOperatorInternal(esh_client.WithinOperator):
+    type: Literal['WithinOperatorInternal'] = 'WithinOperatorInternal'
 
     def to_statement(self) -> str:
         if self.id:
@@ -374,9 +378,8 @@ class WithinOperator(BaseModel):
             return ':WITHIN:'
 
 
-class CoveredByOperator(BaseModel):
-    type: Literal['CoveredByOperator'] = 'CoveredByOperator'
-    id: int | None
+class CoveredByOperatorInternal(esh_client.CoveredByOperator):
+    type: Literal['CoveredByOperatorInternal'] = 'CoveredByOperatorInternal'
 
     def to_statement(self) -> str:
         if self.id:
@@ -384,9 +387,8 @@ class CoveredByOperator(BaseModel):
         else:
             return ':COVERED_BY:'
 
-class IntersectsOperator(BaseModel):
-    type: Literal['IntersectsOperator'] = 'IntersectsOperator'
-    id: int | None
+class IntersectsOperatorInternal(esh_client.IntersectsOperator):
+    type: Literal['IntersectsOperatorInternal'] = 'IntersectsOperatorInternal'
 
     def to_statement(self) -> str:
         if self.id:
@@ -730,6 +732,18 @@ def map_query(item):
                     weight=item.weight,
                     fuzzinessThreshold=item.fuzzinessThreshold,
                     fuzzySearchOptions=item.fuzzySearchOptions
+                )
+            case 'WithinOperator':
+                result = WithinOperatorInternal(
+                    id=item.id
+                )
+            case 'CoveredByOperator':
+                result = CoveredByOperatorInternal(
+                    id=item.id
+                )
+            case 'IntersectsOperator':
+                result = IntersectsOperatorInternal(
+                    id=item.id
                 )
             case 'Point':
                 result = PointInternal(
@@ -1090,14 +1104,14 @@ if __name__ == '__main__':
 
 
 
-    assert WithinOperator().to_statement() == ':WITHIN:'
-    assert WithinOperator(id=4).to_statement() == ':WITHIN(4):'
+    assert WithinOperatorInternal().to_statement() == ':WITHIN:'
+    assert WithinOperatorInternal(id=4).to_statement() == ':WITHIN(4):'
 
-    assert CoveredByOperator().to_statement() == ':COVERED_BY:'
-    assert CoveredByOperator(id=5).to_statement() == ':COVERED_BY(5):'
+    assert CoveredByOperatorInternal().to_statement() == ':COVERED_BY:'
+    assert CoveredByOperatorInternal(id=5).to_statement() == ':COVERED_BY(5):'
 
-    assert IntersectsOperator().to_statement() == ':INTERSECTS:'
-    assert IntersectsOperator(id=6).to_statement() == ':INTERSECTS(6):'
+    assert IntersectsOperatorInternal().to_statement() == ':INTERSECTS:'
+    assert IntersectsOperatorInternal(id=6).to_statement() == ':INTERSECTS(6):'
 
     assert escapePhrase('aaa?bbb') == 'aaa\\?bbb'
 
@@ -1873,5 +1887,40 @@ if __name__ == '__main__':
     )
     so2_mapped = map_query(so2)
     print(so2_mapped.to_statement())
+
+    so_polygon = esh_client.Polygon(coordinates=[[[0.0, 0.0], [4.0, 0.0], [2.0, 2.0], [0.0, 0.0]]])
+    so_polygon_mapped = map_query(so_polygon)
+    assert_got_expected(so_polygon_mapped.to_statement(), "POLYGON((0.0 0.0,4.0 0.0,2.0 2.0,0.0 0.0))")
+
+
+    so_geo = esh_client.EshObject(
+        count=True,
+        top=6,
+        scope=['Person'],
+        searchQueryFilter=esh_client.Expression(
+            operator=esh_client.LogicalOperator.AND,
+            items=[
+                esh_client.Comparison(
+                    property=esh_client.Property(property=['relLocation', 'location', 'position']),
+                    operator=esh_client.CoveredByOperator(),
+                    value=esh_client.Polygon(coordinates=[
+                        [
+                            [-0.31173706054687506, 51.618869218965926],
+                            [0.10574340820312501, 51.63762391020278],
+                            [0.09887695312500001, 51.36920841344186],
+                            [-0.28976440429687506, 51.40348936856666],
+                            [-0.32135009765625006, 51.5693878622646],
+                            [-0.31173706054687506, 51.618869218965926]
+                        ]
+                    ])
+                )]
+        )
+    )
+
+    so_geo_mapped = map_query(so_geo)
+    # print(so_geo_mapped.to_statement())
+    assert_got_expected(so_geo_mapped.to_statement(), "/$all?$top=6&$count=true&$apply=filter(Search.search(query='SCOPE:Person relLocation.location.position:COVERED_BY:POLYGON((-0.31173706054687506 51.618869218965926,0.10574340820312501 51.63762391020278,0.09887695312500001 51.36920841344186,-0.28976440429687506 51.40348936856666,-0.32135009765625006 51.5693878622646,-0.31173706054687506 51.618869218965926))'))")
+
+
 
     print(' -----> everything fine <----- ')

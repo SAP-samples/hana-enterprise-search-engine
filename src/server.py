@@ -15,6 +15,9 @@ from fastapi.staticfiles import StaticFiles
 from hdbcli.dbapi import Error as HDBException
 from starlette.responses import RedirectResponse
 from hdbcli.dbapi import Error as HDBException
+from hdbcli.dbapi import ProgrammingError as HDBExceptionProgrammingError
+from pydantic import BaseModel, ValidationError
+from enum import Enum
 
 import server_globals as glob
 import consistency_check
@@ -38,29 +41,46 @@ app.mount('/static', StaticFiles(directory='static'), name='static')
 LENGTH_ODATA_METADATA_PREFIX = len('$metadata#')
 
 
+def get_IdGenerator(tenant_id, schema_name):
+    if not schema_name in glob.id_generator:
+        refresh_control_buffer(tenant_id, schema_name)
+    return glob.id_generator[schema_name]
+
+
+def refresh_control_buffer(tenant_id, schema_name):
+    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+        try:
+            sql = f'select TYPE, CONTENT from "{schema_name}"."_CONTROL" where "TYPE" in (\'MAPPING\', \'TENANT_CONFIG\')'
+            db.cur.execute(sql)
+            res = db.cur.fetchall()
+        except HDBException as e:
+            db.cur.connection.rollback()
+            if e.errorcode == 362:
+                handle_error(
+                    f"Tennant id '{tenant_id}' does not exist", 404)
+            else:
+                handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
+    glob.mapping[schema_name] = None
+    glob.id_generator[schema_name] = None
+    for r in res:
+        match r[0]:
+            case 'MAPPING':
+                glob.mapping[schema_name] = json.loads(r[1])
+            case 'TENANT_CONFIG':
+                tenant_config = json.loads(r[1])
+                id_generator = getattr(convert, tenant_config['idGenerator'])()
+                glob.id_generator[schema_name] = id_generator
+
+
+def clear_control_buffer(schema_name):
+    glob.mapping.pop(schema_name, None)
+    glob.id_generator.pop(schema_name, None)
+
+
 def get_mapping(tenant_id, schema_name):
-    if schema_name in glob.mapping:
-        return glob.mapping[schema_name]
-    else:
-        with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
-            try:
-                sql = f'select top 1 MAPPING from "{schema_name}"."_MODEL" order by CREATED_AT desc'
-                db.cur.execute(sql)
-                res = db.cur.fetchone()
-            except HDBException as e:
-                db.cur.connection.rollback()
-                if e.errorcode == 362:
-                    handle_error(
-                        f"Tennant id '{tenant_id}' does not exist", 404)
-                else:
-                    handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
-            if not (res and len(res) == 1):
-                logging.error(
-                    'Tenant %s has no entries in the _MODEL table', tenant_id)
-                handle_error('Configuration inconsistent', 500)
-        mapping = json.loads(res[0])
-        glob.mapping[schema_name] = mapping
-        return mapping
+    if not schema_name in glob.mapping:
+        refresh_control_buffer(tenant_id, schema_name)
+    return glob.mapping[schema_name]
 
 
 def handle_error(msg: str = '', status_code: int = -1):
@@ -86,8 +106,14 @@ def get_tenant_schema_name(tenant_id: str):
 
 
 @app.post('/v1/tenant/{tenant_id}')
-async def post_tenant(tenant_id):
+async def post_tenant(tenant_id, tenant_config = Body(None)):
     """Create new tenant """
+    if isinstance(tenant_config, dict) and 'idGenerator' in tenant_config and tenant_config['idGenerator'] == 'IdGeneratorTest':
+        id_generator = convert.IdGenerator.TEST.value
+        convert.IdGeneratorTest.last_id = -1
+    else:
+        id_generator = convert.IdGenerator.UUID1.value
+    t_config = {'idGenerator':id_generator}
     tenant_schema_name = get_tenant_schema_name(tenant_id)
     with DBConnection(glob.connection_pools[DBUserType.ADMIN]) as db:
         try:
@@ -102,7 +128,7 @@ async def post_tenant(tenant_id):
                 handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
         try:
             db.cur.execute(
-                f'create table "{tenant_schema_name}"."_MODEL" (CREATED_AT TIMESTAMP, CSON NCLOB, MAPPING NCLOB)')
+                f'create table "{tenant_schema_name}"."_CONTROL" (TYPE NVARCHAR(80) PRIMARY KEY, CREATED_AT TIMESTAMP, CONTENT NCLOB)')
             glob.mapping.pop(tenant_schema_name, None)
         except HDBException as e:
             db.cur.connection.rollback()
@@ -117,7 +143,7 @@ async def post_tenant(tenant_id):
             db.cur.execute(
                 f'GRANT SELECT ON SCHEMA "{tenant_schema_name}" TO {read_user_name}')
             db.cur.execute(
-                f'GRANT SELECT ON "{tenant_schema_name}"."_MODEL" TO {read_user_name}')
+                f'GRANT SELECT ON "{tenant_schema_name}"."_CONTROL" TO {read_user_name}')
             db.cur.execute(
                 f'GRANT INSERT ON SCHEMA "{tenant_schema_name}" TO {write_user_name}')
             db.cur.execute(
@@ -125,11 +151,11 @@ async def post_tenant(tenant_id):
             db.cur.execute(
                 f'GRANT DELETE ON SCHEMA "{tenant_schema_name}" TO {write_user_name}')
             db.cur.execute(
-                f'GRANT SELECT ON "{tenant_schema_name}"."_MODEL" TO {schema_modify_user_name}')
+                f'GRANT SELECT ON "{tenant_schema_name}"."_CONTROL" TO {schema_modify_user_name}')
             db.cur.execute(
-                f'GRANT INSERT ON "{tenant_schema_name}"."_MODEL" TO {schema_modify_user_name}')
+                f'GRANT INSERT ON "{tenant_schema_name}"."_CONTROL" TO {schema_modify_user_name}')
             db.cur.execute(
-                f'GRANT DELETE ON "{tenant_schema_name}"."_MODEL" TO {schema_modify_user_name}')
+                f'GRANT DELETE ON "{tenant_schema_name}"."_CONTROL" TO {schema_modify_user_name}')
             db.cur.execute(
                 f'GRANT CREATE ANY ON SCHEMA "{tenant_schema_name}" TO {schema_modify_user_name}')
             db.cur.execute(
@@ -141,8 +167,13 @@ async def post_tenant(tenant_id):
             db.cur.connection.rollback()
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
         db.cur.connection.commit()
-    return {'detail': f"Tenant '{tenant_id}' successfully created"}
+        with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
+            sql = f'insert into "{tenant_schema_name}"._CONTROL (TYPE, CREATED_AT, CONTENT) VALUES (?, ?, ?)'
+            values = [('TENANT_CONFIG', datetime.now(), json.dumps(t_config))]
+            db.cur.executemany(sql, values)
+            db.cur.connection.commit()
 
+    return {'detail': f"Tenant '{tenant_id}' successfully created"}
 
 @app.delete('/v1/tenant/{tenant_id}')
 async def delete_tenant(tenant_id: str):
@@ -150,9 +181,8 @@ async def delete_tenant(tenant_id: str):
     with DBConnection(glob.connection_pools[DBUserType.ADMIN]) as db:
         tenant_schema_name = get_tenant_schema_name(tenant_id)
         try:
+            clear_control_buffer(tenant_schema_name)
             db.cur.execute(f'drop schema "{tenant_schema_name}" cascade')
-            if tenant_schema_name in glob.mapping:
-                glob.mapping.pop(tenant_schema_name, None)
         except HDBException as e:
             db.cur.connection.rollback()
             if e.errorcode == 362:
@@ -192,14 +222,15 @@ async def post_model(tenant_id: str, cson=Body(...), simulate: bool = False):
     else:
         with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
             tenant_schema_name = get_tenant_schema_name(tenant_id)
-            db.cur.execute(
-                f'select count(*) from "{tenant_schema_name}"."_MODEL"')
+            sql = f'select count(*) from "{tenant_schema_name}"."_CONTROL" where "TYPE" = \'MAPPING\''
+            db.cur.execute(sql)
             num_deployments = db.cur.fetchone()[0]
             if num_deployments != 0:
                 handle_error('Model already deployed', 422)
         created_at = datetime.now()
         try:
-            mapping = convert.cson_to_mapping(cson)
+            id_generator = get_IdGenerator(tenant_id, tenant_schema_name)
+            mapping = convert.cson_to_mapping(cson, id_generator)
             ddl = sqlcreate.mapping_to_ddl(
                 mapping, tenant_schema_name, int(glob.esh_apiversion[1]))
         except convert.ModelException as e:
@@ -212,20 +243,20 @@ async def post_model(tenant_id: str, cson=Body(...), simulate: bool = False):
                     await db_bulk.execute(ddl['tables'])
                     await db_bulk.execute(ddl['indices'] + ddl['views'])
                     await db_bulk.commit()
+                except HDBExceptionProgrammingError as e:
+                    handle_error(f'{e.errortext}', 400)
                 except HDBException as e:
                     await db_bulk.rollback()
                     handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
             with DBConnection(glob.connection_pools[DBUserType.SCHEMA_MODIFY]) as db:
-                print(json.dumps(ddl['eshConfig'], indent=4))
                 db.cur.callproc(
                     'ESH_CONFIG', (json.dumps(ddl['eshConfig']), None))
                 res = db.cur.fetchone()
-                print(res[0])
                 if res[0]:
                     handle_error(res[0], 422)
-                sql = f'insert into "{tenant_schema_name}"._MODEL (CREATED_AT, CSON, MAPPING) VALUES (?, ?, ?)'
-                db.cur.execute(
-                    sql, (created_at, json.dumps(cson), json.dumps(mapping)))
+                sql = f'insert into "{tenant_schema_name}"._CONTROL (TYPE, CREATED_AT, CONTENT) VALUES (?, ?, ?)'
+                values = [('CSON', created_at, json.dumps(cson)), ('MAPPING', created_at, json.dumps(mapping))]
+                db.cur.executemany(sql, values)
                 db.cur.connection.commit()
                 glob.mapping[tenant_schema_name] = mapping
         except HDBException as e:
@@ -237,15 +268,28 @@ async def post_model(tenant_id: str, cson=Body(...), simulate: bool = False):
         return {'detail': 'Model successfully deployed'}
 
 
+
+def check_objects(objects):
+    if not isinstance(objects, dict):
+        handle_error('provide dictionary of object types', 400)
+
+def get_ctx(tenant_id):
+    ctx = {}
+    ctx['tenant_id'] = tenant_id
+    ctx['schema_name'] = get_tenant_schema_name(tenant_id)
+    ctx['mapping'] = get_mapping(tenant_id, ctx['schema_name'])
+    ctx['id_generator'] = get_IdGenerator(tenant_id, ctx['schema_name'])
+    if not ctx['mapping']:
+        handle_error('Error: Deploy data model first', 400)
+    return ctx
+
 @app.post('/v1/data/{tenant_id}')
 async def post_data(tenant_id, objects=Body(...)):
     """CREATE Data"""
-    if not isinstance(objects, dict):
-        handle_error('provide dictionary of object types', 400)
-    schema_name = get_tenant_schema_name(tenant_id)
-    mapping = get_mapping(tenant_id, schema_name)
+    check_objects(objects)
     try:
-        return await crud.create_data(schema_name, mapping, objects)
+        return await crud.CRUD(get_ctx(tenant_id))\
+            .write_data(objects, convert.WriteMode.CREATE)
     except crud.CrudException as e:
         handle_error(str(e), 400)
     except HDBException:
@@ -255,12 +299,10 @@ async def post_data(tenant_id, objects=Body(...)):
 @app.post('/v1/read/{tenant_id}')
 async def read_data(tenant_id: str, objects: dict = Body(...), type_annotation: bool = False):
     """READ Data"""
-    if not isinstance(objects, dict):
-        handle_error('provide dictionary of object types', 400)
-    schema_name = get_tenant_schema_name(tenant_id)
-    mapping = get_mapping(tenant_id, schema_name)
+    check_objects(objects)
     try:
-        return await crud.read_data(schema_name, mapping, objects, type_annotation)
+        return await crud.CRUD(get_ctx(tenant_id))\
+            .read_data(objects, type_annotation)
     except crud.CrudException as e:
         handle_error(str(e), 400)
     except HDBException:
@@ -269,12 +311,10 @@ async def read_data(tenant_id: str, objects: dict = Body(...), type_annotation: 
 @app.put('/v1/data/{tenant_id}')
 async def put_data(tenant_id, objects=Body(...)):
     """UPDATE Data"""
-    if not isinstance(objects, dict):
-        handle_error('provide dictionary of object types', 400)
-    schema_name = get_tenant_schema_name(tenant_id)
-    mapping = get_mapping(tenant_id, schema_name)
+    check_objects(objects)
     try:
-        return await crud.update_data(schema_name, mapping, objects)
+        return await crud.CRUD(get_ctx(tenant_id))\
+            .update_data(objects)
     except crud.CrudException as e:
         handle_error(str(e), 400)
     except HDBException:
@@ -284,12 +324,10 @@ async def put_data(tenant_id, objects=Body(...)):
 @app.delete('/v1/data/{tenant_id}')
 async def delete_data(tenant_id, objects=Body(...)):
     """DELETE Data"""
-    if not isinstance(objects, dict):
-        handle_error('provide dictionary of object types', 400)
-    schema_name = get_tenant_schema_name(tenant_id)
-    mapping = get_mapping(tenant_id, schema_name)
+    check_objects(objects)
     try:
-        return await crud.delete_data(schema_name, mapping, objects)
+        return await crud.CRUD(get_ctx(tenant_id))\
+            .delete_data(objects)
     except crud.CrudException as e:
         handle_error(str(e), 400)
     except HDBException:
@@ -370,7 +408,8 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
     schema_name = get_tenant_schema_name(tenant_id)
     mapping = get_mapping(tenant_id, schema_name)
     try:
-        return await search.search_query(schema_name, mapping, esh_version, queries)
+        c = crud.CRUD(get_ctx(tenant_id))
+        return await search.search_query(schema_name, mapping, esh_version, queries, c)
     except search.SearchException as e:
         handle_error(str(e), 400)
     except HDBException:
@@ -523,7 +562,6 @@ if __name__ == '__main__':
             str(json.loads(db_read.cur.fetchone()[0])['apiversion'])
         #logging.info('ESH_SEARCH calls will use API-version %s', glob.esh_apiversion)
 
-    #ui_default_tenant = config['UIDefaultTenant']
     cs = config['server']
     uvicorn.run('server:app', host=cs['host'], port=cs['port'],
                 log_level=cs['logLevel'], reload=cs['reload'])

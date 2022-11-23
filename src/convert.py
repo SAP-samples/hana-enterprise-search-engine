@@ -5,19 +5,41 @@ import json
 import base64
 from constants import TYPES_B64_DECODE, TYPES_SPATIAL, SPATIAL_DEFAULT_SRID, ENTITY_PREFIX, COLUMN_ANNOTATIONS
 from copy import deepcopy
+from enum import Enum
 
 PRIVACY_CATEGORY_COLUMN_DEFINITION = ('_PRIVACY_CATEGORY', {'type':'TINY'})
 PRIVACY_CATEGORY_ANNOTATION = '@EnterpriseSearchIndex.privacyCategory'
 
-class DefaultPK:
+class IdGenerator(str, Enum):
+    UUID1 = 'IdGeneratorUUID1'
+    TEST = 'IdGeneratorTest'
+
+class IdGeneratorUUID1:
     @staticmethod
-    def get_pk(table_name, subtable_level):
+    def get_id(table_name, subtable_level):
         #pylint: disable=unused-argument
         return uuid1().urn[9:]
     @staticmethod
     def get_definition(subtable_level):
         #pylint: disable=unused-argument
         return ('_ID', {'type':'VARCHAR', 'length': 36, 'isIdColumn': True})
+
+class IdGeneratorTest:
+    def __init__(self) -> None:
+        self.last_id = -1
+    def get_id(self, table_name, subtable_level):
+        #pylint: disable=unused-argument
+        self.last_id += 1
+        r = f'{self.last_id:x}'.zfill(32)
+        return f'{r[0:8]}-{r[8:12]}-{r[12:16]}-{r[16:20]}-{r[20:]}'
+    @staticmethod
+    def get_definition(subtable_level):
+        #pylint: disable=unused-argument
+        return ('_ID', {'type':'VARCHAR', 'length': 36, 'isIdColumn': True})
+
+class WriteMode(Enum):
+    CREATE = 0
+    UPDATE = 1
 
 class ModelException(Exception):
     pass
@@ -166,8 +188,8 @@ def find_definition(cson, type_definition):
             found = True
     return type_definition
 
-def get_key_columns(subtable_level, pk):
-    d = pk.get_definition(subtable_level)
+def get_key_columns(subtable_level, id_generator):
+    d = id_generator.get_definition(subtable_level)
     if subtable_level == 0:
         res = (d[0], None, {d[0]: d[1]})
     elif subtable_level == 1:
@@ -180,8 +202,8 @@ def get_key_columns(subtable_level, pk):
         res = (pk_name, pk_parent_name, {pk_parent_name: d[1], pk_name: d[1]})
     return res
 
-def add_key_columns_to_table(table, subtable_level, pk):
-    d = pk.get_definition(subtable_level)
+def add_key_columns_to_table(table, subtable_level, id_generator):
+    d = id_generator.get_definition(subtable_level)
     if subtable_level == 0:
         raise NotImplementedError
     elif subtable_level == 1:
@@ -205,7 +227,7 @@ def process_property(cson, pk, table, entity, element_name, table_name_mapping, 
         entity['elements'][element_name_ext]['annotations'] = property_annotations
 
 def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, type_definition,\
-    subtable_level = 0, is_table = True, has_pc = False, pk = DefaultPK, parent_table_name = None,
+    subtable_level = 0, is_table = True, has_pc = False, pk = IdGeneratorUUID1, parent_table_name = None,
     sur_table = None, sur_prop_name_mapping = None, sur_prop_path = [], entity = {}):
     ''' Transforms cson entity definition to model definition.
     The tables links the external object-oriented-view with internal HANA-database-view.'''
@@ -278,7 +300,7 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                 entity['elements'][element_name_ext]['definition'] = element
             else:
                 element_name, _ = column_name_mapping.register(sur_prop_path + [element_name_ext])
-            
+
             element_needs_pc = PRIVACY_CATEGORY_ANNOTATION in element
             if 'items' in element or element_needs_pc: # collection (many keyword)
                 if 'items' in element and 'elements' in element['items']: # nested definition
@@ -306,7 +328,7 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                     if 'elements' in cson['definitions'][element['type']]:
                         entity['elements'][element_name_ext]['elements'] = {}
                         _ = cson_entity_to_tables(table_name_mapping, cson, tables, path + [type_name],\
-                            element_name_ext, element, subtable_level, False, parent_table_name = parent_table_name, 
+                            element_name_ext, element, subtable_level, False, parent_table_name = parent_table_name,
                             sur_table=table, sur_prop_name_mapping=column_name_mapping,
                             sur_prop_path=sur_prop_path + [element_name_ext],
                             entity=entity['elements'][element_name_ext])
@@ -325,7 +347,7 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                 entity['elements'][element_name_ext]['elements'] = {}
                 _ = cson_entity_to_tables(table_name_mapping, cson, tables, path + [type_name],\
                     element_name_ext, element, subtable_level, False, parent_table_name = parent_table_name,
-                    sur_table=table, 
+                    sur_table=table,
                     sur_prop_name_mapping=column_name_mapping,
                     sur_prop_path=sur_prop_path + [element_name_ext],
                     entity=entity['elements'][element_name_ext])
@@ -382,7 +404,7 @@ def is_many_rel(column_rel):
     return 'cardinality' in column_rel\
         and 'max' in column_rel['cardinality'] and column_rel['cardinality']['max'] == '*'
 
-def cson_to_mapping(cson, pk = DefaultPK):
+def cson_to_mapping(cson, pk = IdGeneratorUUID1):
     tables = {}
     entities = {}
     table_name_mapping = NameMapping()
@@ -428,7 +450,7 @@ def cson_to_mapping(cson, pk = DefaultPK):
                     else:
                         msg = ( f'{column_name}: Annotation @sap.esh.isVirtual must specify '
                         'which backward association should be used from referred entity ')
-                        msg += referred_table['externalPath'][0]
+                        msg += referred_table['external_path'][0]
                         raise ModelException(msg)
                 column['isVirtual'] = True
 
@@ -486,22 +508,22 @@ def value_ext_to_int(typ, value):
     return value
 
 
-def array_to_dml(idmapping, mapping, inserts, objects, subtable_level, parent_object_id, pk, entity, k):
+def array_to_dml(idmapping, mapping, inserts, objects, subtable_level, parent_object_id, id_generator, entity, k):
     is_association = 'definition' in entity and 'type' in entity['definition']\
         and entity['definition']['type'] == 'cds.Association'
     full_table_name = entity['table_name']
     if not full_table_name in inserts:
-        _, _, key_columns = get_key_columns(subtable_level, pk)
+        _, _, key_columns = get_key_columns(subtable_level, id_generator)
         key_col_names = {k:idx for idx, k in enumerate(key_columns.keys())}
         inserts[full_table_name] = {'columns': key_col_names, 'rows':[]}
         inserts[full_table_name]['columns']['_VALUE'] = 2
     for obj in objects:
         row = []
         row.append(parent_object_id)
-        object_id = pk.get_pk(full_table_name, subtable_level)
+        object_id = id_generator.get_id(full_table_name, subtable_level)
         row.append(object_id)
         if is_association:
-            value = association_to_dml(pk, idmapping, entity, k, obj)
+            value = association_to_dml(id_generator, idmapping, entity, k, obj)
         else:
             value = obj
         row.append(value_ext_to_int(\
@@ -509,7 +531,7 @@ def array_to_dml(idmapping, mapping, inserts, objects, subtable_level, parent_ob
         inserts[full_table_name]['rows'].append(row)
 
 
-def association_to_dml(pk, idmapping, prop, k, v):
+def association_to_dml(id_generator, idmapping, prop, k, v):
     if 'isVirtual' in prop['definition'] and prop['definition']['isVirtual']:
         raise DataException(f'Data must not be provided for virtual property {k}')
     if prop['definition']['target_pk'] in v:
@@ -526,7 +548,7 @@ def association_to_dml(pk, idmapping, prop, k, v):
                 value = idmapping[hashable_key]['id']
             else:
                 target_table_name = prop['definition']['target_table_name']
-                value = pk.get_pk(target_table_name, 0)
+                value = id_generator.get_id(target_table_name, 0)
                 idmapping[hashable_key] = {'id':value, 'resolved':False}
         else:
             raise DataException(f'Association property {k} is not a list')
@@ -534,17 +556,15 @@ def association_to_dml(pk, idmapping, prop, k, v):
         raise DataException(f'Association property {k} has no source property')
     return value
 
-
-
-def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_prefix = [],\
-    parent_object_id = None, propagated_row = None, propagated_object_id = None, pk = DefaultPK
+def object_to_dml(mapping, inserts, objects, idmapping, write_mode, id_generator, subtable_level = 0, col_prefix = [],\
+    parent_object_id = None, propagated_row = None, propagated_object_id = None
     , entity = {}, parent_table_name = ''):
     if 'table_name' in entity:
         full_table_name = entity['table_name']
     else:
         full_table_name = parent_table_name
     for obj in objects:
-        if subtable_level == 0 and 'id' in obj:
+        if write_mode == WriteMode.CREATE and subtable_level == 0 and 'id' in obj:
             raise DataException('id is a reserved property name')
         if propagated_row is None:
             row = []
@@ -552,27 +572,31 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
                 row.append(parent_object_id)
             #object_id = pk.get_pk(full_table_name, subtable_level)
             if subtable_level == 0:
-                object_id = None
-                if 'source' in obj:
-                    if len(obj['source']) != 1:
-                        raise NotImplementedError
-                    for source in obj['source']:
-                        hashable_key = json.dumps(source)
-                        if hashable_key in idmapping:
-                            object_id = idmapping[hashable_key]['id']
-                            idmapping[hashable_key]['resolved'] = True
-                        else:
-                            object_id = pk.get_pk(full_table_name, subtable_level)
-                            idmapping[hashable_key] = {'id':object_id, 'resolved':True}
-                if mapping['tables'][full_table_name]['pk'] == 'ID':
-                    if not object_id:
-                        object_id = pk.get_pk(full_table_name, subtable_level)
-                    obj['id'] = object_id
+                if write_mode == WriteMode.CREATE:
+                    object_id = None
+                    if 'source' in obj:
+                        if len(obj['source']) != 1:
+                            raise NotImplementedError
+                        for source in obj['source']:
+                            hashable_key = json.dumps(source)
+                            if hashable_key in idmapping:
+                                object_id = idmapping[hashable_key]['id']
+                                idmapping[hashable_key]['resolved'] = True
+                            else:
+                                object_id = id_generator.get_id(full_table_name, subtable_level)
+                                idmapping[hashable_key] = {'id':object_id, 'resolved':True}
+                    if mapping['tables'][full_table_name]['pk'] == 'ID':
+                        if not object_id:
+                            object_id = id_generator.get_id(full_table_name, subtable_level)
+                        obj['id'] = object_id
+                else:
+                    key = mapping['tables'][full_table_name]['columns'][mapping['tables'][full_table_name]['pk']]['external_path'][0]
+                    object_id = obj[key]
             else:
-                object_id = pk.get_pk(full_table_name, subtable_level)
+                object_id = id_generator.get_id(full_table_name, subtable_level)
                 row.append(object_id)
                 if not full_table_name in inserts:
-                    _, _, key_columns = get_key_columns(subtable_level, pk)
+                    _, _, key_columns = get_key_columns(subtable_level, id_generator)
                     key_col_names = {k:idx for idx, k in enumerate(key_columns.keys())}
                     inserts[full_table_name] = {'columns': key_col_names, 'rows':[]}
             if not full_table_name in inserts:
@@ -588,23 +612,23 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
                 prop = entity['elements'][k]
                 if 'definition' in prop and 'type' in prop['definition']\
                     and prop['definition']['type'] == 'cds.Association':
-                    value = association_to_dml(pk, idmapping, prop, k, v)
+                    value = association_to_dml(id_generator, idmapping, prop, k, v)
             else:
                 raise DataException(f'Unknown property {k}')
             if value is None and isinstance(v, list):
                 if not 'items' in entity['elements'][k]:
                     raise DataException(f'{k} is not an array property')
                 if entity['elements'][k]['items']['elements']:
-                    object_to_dml(mapping, inserts, v, idmapping, subtable_level + 1,\
-                        parent_object_id = object_id, pk = pk, 
+                    object_to_dml(mapping, inserts, v, idmapping, write_mode, id_generator,\
+                        subtable_level + 1, parent_object_id = object_id,
                         entity=entity['elements'][k]['items'], parent_table_name=full_table_name)
                 else:
-                    array_to_dml(idmapping, mapping, inserts, v, subtable_level + 1, object_id, pk
+                    array_to_dml(idmapping, mapping, inserts, v, subtable_level + 1, object_id, id_generator
                     , entity['elements'][k]['items'], k)
             elif value is None and isinstance(v, dict) and (not 'column_name' in entity['elements'][k] or not \
                 mapping['tables'][full_table_name]['columns'][entity['elements'][k]['column_name']]['type'] in TYPES_SPATIAL):
-                object_to_dml(mapping, inserts, [v], idmapping, subtable_level, col_prefix + [k],\
-                    propagated_row = row, propagated_object_id=object_id, pk = pk, 
+                object_to_dml(mapping, inserts, [v], idmapping, write_mode, id_generator, subtable_level,\
+                     col_prefix + [k], propagated_row = row, propagated_object_id=object_id, 
                     entity=entity['elements'][k], parent_table_name=full_table_name)
             else:
                 column_name = entity['elements'][k]['column_name']
@@ -620,13 +644,13 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
             inserts[full_table_name]['rows'].append(row)
 
 
-def objects_to_dml(mapping, objects, pk = DefaultPK):
+def objects_to_dml(mapping, objects, write_mode, id_generator):
     inserts = {}
     idmapping = {}
     for object_type, objects in objects.items():
         if not object_type in mapping['entities']:
             raise DataException(f'Unknown object type {object_type}')
-        object_to_dml(mapping, inserts, objects, idmapping, pk = pk,
+        object_to_dml(mapping, inserts, objects, idmapping, write_mode, id_generator,
             entity=mapping['entities'][object_type])
     if idmapping:
         dangling = [json.loads(k) for k, v in idmapping.items() if not v['resolved']]

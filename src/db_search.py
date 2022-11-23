@@ -10,7 +10,7 @@ import query_mapping
 import convert
 from column_view import ColumnView
 from esh_objects import map_query, PropertyInternal
-from db_crud import read_data
+import db_crud as crud
 import server_globals as glob
 
 
@@ -72,7 +72,7 @@ def perform_bulk_search(esh_version, schema_name, esh_query):
         return [_cleanse_output(json.loads(w[0])) for w in db.cur.fetchall()]
 
 
-async def search_query(schema_name, mapping, esh_version, queries):
+async def search_query(schema_name, mapping, esh_version, queries, crud):
     dynamic_views = {}
     odata_map = {}
     esh_queries = []
@@ -155,7 +155,8 @@ async def search_query(schema_name, mapping, esh_version, queries):
                 read_request[entity_type] = []
             read_request[entity_type].append({'id': itm['ID']})
 
-    full_objects = await read_data(schema_name, mapping, read_request, True)
+    #full_objects = await read_data(schema_name, mapping, read_request, True)
+    full_objects = await crud.read_data(read_request, True)
     full_objects_idx = {}
     for k, v in full_objects.items():
         full_objects_idx[k] = {}

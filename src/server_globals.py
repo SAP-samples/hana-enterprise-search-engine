@@ -4,3 +4,4 @@ db_tenant_prefix = ''
 connection_pools = {}
 esh_apiversion = ''
 mapping = {}
+id_generator = {}

@@ -179,6 +179,29 @@ async def read_data(schema_name, mapping, objects, type_annotation):
     return response
 
 
+async def update_data(schema_name, mapping, objects):
+    '''
+    for object_type, obj_list in objects.items():
+        if not isinstance(obj_list, list):
+            raise CrudException('provide list of objects per object type')
+        if object_type not in mapping['entities']:
+            raise CrudException(f'unknown object type {object_type}')
+        root_table = mapping['tables'][mapping['entities']
+                                        [object_type]['table_name']]
+        ids = []
+        primary_key_property_name = \
+            root_table['columns'][root_table['pk']]['external_path'][0]
+        for obj in obj_list:
+            if not primary_key_property_name in obj:
+                raise CrudException(
+                    f'primary key {primary_key_property_name} not found')
+            ids.append(obj[primary_key_property_name])
+        id_list = ', '.join([f"'{w}'" for w in ids])
+        all_objects = {}
+    '''
+    return None
+
+
 async def delete_data(schema_name, mapping, objects):
     with DBConnection(glob.connection_pools[DBUserType.DATA_WRITE]) as db:
         for object_type, obj_list in objects.items():

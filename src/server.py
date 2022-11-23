@@ -14,6 +14,7 @@ from fastapi import Body, FastAPI, HTTPException, Request, Response
 from fastapi.staticfiles import StaticFiles
 from hdbcli.dbapi import Error as HDBException
 from starlette.responses import RedirectResponse
+from hdbcli.dbapi import Error as HDBException
 
 import server_globals as glob
 import consistency_check
@@ -247,7 +248,8 @@ async def post_data(tenant_id, objects=Body(...)):
         return await crud.create_data(schema_name, mapping, objects)
     except crud.CrudException as e:
         handle_error(str(e), 400)
-
+    except HDBException:
+        handle_error(str(e), 500)
 
 
 @app.post('/v1/read/{tenant_id}')
@@ -261,7 +263,22 @@ async def read_data(tenant_id: str, objects: dict = Body(...), type_annotation: 
         return await crud.read_data(schema_name, mapping, objects, type_annotation)
     except crud.CrudException as e:
         handle_error(str(e), 400)
+    except HDBException:
+        handle_error(str(e), 500)
 
+@app.put('/v1/data/{tenant_id}')
+async def put_data(tenant_id, objects=Body(...)):
+    """UPDATE Data"""
+    if not isinstance(objects, dict):
+        handle_error('provide dictionary of object types', 400)
+    schema_name = get_tenant_schema_name(tenant_id)
+    mapping = get_mapping(tenant_id, schema_name)
+    try:
+        return await crud.update_data(schema_name, mapping, objects)
+    except crud.CrudException as e:
+        handle_error(str(e), 400)
+    except HDBException:
+        handle_error(str(e), 500)
 
 
 @app.delete('/v1/data/{tenant_id}')
@@ -275,6 +292,8 @@ async def delete_data(tenant_id, objects=Body(...)):
         return await crud.delete_data(schema_name, mapping, objects)
     except crud.CrudException as e:
         handle_error(str(e), 400)
+    except HDBException:
+        handle_error(str(e), 500)
 
 
 @app.get('/', response_class=RedirectResponse, status_code=302)
@@ -338,7 +357,12 @@ def get_search(tenant_id, esh_version, path, req: Request):
 # def post_search(root=Body(...), db: Session = Depends(get_db)):
 def post_search(tenant_id, esh_version, body=Body(...)):
     schema_name = get_tenant_schema_name(tenant_id)
-    return search.perform_bulk_search(esh_version, schema_name, body)
+    try:
+        return search.perform_bulk_search(esh_version, schema_name, body)
+    except search.SearchException as e:
+        handle_error(str(e), 400)
+    except HDBException:
+        handle_error(str(e), 500)
 
 
 @app.post('/v1/query/{tenant_id}/{esh_version:path}')
@@ -349,6 +373,8 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
         return await search.search_query(schema_name, mapping, esh_version, queries)
     except search.SearchException as e:
         handle_error(str(e), 400)
+    except HDBException:
+        handle_error(str(e), 500)
 
 
 @app.post('/v0.2/ruleset/{tenant_id}')

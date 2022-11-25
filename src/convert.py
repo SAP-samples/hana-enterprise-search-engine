@@ -3,8 +3,8 @@ from uuid import uuid1
 from name_mapping import NameMapping
 import json
 import base64
-from constants import TYPES_B64_DECODE, TYPES_SPATIAL, SPATIAL_DEFAULT_SRID, ENTITY_PREFIX, VIEW_PREFIX
-
+from constants import TYPES_B64_DECODE, TYPES_SPATIAL, SPATIAL_DEFAULT_SRID, ENTITY_PREFIX, COLUMN_ANNOTATIONS
+from copy import deepcopy
 
 PRIVACY_CATEGORY_COLUMN_DEFINITION = ('_PRIVACY_CATEGORY', {'type':'TINY'})
 PRIVACY_CATEGORY_ANNOTATION = '@EnterpriseSearchIndex.privacyCategory'
@@ -26,6 +26,28 @@ class DataException(Exception):
     pass
 
 
+'''
+        case 'cds.String':
+            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
+                sql_type['type'] = 'SHORTTEXT'
+            else:
+                sql_type['type'] = 'NVARCHAR'
+            if not 'length' in cap_type:
+                sql_type['length'] = 5000
+        case 'cds.LargeString':
+            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
+                sql_type['type'] = 'TEXT'
+            else:
+                sql_type['type'] = 'NCLOB'
+        case 'cds.LargeBinary':
+            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
+                sql_type['type'] = 'BINTEXT'
+            else:
+                sql_type['type'] = 'BLOB'
+'''
+
+
+
 def get_sql_type(table_name_mapping, cson, cap_type, pk):
     ''' get SQL type from CAP type'''
     if cap_type['type'] in cson['definitions'] and 'type' in cson['definitions'][cap_type['type']]:
@@ -39,17 +61,11 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
             sql_type['type'] = 'NVARCHAR'
             sql_type['length'] = 36
         case 'cds.String':
-            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
-                sql_type['type'] = 'SHORTTEXT'
-            else:
-                sql_type['type'] = 'NVARCHAR'
+            sql_type['type'] = 'NVARCHAR'
             if not 'length' in cap_type:
                 sql_type['length'] = 5000
         case 'cds.LargeString':
-            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
-                sql_type['type'] = 'TEXT'
-            else:
-                sql_type['type'] = 'NCLOB'
+            sql_type['type'] = 'NCLOB'
         case 'cds.Varchar':
             sql_type['type'] = 'VARCHAR'
             if not 'length' in cap_type:
@@ -82,16 +98,10 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
             sql_type['type'] = 'VARBINARY'
             if 'length' in cap_type:
                 sql_type['length'] = cap_type['length']
-            #sql_type['isBinary'] = True
         case 'cds.LargeBinary':
-            if '@esh.type.text' in cap_type and cap_type['@esh.type.text']:
-                sql_type['type'] = 'BINTEXT'
-            else:
-                sql_type['type'] = 'BLOB'
-            #sql_type['isBinary'] = True
+            sql_type['type'] = 'BLOB'
         case 'cds.hana.BINARY':
             sql_type['type'] = 'BINARY'
-            #sql_type['isBinary'] = True
         case 'cds.hana.VARCHAR':
             sql_type['type'] = 'VARCHAR'
             if not 'length' in cap_type:
@@ -106,6 +116,10 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
             sql_type['type'] = 'REAL'
         case 'cds.hana.CLOB':
             sql_type['type'] = 'CLOB'
+        case 'cds.hana.CHAR':
+            sql_type['type'] = 'CHAR'
+        case 'cds.hana.NCHAR':
+            sql_type['type'] = 'NCHAR'
         case 'cds.hana.ST_POINT':
             sql_type['type'] = 'ST_POINT'
             if 'srid' in cap_type:
@@ -133,7 +147,7 @@ def get_sql_type(table_name_mapping, cson, cap_type, pk):
             raise ModelException(f'Unexpected cds type {t}')
 
     # Copy annotations
-    annotations = {k:v for k,v in cap_type.items() if k.startswith('@')}
+    annotations = {k:v for k,v in cap_type.items() if k in COLUMN_ANNOTATIONS}
     if annotations:
         sql_type['annotations'] = annotations
 
@@ -182,6 +196,14 @@ def add_key_columns_to_table(table, subtable_level, pk):
     table['pkParent'] = pk_parent_name
     table['columns'] = key_properties
 
+def process_property(cson, pk, table, entity, element_name, table_name_mapping, element_name_ext, sur_prop_path, element, referred_element):
+    table['columns'][element_name] = get_sql_type(table_name_mapping, cson, referred_element, pk)
+    table['columns'][element_name]['external_path'] = sur_prop_path + [element_name_ext]
+    entity['elements'][element_name_ext]['column_name'] = element_name
+    property_annotations = {k:v for k,v in element.items() if k.startswith('@') and k not in COLUMN_ANNOTATIONS}
+    if property_annotations:
+        entity['elements'][element_name_ext]['annotations'] = property_annotations
+
 def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, type_definition,\
     subtable_level = 0, is_table = True, has_pc = False, pk = DefaultPK, parent_table_name = None,
     sur_table = None, sur_prop_name_mapping = None, sur_prop_path = [], entity = {}):
@@ -196,19 +218,22 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
         column_name_mapping = NameMapping()
         if parent_table_name:
             table['parent'] = parent_table_name
-        if subtable_level == 0:
-            annotations = {k:v for k,v in type_definition.items() if k.startswith('@')}
-            if annotations:
-                table['annotations'] = annotations
+        #if subtable_level == 0:
+        #    annotations = {k:v for k,v in type_definition.items() if k.startswith('@')}
+        #    if annotations:
+        #        table['annotations'] = annotations
         if is_table:
             if subtable_level == 0:
+                annotations = {k:v for k,v in type_definition.items() if k.startswith('@')}
+                if annotations:
+                    entity['annotations'] = annotations
                 pk_column_name, _ = column_name_mapping.register([type_definition['pk']])
                 entity['elements'][type_definition['pk']] = {'column_name': pk_column_name}
                 table['pk'] = pk_column_name
                 table_name, table_map = table_name_mapping.register(external_path, ENTITY_PREFIX\
                     , definition = {'pk': pk_column_name})
                 entity['table_name'] = table_name
-                table['columns'] = {}
+                table['columns'] = {pk_column_name: {}}
             else:
                 table_name, table_map = table_name_mapping.register(external_path)
                 entity['table_name'] = table_name
@@ -224,7 +249,12 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
     if type_definition['kind'] == 'entity' or (path and 'elements' in type_definition):
         for element_name_ext, element in type_definition['elements'].items():
             is_virtual = '@sap.esh.isVirtual' in element and element['@sap.esh.isVirtual']
-            is_association = 'type' in element and element['type'] == 'cds.Association'
+            if not is_virtual and 'type' in element and element['type'] == 'cds.Association' and 'cardinality' in element and element['cardinality'] == {'max': '*'}:
+                element = {'items':deepcopy(element)}
+                del element['items']['cardinality']
+                is_association = False
+            else:
+                is_association = 'type' in element and element['type'] == 'cds.Association'
             entity['elements'][element_name_ext] = {}
             if is_virtual:
                 if not is_association:
@@ -237,8 +267,9 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                 backward_rel = [k for k, v in cson['definitions'][referred_element]['elements'].items()\
                      if 'type' in v and v['type'] == 'cds.Association' and v['target'] == type_name]
                 if len(backward_rel) != 1:
-                    raise ModelException(f'{element_name_ext}: Annotation @sap.esh.isVirtual is only allowed if '
-                    f'exactly one backward association exists from referred entity {referred_element}',)
+                    if not (isinstance(element['@sap.esh.isVirtual'], str) and element['@sap.esh.isVirtual'] in backward_rel):
+                        raise ModelException(f'{element_name_ext}: Annotation @sap.esh.isVirtual must specify '
+                        f'which backward association should be used from referred entity {referred_element}',)
                 element['isVirtual'] = True
             if is_association:
                 element['target_table_name'], _ = table_name_mapping.register([element['target']], ENTITY_PREFIX)
@@ -247,7 +278,7 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                 entity['elements'][element_name_ext]['definition'] = element
             else:
                 element_name, _ = column_name_mapping.register(sur_prop_path + [element_name_ext])
-                
+            
             element_needs_pc = PRIVACY_CATEGORY_ANNOTATION in element
             if 'items' in element or element_needs_pc: # collection (many keyword)
                 if 'items' in element and 'elements' in element['items']: # nested definition
@@ -280,14 +311,15 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
                             sur_prop_path=sur_prop_path + [element_name_ext],
                             entity=entity['elements'][element_name_ext])
                     else:
-                        table['columns'][element_name] =\
-                            get_sql_type(table_name_mapping, cson, cson['definitions'][element['type']], pk)
-                        table['columns'][element_name]['external_path'] = sur_prop_path + [element_name_ext]
-                        entity['elements'][element_name_ext]['column_name'] = element_name
+                        process_property(cson, pk, table, entity, element_name, table_name_mapping, element_name_ext, sur_prop_path, element, cson['definitions'][element['type']])
+                        elem_annotations = {k:v for k,v in element.items() if k in COLUMN_ANNOTATIONS}
+                        if elem_annotations:
+                            if 'annotations' in table['columns'][element_name]:
+                                table['columns'][element_name]['annotations'] |= elem_annotations
+                            else:
+                                table['columns'][element_name]['annotations'] = elem_annotations
                 else:
-                    table['columns'][element_name] = get_sql_type(table_name_mapping, cson, element, pk)
-                    table['columns'][element_name]['external_path'] = sur_prop_path + [element_name_ext]
-                    entity['elements'][element_name_ext]['column_name'] = element_name
+                    process_property(cson, pk, table, entity, element_name, table_name_mapping, element_name_ext, sur_prop_path, element, element)
             elif 'elements' in element: # nested definition
                 element['kind'] = 'type'
                 entity['elements'][element_name_ext]['elements'] = {}
@@ -304,6 +336,11 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
         entity['column_name'] = '_VALUE'
         if not type_definition['type'] in cson['definitions']:
             table['columns']['_VALUE'] = get_sql_type(table_name_mapping, cson, type_definition, pk)
+            if 'type' in type_definition and type_definition['type'] == 'cds.Association':
+                entity['definition'] = type_definition
+                entity['definition']['target_table_name'], _ = table_name_mapping.register([type_definition['target']], ENTITY_PREFIX)
+                entity['definition']['target_pk'] = cson['definitions'][type_definition['target']]['pk']
+
         #elif '@EnterpriseSearchIndex.type' in cson['definitions'][type_definition['type']] and\
         #    cson['definitions'][type_definition['type']]['@EnterpriseSearchIndex.type'] == 'CodeList':
             # this is for codelist TODO, change this harcoded value
@@ -341,7 +378,6 @@ def cson_entity_to_tables(table_name_mapping, cson, tables, path, type_name, typ
         tables[table_name] = table
     return table
 
-
 def is_many_rel(column_rel):
     return 'cardinality' in column_rel\
         and 'max' in column_rel['cardinality'] and column_rel['cardinality']['max'] == '*'
@@ -374,13 +410,26 @@ def cson_to_mapping(cson, pk = DefaultPK):
                 if table['level'] != 0:
                     raise ModelException(f'{column_name}: Annotation @sap.esh.isVirtual is only allowed on root level')
                 referred_table = tables[column['rel']['table_name']]
-                backward_rel = [(r, is_many_rel(r['rel'])) for r in referred_table['columns'].values() \
+                backward_rel = [(k, r, is_many_rel(r['rel'])) for k, r in referred_table['columns'].items() \
                     if 'rel' in r and r['rel']['table_name'] == table_name]
-                if len(backward_rel) != 1:
-                    msg = ( f'{column_name}: Annotation @sap.esh.isVirtual is only '
-                    'allowed if exactly one backward association exists from referred entity ')
-                    msg += referred_table['externalPath'][0]
-                    raise ModelException(msg)
+                if len(backward_rel) == 1:
+                    column['rel']['column_name'] = backward_rel[0][0]
+                else:
+                    external_path = None
+                    if isinstance(column['annotations']['@sap.esh.isVirtual'], list):
+                        external_path = column['annotations']['@sap.esh.isVirtual']
+                    elif isinstance(column['annotations']['@sap.esh.isVirtual'], str):
+                        external_path = [column['annotations']['@sap.esh.isVirtual']]
+                    rel_column_name = []
+                    if external_path:
+                        rel_column_name = [k for k,v,_ in backward_rel if v['external_path'] == external_path]
+                    if len(rel_column_name) == 1:
+                        column['rel']['column_name'] = rel_column_name[0]
+                    else:
+                        msg = ( f'{column_name}: Annotation @sap.esh.isVirtual must specify '
+                        'which backward association should be used from referred entity ')
+                        msg += referred_table['externalPath'][0]
+                        raise ModelException(msg)
                 column['isVirtual'] = True
 
         table['sql'] = {}
@@ -407,7 +456,7 @@ def cson_to_mapping(cson, pk = DefaultPK):
             for i, parent in enumerate(parents):
                 joins.append(f'inner join "{{schema_name}}"."{parent}" L{i+1} on L{i+2}._ID{i+1} = L{i+1}._ID{i+1}')
                 if i == len(parents) - 1:
-                    del_subselect.append(f'select _ID{i+1} from "{parent}" L{i+1}')
+                    del_subselect.append(f'select _ID{i+1} from "{{schema_name}}"."{parent}" L{i+1}')
                 else:
                     del_subselect.append(f'inner join "{{schema_name}}"."{parent}" L{i+1} on L{i+2}._ID{i+1} = L{i+1}._ID{i+1}')
             joins.reverse()
@@ -437,7 +486,9 @@ def value_ext_to_int(typ, value):
     return value
 
 
-def array_to_dml(mapping, inserts, objects, subtable_level, parent_object_id, pk, entity):
+def array_to_dml(idmapping, mapping, inserts, objects, subtable_level, parent_object_id, pk, entity, k):
+    is_association = 'definition' in entity and 'type' in entity['definition']\
+        and entity['definition']['type'] == 'cds.Association'
     full_table_name = entity['table_name']
     if not full_table_name in inserts:
         _, _, key_columns = get_key_columns(subtable_level, pk)
@@ -449,9 +500,39 @@ def array_to_dml(mapping, inserts, objects, subtable_level, parent_object_id, pk
         row.append(parent_object_id)
         object_id = pk.get_pk(full_table_name, subtable_level)
         row.append(object_id)
+        if is_association:
+            value = association_to_dml(pk, idmapping, entity, k, obj)
+        else:
+            value = obj
         row.append(value_ext_to_int(\
-            mapping['tables'][full_table_name]['columns']['_VALUE']['type'], obj))
+            mapping['tables'][full_table_name]['columns']['_VALUE']['type'], value))
         inserts[full_table_name]['rows'].append(row)
+
+
+def association_to_dml(pk, idmapping, prop, k, v):
+    if 'isVirtual' in prop['definition'] and prop['definition']['isVirtual']:
+        raise DataException(f'Data must not be provided for virtual property {k}')
+    if prop['definition']['target_pk'] in v:
+        value = v[prop['definition']['target_pk']]
+    elif 'source' in v:
+        if isinstance(v['source'], list):
+            hashable_keys = set([json.dumps(w) for w in v['source']])
+            if len(hashable_keys) == 0:
+                raise DataException(f'Association property {k} has no source')
+            elif len(hashable_keys) > 1:
+                raise DataException(f'Association property {k} has conflicting sources')
+            hashable_key = list(hashable_keys)[0]
+            if hashable_key in idmapping:
+                value = idmapping[hashable_key]['id']
+            else:
+                target_table_name = prop['definition']['target_table_name']
+                value = pk.get_pk(target_table_name, 0)
+                idmapping[hashable_key] = {'id':value, 'resolved':False}
+        else:
+            raise DataException(f'Association property {k} is not a list')
+    else:
+        raise DataException(f'Association property {k} has no source property')
+    return value
 
 
 
@@ -469,18 +550,26 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
             row = []
             if parent_object_id:
                 row.append(parent_object_id)
-            object_id = pk.get_pk(full_table_name, subtable_level)
+            #object_id = pk.get_pk(full_table_name, subtable_level)
             if subtable_level == 0:
-                if mapping['tables'][full_table_name]['pk'] == 'ID':
-                    obj['id'] = object_id
+                object_id = None
                 if 'source' in obj:
+                    if len(obj['source']) != 1:
+                        raise NotImplementedError
                     for source in obj['source']:
                         hashable_key = json.dumps(source)
                         if hashable_key in idmapping:
+                            object_id = idmapping[hashable_key]['id']
                             idmapping[hashable_key]['resolved'] = True
                         else:
+                            object_id = pk.get_pk(full_table_name, subtable_level)
                             idmapping[hashable_key] = {'id':object_id, 'resolved':True}
+                if mapping['tables'][full_table_name]['pk'] == 'ID':
+                    if not object_id:
+                        object_id = pk.get_pk(full_table_name, subtable_level)
+                    obj['id'] = object_id
             else:
+                object_id = pk.get_pk(full_table_name, subtable_level)
                 row.append(object_id)
                 if not full_table_name in inserts:
                     _, _, key_columns = get_key_columns(subtable_level, pk)
@@ -493,39 +582,15 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
         else:
             row = propagated_row
             object_id = propagated_object_id
-
         for k, v in obj.items():
             value = None
             if k in entity['elements']:
                 prop = entity['elements'][k]
                 if 'definition' in prop and 'type' in prop['definition']\
                     and prop['definition']['type'] == 'cds.Association':
-                    if 'isVirtual' in prop['definition'] and prop['definition']['isVirtual']:
-                        raise DataException(f'Data must not be provided for virtual property {k}')
-                    if prop['definition']['target_pk'] in v:
-                        value = v[prop['definition']['target_pk']]
-                    elif 'source' in v:
-                        if isinstance(v['source'], list):
-                            hashable_keys = set([json.dumps(w) for w in v['source']])
-                            if len(hashable_keys) == 0:
-                                raise DataException(f'Association property {k} has no source')
-                            elif len(hashable_keys) > 1:
-                                raise DataException(f'Association property {k} has conflicting sources')
-                            hashable_key = list(hashable_keys)[0]
-                            if hashable_key in idmapping:
-                                value = idmapping[hashable_key]['id']
-                            else:
-                                target_table_name = prop['definition']['target_table_name']
-                                value = pk.get_pk(target_table_name, 0)
-                                idmapping[hashable_key] = {'id':value, 'resolved':False}
-                        else:
-                            raise DataException(f'Association property {k} is not a list')
-                    else:
-                        raise DataException(f'Association property {k} has no source property')
+                    value = association_to_dml(pk, idmapping, prop, k, v)
             else:
                 raise DataException(f'Unknown property {k}')
-            
-            
             if value is None and isinstance(v, list):
                 if not 'items' in entity['elements'][k]:
                     raise DataException(f'{k} is not an array property')
@@ -534,8 +599,8 @@ def object_to_dml(mapping, inserts, objects, idmapping, subtable_level = 0, col_
                         parent_object_id = object_id, pk = pk, 
                         entity=entity['elements'][k]['items'], parent_table_name=full_table_name)
                 else:
-                    array_to_dml(mapping, inserts, v, subtable_level + 1, object_id, pk
-                    , entity['elements'][k]['items'])
+                    array_to_dml(idmapping, mapping, inserts, v, subtable_level + 1, object_id, pk
+                    , entity['elements'][k]['items'], k)
             elif value is None and isinstance(v, dict) and (not 'column_name' in entity['elements'][k] or not \
                 mapping['tables'][full_table_name]['columns'][entity['elements'][k]['column_name']]['type'] in TYPES_SPATIAL):
                 object_to_dml(mapping, inserts, [v], idmapping, subtable_level, col_prefix + [k],\
@@ -576,3 +641,28 @@ def objects_to_dml(mapping, objects, pk = DefaultPK):
                 row.extend([None]*(length - len(row)))
 
     return {'inserts': inserts}
+
+
+def check_path(mapping:dict, elem_loc:dict, path:list):
+    if 'elements' in elem_loc:
+        if path[0] in elem_loc['elements']:
+            if len(path) > 1:
+                new_elem_loc = elem_loc['elements'][path[0]]
+                if 'definition' in new_elem_loc and 'target' in new_elem_loc['definition']:
+                    cp_res, _ = check_path(mapping, mapping['entities'][new_elem_loc['definition']['target']], path[1:])
+                    return (cp_res, True)
+                elif 'items' in new_elem_loc and 'definition' in new_elem_loc['items'] and 'target' in new_elem_loc['items']['definition']:
+                    cp_res, _ = check_path(mapping, mapping['entities'][new_elem_loc['items']['definition']['target']], path[1:])
+                    return (cp_res, True)
+                return check_path(mapping, new_elem_loc, path[1:])
+            else:
+                if 'definition' in elem_loc['elements'][path[0]]:
+                    return (False, False)
+                else:
+                    return (True, False)
+        else:
+            return (False, False)
+    elif 'items' in elem_loc:
+        return check_path(mapping, elem_loc['items'], path)
+    else:
+        raise NotImplementedError

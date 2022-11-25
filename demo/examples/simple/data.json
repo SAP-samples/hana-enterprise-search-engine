@@ -1,0 +1,29 @@
+{
+    "Person": [
+        {
+            "firstName": "John",
+            "lastName": "Doe",
+            "birthDate": "1998-05-30",
+            "country": "United States of America"
+
+        },
+        {
+            "firstName": "Jane",
+            "lastName": "Doe",
+            "birthDate": "2001-08-05",
+            "country": "United States of America"
+        },
+        {
+            "firstName": "Max",
+            "lastName": "Mustermann",
+            "birthDate": "1976-02-01",
+            "country": "Germany"
+        },
+        {
+            "firstName": "Erika",
+            "lastName": "Mustermann",
+            "birthDate": "1983-08-12",
+            "country": "Germany"
+        }
+    ]
+}

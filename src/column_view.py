@@ -11,7 +11,7 @@ _ESH_CONFIG_TEMPLATE = {
         'EntityType': {
             '@EnterpriseSearch.enabled': True,
             '@Search.searchable': True,
-            '@EnterpriseSearchHana.identifier': 'VORGANG_MODEL',
+            '@EnterpriseSearchHana.identifier': None,
             '@EnterpriseSearchHana.passThroughAllAnnotations': True,
             'Properties': []}}}
 
@@ -30,10 +30,11 @@ def sequence_int(i = 10, step = 10):
 
 class ColumnView:
     """Column view definition"""
-    def __init__(self, mapping, anchor_entity_name, schema_name) -> None:
+    def __init__(self, mapping, anchor_entity_name, schema_name, default_annotations) -> None:
         self.mapping = mapping
         self.anchor_entity = mapping['entities'][anchor_entity_name]
         self.schema_name = schema_name
+        self.default_annotations = default_annotations
         self.esh_config = deepcopy(_ESH_CONFIG_TEMPLATE)
         self.column_name_mapping = NameMapping()
         self.join_index = {}
@@ -57,6 +58,13 @@ class ColumnView:
             return table_name
         else:
             return f'{table_name}.temp{str(index).zfill(2)}'
+
+    @staticmethod
+    def _cleanup_labels(annotations:dict):
+        # for UI5 enterprise search UI to work
+        if '@EndUserText.Label' in annotations and not '@SAP.Common.Label' in annotations:
+            annotations['@SAP.Common.Label'] = annotations['@EndUserText.Label']
+            del annotations['@EndUserText.Label']
 
     def _table(self, table_name):
         if not table_name in self.join_index:
@@ -82,7 +90,7 @@ class ColumnView:
             v += f'joinCondition=(\'{jc[0]}\',"{self.schema_name}"."{jc[1]}","{jc[2]}","{self.schema_name}"."{jc[3]}","{jc[4]}",\'\',81,0),\n'
         for jp_name, jp_conditions in self.join_path.items():
             v += f"joinPath=('{jp_name}','{','.join(sorted(list(jp_conditions)))}'),\n"
-        for view_prop_name, table_name, table_prop_name, join_path_id in self.view_attribute:
+        for view_prop_name, table_name, table_prop_name, join_path_id, _ in self.view_attribute:
             v += f"viewAttribute=('{view_prop_name}',\"{self.schema_name}\".\"{table_name}\",\"{table_prop_name}\",'{join_path_id}'"\
                 +",'default','attribute'),\n"
         v += f"view=('default',\"{self.schema_name}\".\"{self.anchor_entity['table_name']}\"),\n"
@@ -97,39 +105,39 @@ class ColumnView:
         view_column_name, _ = self.column_name_mapping.register(name_path)
         selector_pos['as'] = view_column_name
         self.view_attribute.append((view_column_name, \
-            self._get_join_index_name(join_index), table_column_name, join_path_id))
+            self._get_join_index_name(join_index), table_column_name, join_path_id, name_path))
         # ESH config
         col_conf = {'Name': view_column_name}
         if annotations:
+            self._cleanup_labels(annotations)
             col_conf |= annotations
-        elif 'annotations' in self.mapping['tables'][table_name]['columns'][table_column_name]:
-            col_conf |= self.mapping['tables'][table_name]['columns'][table_column_name]['annotations']
-        # for UI5 enterprise search UI to work
         is_enteprise_search_key = \
             not join_path_id and table_column_name == self.mapping['tables'][table_name]['pk']
         if is_enteprise_search_key:
             col_conf['@EnterpriseSearch.key'] = True
             col_conf['@UI.hidden'] = True
-        else:
-            col_conf['@Search.defaultSearchElement'] = True
-        if annotations and '@EndUserText.Label' in annotations and '@SAP.Common.Label' not in annotations:
-            col_conf['@SAP.Common.Label'] = annotations['@EndUserText.Label']
-        if not join_path_id and not is_enteprise_search_key:
-            col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]
+        elif self.default_annotations:
+            column = self.mapping['tables'][table_name]['columns'][table_column_name]
+            if column['type'] in ['BLOB', 'CLOB', 'NCLOB']:
+                if 'annotations' in column and '@sap.esh.isText' in column['annotations'] and column['annotations']['@sap.esh.isText']:
+                    col_conf['@Search.defaultSearchElement'] = True
+            elif column['type'] not in ['ST_POINT', 'ST_GEOMETRY']:
+                col_conf['@Search.defaultSearchElement'] = True
+            if not join_path_id:
+                col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]
         self.esh_config['content']['EntityType']['Properties'].append(col_conf)
 
     def _add_join(self, join_path_id, source_join_index, target_entity_pos\
-        , association_source_column = False):
+        , source_column = '', target_column = ''):
         if join_path_id:
             jp_id = join_path_id
         else:
             jp_id = next(self.join_path_id_gen)
         target_table_name = target_entity_pos['table_name']
         target_join_index = self._table(target_table_name)
-
-        if association_source_column:
-            source_key = association_source_column
-            target_key = self.mapping['tables'][target_table_name]['pk']
+        if source_column:
+            source_key = source_column
+            target_key = target_column
         else:
             source_key = self.mapping['tables'][source_join_index[0]]['pk']
             target_key = self.mapping['tables'][target_table_name]['pkParent']
@@ -147,6 +155,22 @@ class ColumnView:
         self._add_view_column(join_index, join_path_id,\
             name_path, ep['column_name'], annotations, selector_pos)
 
+    def _traverse_association(self, selected_property, entity_property, name_path, join_index, join_path_id, selected_property_name):
+        target_entity = self.mapping['entities'][entity_property['definition']['target']]                        
+        if '@sap.esh.isVirtual' in entity_property['definition']\
+            and entity_property['definition']['@sap.esh.isVirtual']:
+            source_table = self.mapping['tables'][join_index[0]]
+            source_column = source_table['pk']
+            target_column = source_table['columns'][entity_property['column_name']]['rel']['column_name']
+        else:
+            source_column = entity_property['column_name']
+            target_column = self.mapping['tables'][target_entity['table_name']]['pk']
+        target_join_index, jp_id = \
+            self._add_join(join_path_id, join_index, target_entity, source_column, target_column)
+        self._traverse(selected_property, target_entity\
+            , name_path + [selected_property_name], target_join_index, jp_id)
+
+
 
     def _traverse(self, selector_pos, entity_pos, name_path, join_index, join_path_id = ''):
         if 'elements' in selector_pos:
@@ -158,17 +182,19 @@ class ColumnView:
                         self._traverse(selected_property, entity_property\
                             , name_path + [selected_property_name], join_index, join_path_id)
                     elif 'items' in entity_property and 'elements' in entity_property['items']:
-                        target_join_index, jp_id = \
-                            self._add_join(join_path_id, join_index, entity_property['items'])
-                        self._traverse(selected_property, entity_property['items']\
-                            , name_path + [selected_property_name], target_join_index, jp_id)
+                        if 'definition' in entity_property['items'] and 'type' in entity_property['items']['definition']\
+                            and entity_property['items']['definition']['type'] == 'cds.Association':
+                            target_join_index, jp_id = \
+                                self._add_join(join_path_id, join_index, entity_property['items'])
+                            self._traverse_association(selected_property, entity_property['items'], name_path, target_join_index, jp_id, selected_property_name)
+                        else:
+                            target_join_index, jp_id = \
+                                self._add_join(join_path_id, join_index, entity_property['items'])
+                            self._traverse(selected_property, entity_property['items']\
+                                , name_path + [selected_property_name], target_join_index, jp_id)
                     elif 'definition' in entity_property and 'type' in entity_property['definition']\
                         and entity_property['definition']['type'] == 'cds.Association':
-                        target_entity = self.mapping['entities'][entity_property['definition']['target']]
-                        target_join_index, jp_id = \
-                            self._add_join(join_path_id, join_index, target_entity, entity_property['column_name'])
-                        self._traverse(selected_property, target_entity\
-                            , name_path + [selected_property_name], target_join_index, jp_id)
+                        self._traverse_association(selected_property, entity_property, name_path, join_index, join_path_id, selected_property_name)
                     else:
                         raise NotImplementedError
                 else:
@@ -211,17 +237,32 @@ class ColumnView:
         self.odata_name = self.anchor_entity['table_name'][len(ENTITY_PREFIX):]
         self.view_name = VIEW_PREFIX + self.odata_name
 
+    def by_default_and_path_list(self, path_list, view_name, odata_name):
+        self.view_name = view_name
+        self.odata_name = odata_name
+        self.selector = self._make_default_selector(self.anchor_entity, [], None)
+        for path in path_list:
+            self._selector_from_path(path, self.selector)
+
     def data_definition(self):
         anchor_table_name = self.anchor_entity['table_name']
-        if 'annotations' in self.mapping['tables'][anchor_table_name]:
-            annotations = self.mapping['tables'][anchor_table_name]['annotations']
+        if 'annotations' in self.anchor_entity:
+            annotations = self.anchor_entity['annotations']
+            self._cleanup_labels(annotations)
             self.esh_config['content']['EntityType'] |= annotations
-            # for UI5 enterprise search UI to work
-            if '@EndUserText.Label' in annotations and not '@SAP.Common.Label' in annotations:
-                self.esh_config['content']['EntityType']['@SAP.Common.Label'] = annotations['@EndUserText.Label']
         self.esh_config['content']['Fullname'] = f'{self.schema_name}/{self.view_name}'
         self.esh_config['content']['EntityType']['@EnterpriseSearchHana.identifier'] = self.odata_name
         self._traverse(self.selector, self.anchor_entity, [], self._table(anchor_table_name))
+
+        has_default_search_element = False
+        for prop in self.esh_config['content']['EntityType']['Properties']:
+            if '@Search.defaultSearchElement' in prop:
+                has_default_search_element = True
+                break
+        if not has_default_search_element:
+            for prop in self.esh_config['content']['EntityType']['Properties']:
+                if '@EnterpriseSearch.key' in prop and prop['@EnterpriseSearch.key']:
+                    prop['@Search.defaultSearchElement'] = True
 
         return self._get_sql_statement(), self.esh_config
 

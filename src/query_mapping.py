@@ -1,80 +1,71 @@
-def extract_pathes(query):
+'''
+External to internal mapping of query
+'''
+import esh_client as esh
+
+def _extract_property_object(prop, pathes):
+    if isinstance(prop, str):
+        pathes[(prop,)] = ''
+    else:
+        pathes[tuple(prop)] = ''
+
+def _extract_property_path(obj, pathes):
+    if isinstance(obj, list):
+        for o in obj:
+            _extract_property_path(o, pathes)
+    else:
+        match type(obj):
+            case esh.Property:
+                _extract_property_object(obj.property, pathes)
+            case esh.OrderBy:
+                _extract_property_object(obj.key.property, pathes)
+            case esh.Expression:
+                _extract_property_path(obj.items, pathes)
+            case esh.UnaryExpression:
+                _extract_property_path(obj.item, pathes)
+            case esh.Comparison:
+                _extract_property_object(obj.property.property, pathes)
+
+def extract_pathes(query: esh.EshObject):
     pathes = {tuple(['id']):''}
-    scope = []
-    if 'orderby' in query:
-        for orderby in query['orderby']:
-            if isinstance(orderby['key'], str):
-                pathes[tuple([orderby['key']])] = ''
-            elif isinstance(orderby['key'], list):
-                pathes[tuple(orderby['key'])] = ''
-            else:
-                raise NotImplementedError
-    if 'select' in query:
-        for select in query['select']:
-            if isinstance(select, str):
-                pathes[tuple([select])] = ''
-            elif isinstance(select, list):
-                pathes[tuple(select)] = ''
-            else:
-                raise NotImplementedError
-    extract_property_path(query, scope, pathes)
-    return (scope, pathes)
+    if query.orderby:
+        _extract_property_path(query.orderby, pathes)
+    if query.select:
+        _extract_property_path(query.select, pathes)
+    if query.searchQueryFilter:
+        _extract_property_path(query.searchQueryFilter.items, pathes)
+    return pathes
 
 
-def extract_property_path(obj, scope, pathes):
+def _map_property_object(prop, pathes):
+    if isinstance(prop.property, str):
+        prop.property = pathes[(prop.property,)]
+    else:
+        prop.property = pathes[tuple(prop.property)]
+
+
+
+def _map_property(obj, pathes):
     if isinstance(obj, list):
         for o in obj:
-            extract_property_path(o, scope, pathes)
-    elif isinstance(obj, dict):
-        if 'type' in obj:
-            if obj['type'] == 'Path':
-                pathes[tuple(obj['attribute'])] = ''
-                return
-            elif obj['type'] == 'Property':
-                pathes[tuple([obj['property']])] = ''
-                return
-            elif obj['type'] == 'ScopeComparison':
-                scope.extend(obj['values'])
-                return
-        for o in obj.values():
-            extract_property_path(o, scope, pathes)
+            _map_property(o, pathes)
+    else:
+        match type(obj):
+            case esh.Property:
+                _map_property_object(obj, pathes)
+            case esh.OrderBy:
+                _map_property_object(obj.key, pathes)
+            case esh.Expression:
+                _map_property(obj.items, pathes)
+            case esh.UnaryExpression:
+                _map_property(obj.item, pathes)
+            case esh.Comparison:
+                _map_property_object(obj.property, pathes)
 
-def map_query(query, scope, pathes):
-    if 'orderby' in query:
-        for orderby in query['orderby']:
-            if isinstance(orderby['key'], str):
-                orderby['key'] = pathes[tuple([orderby['key']])]
-            elif isinstance(orderby['key'], list):
-                orderby['key'] = pathes[tuple(orderby['key'])]
-            else:
-                raise NotImplementedError
-    if 'select' in query:
-        select_int = []
-        for select in query['select']:
-            if isinstance(select, str):
-                select_int.append(pathes[tuple([select])])
-            elif isinstance(select, list):
-                select_int.append(pathes[tuple(select)])
-            else:
-                raise NotImplementedError
-        query['select'] = select_int
-    map_property(query, scope, pathes)
-
-def map_property(obj, scope, pathes):
-    if isinstance(obj, list):
-        for o in obj:
-            map_property(o, scope, pathes)
-    elif isinstance(obj, dict):
-        if 'type' in obj:
-            if obj['type'] == 'Path':
-                obj['type'] = 'Property'
-                obj['property'] = pathes[tuple(obj['attribute'])]
-                return
-            elif obj['type'] == 'Property':
-                obj['property'] = pathes[tuple([obj['property']])]
-                return
-            elif obj['type'] == 'ScopeComparison':
-                obj['values'] = scope
-                return
-        for o in obj.values():
-            map_property(o, scope, pathes)
+def map_query(query, pathes):
+    if query.orderby:
+        _map_property(query.orderby, pathes)
+    if query.select:
+        _map_property(query.select, pathes)
+    if query.searchQueryFilter:
+        _map_property(query.searchQueryFilter.items, pathes)

@@ -312,5 +312,13 @@ class Query(BaseModel):
     ruleset: list[RuleSet] | None # TODO check if it can be a list
     column: list[Column] | None # TODO make it as list
     resultsetcolumn: list[ResultSetColumn] | None
+
+class Parameter(BaseModel):
+    name: str
+    value: StringValue | NumberValue | BooleanValue | DateValue | MultiValues
 class SearchRuleSet(BaseModel):
     query: Query | None
+
+class EshRequest(BaseModel):
+    parameters: list[Parameter] | None
+    query: EshObject

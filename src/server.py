@@ -28,9 +28,9 @@ from constants import (CONCURRENT_CONNECTIONS,
                        TENANT_ID_MAX_LENGTH, TENANT_PREFIX, DBUserType)
 from db_connection_pool import (
     ConnectionPool, Credentials, DBBulkProcessing, DBConnection)
-from esh_client import EshObject, SearchRuleSet
+from esh_client import EshObject, EshRequest, SearchRuleSet
 from esh_objects import convert_search_rule_set_query_to_string, generate_search_rule_set_query
-from request_mapping import map_request_to_rule_set
+from request_mapping import map_request_to_rule_set, map_request_to_rule_set_old
 import db_crud as crud
 import db_search as search
 
@@ -415,13 +415,52 @@ async def query_v1(tenant_id, esh_version, queries: List[EshObject]):
     except HDBException:
         handle_error(str(e), 500)
 
+@app.post('/v0.3/ruleset/{tenant_id}')
+async def ruleset_v03(tenant_id, esh_request: EshRequest):
+    try:
+        schema_name = get_tenant_schema_name(tenant_id)
+        mapping = get_mapping(tenant_id, schema_name)
+        mapping_rule_set = map_request_to_rule_set(schema_name, mapping, esh_request)
+    except Exception as e:
+        handle_error(str(e))
+    search_rule_set_query = generate_search_rule_set_query(mapping_rule_set)
+    result = []
+    with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
+        params = (convert_search_rule_set_query_to_string(
+            search_rule_set_query),)
+        print(convert_search_rule_set_query_to_string(
+            search_rule_set_query))
+        db.cur.callproc('EXECUTE_SEARCH_RULE_SET', params)
+        # search_results = [json.loads(w[0]) for w in db.cur.fetchall()]
+        rows = db.cur.fetchall()
+        column_headers = [i[0]
+                          for i in db.cur.description]  # get column headers
+        # result = [column_headers]  # insert header
+
+        for row in rows:
+            # current_row = []
+            result_row = {}
+            for idx, col in enumerate(row):
+                # current_row.append(col)
+                match column_headers[idx]:
+                    case "_SCORE":
+                        result_row["@com.sap.vocabularies.Search.v1.Ranking"] = col
+                    case "_RULE_ID":
+                        result_row["@com.sap.esh.ruleid"] = col
+                    case _:
+                        result_row[column_headers[idx]] = col
+            result.append(result_row)
+    # return mapping_rule_set.dict()
+    # return Response(content=convert_search_rule_set_query_to_string(search_rule_set_query), media_type="application/xml")
+    return {'value': result}
+
 
 @app.post('/v0.2/ruleset/{tenant_id}')
 async def ruleset_v02(tenant_id, query: EshObject):
     try:
         schema_name = get_tenant_schema_name(tenant_id)
         mapping = get_mapping(tenant_id, schema_name)
-        mapping_rule_set = map_request_to_rule_set(schema_name, mapping, query)
+        mapping_rule_set = map_request_to_rule_set_old(schema_name, mapping, query)
     except Exception as e:
         handle_error(str(e))
     search_rule_set_query = generate_search_rule_set_query(mapping_rule_set)

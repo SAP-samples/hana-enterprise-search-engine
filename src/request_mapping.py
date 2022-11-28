@@ -1,5 +1,5 @@
 from constants import ENTITY_PREFIX, VIEW_PREFIX
-from esh_client import AttributeView, Column, EshObject, Query, ResultSetColumn, Rule, RuleSet, SearchRuleSet
+from esh_client import AttributeView, Column, EshObject, EshRequest, Query, ResultSetColumn, Rule, RuleSet, SearchRuleSet
 import esh_objects
 import json
 class Constants(object):
@@ -109,7 +109,7 @@ def map_request(mapping: dict, incoming_requests: list):
         returning_object['exist_free_style'] = result_items['exist_free_style']
     return returning_object
 
-def map_request_to_rule_set(schema_name: str, mapping: dict, incoming_request: EshObject):
+def map_request_to_rule_set_old(schema_name: str, mapping: dict, incoming_request: EshObject):
     query = Query()
     if incoming_request.scope is not None:
         if len(incoming_request.scope) != 1:
@@ -154,6 +154,85 @@ def map_request_to_rule_set(schema_name: str, mapping: dict, incoming_request: E
         query.offset = incoming_request.skip
     if incoming_request.select is not None:
         for select_property in incoming_request.select:
+            if query.resultsetcolumn is None:
+                query.resultsetcolumn = []
+            query.resultsetcolumn.append(ResultSetColumn(name=scope_entity["elements"][select_property.property]["column_name"]))
+
+    return_value = SearchRuleSet(query=query)
+    return return_value
+
+def map_request_to_rule_set(schema_name: str, mapping: dict, incoming_request: EshRequest):
+    query = Query()
+
+    if incoming_request.query.scope is not None:
+        if len(incoming_request.query.scope) != 1:
+            raise Exception("only one element is allowed in the 'scope'")
+        scope = incoming_request.query.scope[0]
+        ruleset = RuleSet()
+        scope_entity = mapping["entities"][scope]
+        table_name = scope_entity["table_name"]
+        # view_name = table_name.replace("ENTITY/", "VIEW/") # TODO only temp
+        view_name = VIEW_PREFIX + table_name[len(ENTITY_PREFIX):]
+        mapping_table = mapping["tables"][table_name]
+
+        if incoming_request.parameters:
+            for parameter in incoming_request.parameters:
+                print(parameter)
+                if query.column is None:
+                    query.column = []
+                property_name = parameter.name
+                value = parameter.value.value
+
+                db_column_name = scope_entity["elements"][property_name]["column_name"]
+                # column_fuzziness = mapping_table["columns"][db_column_name]["annotations"]["@Search.fuzzinessThreshold"]
+                # if column_fuzziness is None:
+                #    column_fuzziness = 0.77
+                column_fuzziness = 0.85
+                column=Column(
+                    name = db_column_name,
+                    minFuzziness = column_fuzziness,
+                    ifMissingAction = "skipRule"
+                )
+                ruleset.rule = Rule(name="rule1", column=column)
+
+                # print(property_name, operator,value, db_column_name)
+                query.column.append(Column(name=db_column_name, value=value))
+
+        '''
+        if incoming_request.query.searchQueryFilter is not None:
+            for item in incoming_request.query.searchQueryFilter.items:
+                if query.column is None:
+                    query.column = []
+                property_name = item.property.property[0]
+                operator = item.operator
+                value = item.value.value
+
+                db_column_name = scope_entity["elements"][property_name]["column_name"]
+                # column_fuzziness = mapping_table["columns"][db_column_name]["annotations"]["@Search.fuzzinessThreshold"]
+                # if column_fuzziness is None:
+                #    column_fuzziness = 0.77
+                column_fuzziness = 0.85
+                column=Column(
+                    name = db_column_name,
+                    minFuzziness = column_fuzziness,
+                    ifMissingAction = "skipRule"
+                )
+                ruleset.rule = Rule(name="rule1", column=column)
+
+                # print(property_name, operator,value, db_column_name)
+                query.column.append(Column(name=db_column_name, value=value))
+        '''
+        primary_key_column = mapping_table["pk"]
+        ruleset.attributeView = AttributeView(schema=schema_name,name=view_name,key_column=primary_key_column)
+        query.ruleset = [ruleset]
+    else:
+        raise Exception("missing mandatory parameter 'scope'")
+    if incoming_request.query.top is not None:
+        query.limit = incoming_request.query.top
+    if incoming_request.query.skip is not None:
+        query.offset = incoming_request.query.skip
+    if incoming_request.query.select is not None:
+        for select_property in incoming_request.query.select:
             if query.resultsetcolumn is None:
                 query.resultsetcolumn = []
             query.resultsetcolumn.append(ResultSetColumn(name=scope_entity["elements"][select_property.property]["column_name"]))

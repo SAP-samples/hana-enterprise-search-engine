@@ -51,9 +51,269 @@ class CRUD():
         #self.tenant_id = ctx['tenant_id']
         self.id_generator = ctx['id_generator']
 
+    def _extract_object_keys(self, objects):
+        obj_key_idx = {}
+        obj_keys = {'id':{}, 'source':{}}
+        for object_type, obj_list in objects.items():
+            obj_key_idx[object_type] = {}
+            if not isinstance(obj_list, list):
+                raise CrudException('provide list of objects per object type')
+            if not object_type in self.mapping['entities']:
+                raise CrudException(f'Unknown object type {object_type}')
+            anchor_table = self.mapping['tables'][self.mapping['entities'][object_type]['table_name']]
+            if anchor_table['columns'][anchor_table['pk']]['external_path'][0] != 'id':
+                continue
+            for obj in obj_list:
+                if 'id' in obj:
+                    if obj['id'] in obj_key_idx[object_type]:
+                        raise CrudException(f'{object_type} has duplicate ids {obj["id"]}')
+                    obj_key_idx[object_type][obj['id']] = obj
+                    if object_type not in obj_keys['id']:
+                        obj_keys['id'][object_type] = []
+                    obj_keys['id'][object_type].append(obj['id'])
+                if 'source' in obj:
+                    if not isinstance(obj['source'], list):
+                        raise CrudException('Source property must be an array')
+                    for source in obj['source']:
+                        if not isinstance(source, dict):
+                            raise CrudException('Source property must be an array of dicts')
+                        source_key = (source['name'], source['type'], source['sid'])
+                        if source_key in obj_key_idx[object_type]:
+                            raise CrudException(f'{object_type} has duplicate source key {source_key}')
+                        obj_key_idx[object_type][source_key] = obj
+                    if 'id' not in obj:
+                        if object_type not in obj_keys['source']:
+                            obj_keys['source'][object_type] = []
+                        obj_keys['source'][object_type].append(source_key)
+                elif 'id' not in obj:
+                    obj['id'] = self.id_generator.get_id('', 0)
+
+        return obj_key_idx, obj_keys
+
+    '''
+    async def _classify_ids(self, ids_sql, ids_promise, obj_keys_used):
+        ids_new = {}
+        ids_on_db = {}
+        if ids_sql:
+            provided_ids = await ids_promise
+            for i, (object_type, oids) in enumerate(obj_keys_used.items()):
+                in_msg = set(oids)
+                on_db = set([w[0] for w in provided_ids[i]])
+                new = in_msg - on_db
+                if new:
+                    ids_new[object_type] = new
+                if on_db:
+                    ids_on_db[object_type] = on_db
+        return (ids_new, ids_on_db)
+
+
+    async def _classify_keys(self, sources_sql, sources_promise, obj_keys_used):
+        sources_new = {}
+        sources_on_db = {}
+        if sources_sql:
+            provided_sources = await sources_promise
+            for i, (object_type, source_keys) in enumerate(obj_keys_used.items()):
+                in_msg = set(source_keys)
+                on_db = {(w[1], w[2], w[3]):w[0] for w in provided_sources[i]}
+                new = in_msg - set(on_db)
+                if new:
+                    sources_new[object_type] = new
+                if on_db:
+                    sources_on_db[object_type] = on_db
+        return (sources_new, sources_on_db)
+'''
+
+    async def _classify(self, key_sql, key_promise, access_func):
+        new_keys = {}
+        keys_on_db = {}
+        if key_sql:
+            keys_fetched = await key_promise
+            for i, (object_type, ks) in enumerate(key_sql.items()):
+                #for i, (object_type, requested_keys) in enumerate(obj_keys_used.items()):
+                #in_msg = set(requested_keys)
+                on_db = access_func(keys_fetched[i])
+                new = ks['keys'] - set(on_db)
+                if new:
+                    new_keys[object_type] = new
+                if on_db:
+                    keys_on_db[object_type] = on_db
+        return (new_keys, keys_on_db)
+
+
+
+    def _process_associations(self, obj_key_idx, entity, obj, unknown_objects):
+        #if 'table_name' in entity and not ('elements' in entity or 'items' in entity):
+        #    return
+        if isinstance(obj, dict):
+            if not ('elements' in entity and entity['elements'] or 'items' in entity):
+                return
+            associations = {}
+            for k, v in obj.items():
+                if not k in entity['elements']:
+                    raise CrudException(f'Unknown property {k}')
+                prop = entity['elements'][k]
+                if 'definition' in prop and 'type' in prop['definition'] and prop['definition']['type'] == 'cds.Association':
+                    if 'target_pk' in prop['definition'] and prop['definition']['target_pk'] == 'id' and \
+                        not ('isVirtual' in prop['definition'] and prop['definition']['isVirtual']):
+                        object_type = prop['definition']['target']
+                        if 'id' in v:
+                            if object_type in obj_key_idx and v['id'] in obj_key_idx[object_type]:
+                                associations[k] = obj_key_idx[object_type][v['id']]
+                            else:
+                                do = {'id':v['id']}
+                                if 'id' not in unknown_objects:
+                                    unknown_objects['id'] = {}
+                                if object_type not in unknown_objects['id']:
+                                    unknown_objects['id'][object_type] = {}
+                                unknown_objects['id'][object_type][v['id']] = do
+                                associations[k] = do
+                        elif 'source' in v:
+                            if not (isinstance(v['source'], list) and len(v['source']) == 1):
+                                raise CrudException(f'Property {k} is association. Source property must be list of length 1')
+                            source_key = (v['source'][0]['name'], v['source'][0]['type'], v['source'][0]['sid'])
+                            if object_type in obj_key_idx and source_key in obj_key_idx[object_type]:
+                                associations[k] = obj_key_idx[object_type][source_key]
+                            else:
+                                do = {'source':v['source']}
+                                if 'source' not in unknown_objects:
+                                    unknown_objects['source'] = {}
+                                if object_type not in unknown_objects['source']:
+                                    unknown_objects['source'][object_type] = {}
+                                unknown_objects['source'][object_type][source_key] = do
+                                associations[k] = do
+                        else:
+                            raise CrudException(f'Property {k} is association. Needs either "id":str or "source":[] to establish foreign key')
+                else:
+                    self._process_associations(\
+                        obj_key_idx, entity['elements'][k], v, unknown_objects)
+            for k, v in associations.items():
+                obj[k] = v
+        elif isinstance(obj, list):
+            if not 'items' in entity:
+                raise CrudException(f'list expected, {str.dumps(obj)} found')
+            for o in obj:
+                self._process_associations(obj_key_idx, entity['items'], o, unknown_objects)
+
+    async def _id_preprocessing(self, db_bulk, objects, write_mode: convert.WriteMode):
+        obj_key_idx, obj_keys = self._extract_object_keys(objects)
+        unknown_objects = {}
+        for object_type, obj_list in objects.items():
+            for obj in obj_list:
+                self._process_associations(\
+                    obj_key_idx, self.mapping['entities'][object_type], obj, unknown_objects)
+
+        provided_ids_sql = {}
+        for object_type, oids in obj_keys['id'].items():
+            if oids:
+                table_name = self.mapping['entities'][object_type]['table_name']
+                keys = set(oids)
+                ids_str = ', '.join([f"'{str(w)}'" for w in keys])
+                provided_ids_sql[object_type] = {'keys': keys, 'sql':
+                    f'select "ID" from "{self.schema_name}"."{table_name}" where "ID" in ({ids_str})'}
+        provided_ids_promise = db_bulk.execute_fetchall([w['sql'] for w in provided_ids_sql.values()])\
+            if provided_ids_sql else None
+
+        provided_sources_sql = {}
+        for object_type, source_list in obj_keys['source'].items():
+            table_name = self.mapping['entities'][object_type]['elements']['source']['items']['table_name']
+            keys = set(source_list)
+            where_clause = ' OR '.join(\
+            [f'("NAME" = \'{name}\' and "TYPE" = \'{type}\' and "SID" = \'{sid}\')' for name, type, sid in source_list])
+            provided_sources_sql[object_type] = {'keys': keys, 'sql':
+                f'select "_ID", "NAME", "TYPE", "SID" from "{self.schema_name}"."{table_name}" where {where_clause}'}
+        provided_sources_promise = db_bulk.execute_fetchall([w['sql'] for w in provided_sources_sql.values()])\
+            if provided_sources_sql else None
+
+        unknown_ids_sql = {}
+        if 'id' in unknown_objects:
+            for object_type, v in unknown_objects['id'].items():
+                table_name = self.mapping['entities'][object_type]['table_name']
+                keys = set(v.keys())
+                ids_str = ', '.join([f"'{str(w)}'" for w in keys])
+                unknown_ids_sql[object_type] = {'keys': keys, 'sql':
+                    f'select "ID" from "{self.schema_name}"."{table_name}" where "ID" in ({ids_str})'}
+        unknown_ids_promise = db_bulk.execute_fetchall([w['sql'] for w in unknown_ids_sql.values()])\
+            if unknown_ids_sql else None
+
+        unknown_sources_sql = {}
+        if 'source' in unknown_objects:
+            for object_type, v in unknown_objects['source'].items():
+                table_name = self.mapping['entities'][object_type]['elements']['source']['items']['table_name']
+                keys = set(v.keys())
+                where_clause = ' OR '.join(\
+                [f'("NAME" = \'{name}\' and "TYPE" = \'{type}\' and "SID" = \'{sid}\')' for name, type, sid in keys])
+                unknown_sources_sql[object_type] = {'keys': keys, 'sql':
+                    f'select "_ID", "NAME", "TYPE", "SID" from "{self.schema_name}"."{table_name}" where {where_clause}'}
+        unknown_sources_promise = db_bulk.execute_fetchall([w['sql'] for w in unknown_sources_sql.values()])\
+            if unknown_sources_sql else None
+        provided_ids_new, provided_ids_on_db = await\
+            self._classify(provided_ids_sql, provided_ids_promise,\
+                lambda a : set([w[0] for w in a]))
+        provided_sources_new, provided_sources_on_db = await\
+            self._classify(provided_sources_sql, provided_sources_promise,\
+                lambda a : {(w[1], w[2], w[3]):w[0] for w in a})
+        unknown_ids_new, unknown_ids_on_db = await\
+            self._classify(unknown_ids_sql, unknown_ids_promise,\
+                lambda a : set([w[0] for w in a]))
+        unknown_sources_new, unkown_sources_on_db = await\
+            self._classify(unknown_sources_sql, unknown_sources_promise,\
+                lambda a : {(w[1], w[2], w[3]):w[0] for w in a})
+        if provided_sources_new:
+            for object_type, keys in provided_sources_new.items():
+                for source_key in keys:
+                    obj_key_idx[object_type][source_key]['id'] = self.id_generator.get_id('', 0)
+        if unkown_sources_on_db:
+            for object_type, keys in unkown_sources_on_db.items():
+                for source_key, oid in keys.items():
+                    unknown_objects['source'][object_type][source_key]['id'] = oid
+        if unknown_ids_on_db:
+            for object_type, keys in unknown_ids_on_db.items():
+                for oid in keys:
+                    unknown_objects['id'][object_type][oid]['id'] = oid
+        if write_mode == convert.WriteMode.CREATE:
+            if provided_ids_on_db:
+                err = {}
+                for object_type, v in provided_ids_on_db.items():
+                    if not object_type in err:
+                        err[object_type] = []
+                    for oid in v:
+                        err[object_type].append({'id':oid})
+                s = json.dumps(err)
+                raise CrudException(f'Objects already exist: {s}')
+            if provided_sources_on_db:
+                err = {}
+                for object_type, v in provided_sources_on_db.items():
+                    if not object_type in err:
+                        err[object_type] = []
+                    for (name, typ, sid), oid in v.items():
+                        err[object_type].append({'id':oid, 'source':[{'name':name, 'type': typ, 'sid': sid}]})
+                s = json.dumps(err)
+                raise CrudException(f'Objects already exist: {s}')
+        if unknown_ids_new:
+            err = {}
+            for object_type, v in unknown_ids_new.items():
+                if not object_type in err:
+                    err[object_type] = []
+                for oid in v:
+                    err[object_type].append({'id':oid})
+            s = json.dumps(err)
+            raise CrudException(f'Associated object does not exist: {s}')
+        if unknown_sources_new:
+            err = {}
+            for object_type, v in unknown_sources_new.items():
+                if not object_type in err:
+                    err[object_type] = []
+                for (name, typ, sid), oid in v.items():
+                    err[object_type].append({'id':oid, 'source':[{'name':name, 'type': typ, 'sid': sid}]})
+            s = json.dumps(err)
+            raise CrudException(f'Associated object does not exist: {s}')
+        return (provided_ids_new, provided_ids_on_db, provided_sources_new, provided_sources_on_db,\
+            unknown_ids_new, unknown_ids_on_db, unknown_sources_new, unkown_sources_on_db)
+
     async def write_data(self, objects, write_mode: convert.WriteMode):
         with DBBulkProcessing(glob.connection_pools[DBUserType.DATA_WRITE], CONCURRENT_CONNECTIONS) as db_bulk:
             try:
+                await self._id_preprocessing(db_bulk, objects, write_mode)
                 res = await self._write_data(db_bulk, objects, write_mode)
                 await db_bulk.commit()
             except HDBException as e:
@@ -65,6 +325,7 @@ class CRUD():
     async def update_data(self, objects):
         with DBBulkProcessing(glob.connection_pools[DBUserType.DATA_WRITE], CONCURRENT_CONNECTIONS) as db_bulk:
             try:
+                await self._id_preprocessing(db_bulk, objects, convert.WriteMode.UPDATE)
                 res = await self._update_data(db_bulk, objects)
                 await db_bulk.commit()
             except HDBException as e:
@@ -86,7 +347,7 @@ class CRUD():
 
     async def _write_data(self, db_bulk, objects, write_mode: convert.WriteMode):
         try:
-            dml = convert.objects_to_dml(self.mapping, objects, write_mode, self.id_generator)
+            dml = convert.objects_to_dml(self.mapping, objects, write_mode, self.id_generator, True)
         except convert.DataException as e:
             raise CrudException(str(e)) from e
 
@@ -108,10 +369,6 @@ class CRUD():
         await db_bulk.executemany(operations)
         response = {}
         for object_type, obj_list in objects.items():
-            if not isinstance(obj_list, list):
-                raise CrudException('provide list of objects per object type')
-            if object_type not in self.mapping['entities']:
-                raise CrudException(f'unknown object type {object_type}')
             root_table = self.mapping['tables'][self.mapping['entities']
                                         [object_type]['table_name']]
             key_property = root_table['columns'][root_table['pk']

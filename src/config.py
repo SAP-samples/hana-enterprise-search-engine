@@ -43,7 +43,7 @@ if __name__ == '__main__':
     parser.add_argument('--db-setup-user', help='Admin user for setup', type=str, metavar='db_setup_user')
     parser.add_argument('--db-setup-password', help='Password for admin user', type=str, metavar='db_setup_password')
     parser.add_argument('--db-schema-prefix', help='Schema prefix for this installation', metavar='db_schema_prefix')
-    parser.add_argument('--srv-host', help='Server host', type=str, metavar='srv_host', default='127.0.0.1')
+    parser.add_argument('--srv-host', help='Server host', type=str, metavar='srv_host', default='0.0.0.0')
     parser.add_argument('--srv-port', help='Server port', type=int, metavar='srv_port', default=8000)
     parser.add_argument('--srv-log-level', type=str, help='Server log level', metavar='srv_log_level',\
         choices=['critical', 'error', 'warning', 'info', 'debug', 'trace'], default='info')

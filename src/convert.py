@@ -558,13 +558,13 @@ def association_to_dml(id_generator, idmapping, prop, k, v):
 
 def object_to_dml(mapping, inserts, objects, idmapping, write_mode, id_generator, subtable_level = 0, col_prefix = [],\
     parent_object_id = None, propagated_row = None, propagated_object_id = None
-    , entity = {}, parent_table_name = ''):
+    , entity = {}, parent_table_name = '', external_id = False):
     if 'table_name' in entity:
         full_table_name = entity['table_name']
     else:
         full_table_name = parent_table_name
     for obj in objects:
-        if write_mode == WriteMode.CREATE and subtable_level == 0 and 'id' in obj:
+        if write_mode == WriteMode.CREATE and subtable_level == 0 and 'id' in obj and not external_id:
             raise DataException('id is a reserved property name')
         if propagated_row is None:
             row = []
@@ -583,11 +583,17 @@ def object_to_dml(mapping, inserts, objects, idmapping, write_mode, id_generator
                                 object_id = idmapping[hashable_key]['id']
                                 idmapping[hashable_key]['resolved'] = True
                             else:
-                                object_id = id_generator.get_id(full_table_name, subtable_level)
+                                if external_id:
+                                    object_id = obj['id']
+                                else:
+                                    object_id = id_generator.get_id(full_table_name, subtable_level)
                                 idmapping[hashable_key] = {'id':object_id, 'resolved':True}
                     if mapping['tables'][full_table_name]['pk'] == 'ID':
                         if not object_id:
-                            object_id = id_generator.get_id(full_table_name, subtable_level)
+                            if external_id:
+                                object_id = obj['id']
+                            else:
+                                object_id = id_generator.get_id(full_table_name, subtable_level)
                         obj['id'] = object_id
                 else:
                     key = mapping['tables'][full_table_name]['columns'][mapping['tables'][full_table_name]['pk']]['external_path'][0]
@@ -644,14 +650,14 @@ def object_to_dml(mapping, inserts, objects, idmapping, write_mode, id_generator
             inserts[full_table_name]['rows'].append(row)
 
 
-def objects_to_dml(mapping, objects, write_mode, id_generator):
+def objects_to_dml(mapping, objects, write_mode, id_generator, external_id = False):
     inserts = {}
     idmapping = {}
     for object_type, objects in objects.items():
         if not object_type in mapping['entities']:
             raise DataException(f'Unknown object type {object_type}')
         object_to_dml(mapping, inserts, objects, idmapping, write_mode, id_generator,
-            entity=mapping['entities'][object_type])
+            entity=mapping['entities'][object_type], external_id = external_id)
     if idmapping:
         dangling = [json.loads(k) for k, v in idmapping.items() if not v['resolved']]
         if dangling:

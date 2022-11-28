@@ -173,7 +173,7 @@ async def post_tenant(tenant_id, tenant_config = Body(None)):
             db.cur.executemany(sql, values)
             db.cur.connection.commit()
 
-    return {'detail': f"Tenant '{tenant_id}' successfully created"}
+    return {'detail': f"Tenant successfully created"}
 
 @app.delete('/v1/tenant/{tenant_id}')
 async def delete_tenant(tenant_id: str):
@@ -191,7 +191,7 @@ async def delete_tenant(tenant_id: str):
             else:
                 handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
         db.cur.connection.commit()
-    return {'detail': f"Tenant '{tenant_id}' successfully deleted"}
+    return {'detail': f"Tenant successfully deleted"}
 
 
 @app.get('/v1/tenant')

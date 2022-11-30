@@ -303,8 +303,8 @@ class CRUD():
             for object_type, v in unknown_sources_new.items():
                 if not object_type in err:
                     err[object_type] = []
-                for (name, typ, sid), oid in v.items():
-                    err[object_type].append({'id':oid, 'source':[{'name':name, 'type': typ, 'sid': sid}]})
+                for (name, typ, sid) in v:
+                    err[object_type].append({'source':[{'name':name, 'type': typ, 'sid': sid}]})
             s = json.dumps(err)
             raise CrudException(f'Associated object does not exist: {s}')
         return (provided_ids_new, provided_ids_on_db, provided_sources_new, provided_sources_on_db,\

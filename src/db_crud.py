@@ -165,8 +165,11 @@ class CRUD():
                                     unknown_objects['id'] = {}
                                 if object_type not in unknown_objects['id']:
                                     unknown_objects['id'][object_type] = {}
-                                unknown_objects['id'][object_type][v['id']] = do
-                                associations[k] = do
+                                if v['id'] in unknown_objects['id'][object_type]:
+                                    associations[k] = unknown_objects['id'][object_type][v['id']]
+                                else:
+                                    unknown_objects['id'][object_type][v['id']] = do
+                                    associations[k] = do
                         elif 'source' in v:
                             if not (isinstance(v['source'], list) and len(v['source']) == 1):
                                 raise CrudException(f'Property {k} is association. Source property must be list of length 1')
@@ -179,8 +182,11 @@ class CRUD():
                                     unknown_objects['source'] = {}
                                 if object_type not in unknown_objects['source']:
                                     unknown_objects['source'][object_type] = {}
-                                unknown_objects['source'][object_type][source_key] = do
-                                associations[k] = do
+                                if source_key in unknown_objects['source'][object_type]:
+                                    associations[k] = unknown_objects['source'][object_type][source_key]
+                                else:
+                                    unknown_objects['source'][object_type][source_key] = do
+                                    associations[k] = do
                         else:
                             raise CrudException(f'Property {k} is association. Needs either "id":str or "source":[] to establish foreign key')
                 else:
@@ -206,9 +212,8 @@ class CRUD():
         for object_type, oids in obj_keys['id'].items():
             if oids:
                 table_name = self.mapping['entities'][object_type]['table_name']
-                keys = set(oids)
-                ids_str = ', '.join([f"'{str(w)}'" for w in keys])
-                provided_ids_sql[object_type] = {'keys': keys, 'sql':
+                ids_str = ', '.join([f"'{str(w)}'" for w in oids])
+                provided_ids_sql[object_type] = {'keys': set(oids), 'sql':
                     f'select "ID" from "{self.schema_name}"."{table_name}" where "ID" in ({ids_str})'}
         provided_ids_promise = db_bulk.execute_fetchall([w['sql'] for w in provided_ids_sql.values()])\
             if provided_ids_sql else None
@@ -216,10 +221,9 @@ class CRUD():
         provided_sources_sql = {}
         for object_type, source_list in obj_keys['source'].items():
             table_name = self.mapping['entities'][object_type]['elements']['source']['items']['table_name']
-            keys = set(source_list)
             where_clause = ' OR '.join(\
             [f'("NAME" = \'{name}\' and "TYPE" = \'{type}\' and "SID" = \'{sid}\')' for name, type, sid in source_list])
-            provided_sources_sql[object_type] = {'keys': keys, 'sql':
+            provided_sources_sql[object_type] = {'keys': set(source_list), 'sql':
                 f'select "_ID", "NAME", "TYPE", "SID" from "{self.schema_name}"."{table_name}" where {where_clause}'}
         provided_sources_promise = db_bulk.execute_fetchall([w['sql'] for w in provided_sources_sql.values()])\
             if provided_sources_sql else None
@@ -228,9 +232,8 @@ class CRUD():
         if 'id' in unknown_objects:
             for object_type, v in unknown_objects['id'].items():
                 table_name = self.mapping['entities'][object_type]['table_name']
-                keys = set(v.keys())
-                ids_str = ', '.join([f"'{str(w)}'" for w in keys])
-                unknown_ids_sql[object_type] = {'keys': keys, 'sql':
+                ids_str = ', '.join([f"'{str(w)}'" for w in v.keys()])
+                unknown_ids_sql[object_type] = {'keys': set(v.keys()), 'sql':
                     f'select "ID" from "{self.schema_name}"."{table_name}" where "ID" in ({ids_str})'}
         unknown_ids_promise = db_bulk.execute_fetchall([w['sql'] for w in unknown_ids_sql.values()])\
             if unknown_ids_sql else None
@@ -239,10 +242,9 @@ class CRUD():
         if 'source' in unknown_objects:
             for object_type, v in unknown_objects['source'].items():
                 table_name = self.mapping['entities'][object_type]['elements']['source']['items']['table_name']
-                keys = set(v.keys())
                 where_clause = ' OR '.join(\
-                [f'("NAME" = \'{name}\' and "TYPE" = \'{type}\' and "SID" = \'{sid}\')' for name, type, sid in keys])
-                unknown_sources_sql[object_type] = {'keys': keys, 'sql':
+                [f'("NAME" = \'{name}\' and "TYPE" = \'{type}\' and "SID" = \'{sid}\')' for name, type, sid in v.keys()])
+                unknown_sources_sql[object_type] = {'keys': set(v.keys()), 'sql':
                     f'select "_ID", "NAME", "TYPE", "SID" from "{self.schema_name}"."{table_name}" where {where_clause}'}
         unknown_sources_promise = db_bulk.execute_fetchall([w['sql'] for w in unknown_sources_sql.values()])\
             if unknown_sources_sql else None

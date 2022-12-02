@@ -7,6 +7,7 @@ import sys
 import uuid
 from datetime import datetime
 from typing import List
+from time import sleep
 
 import httpx
 import uvicorn
@@ -208,6 +209,43 @@ def get_tenants_sync():
             db.cur.execute(sql)
             return [{'name': w[0][len(glob.db_tenant_prefix):], 'createdAt':  w[1]} for w in db.cur.fetchall()]
         except HDBException as e:
+            handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
+
+@app.post('/v1/admin/{tenant_id}')
+async def admin_tenant(tenant_id):
+    schema_name = get_tenant_schema_name(tenant_id)
+    doc_queue = 0
+    with DBConnection(glob.connection_pools[DBUserType.ADMIN]) as db:
+        retry = 10
+        sql = f"select sum(QUEUE_DOCUMENT_COUNT) from sys.M_FULLTEXT_QUEUES where SCHEMA_NAME = '{schema_name}'"
+        while retry:
+            print(sql)
+            db.cur.execute(sql)
+            res = db.cur.fetchone()[0]
+            if res:
+                doc_queue = int(res)
+            else:
+                doc_queue = 0
+            if doc_queue:
+                sleep(1)
+                retry -= 1
+            else:
+                break
+    if doc_queue and not retry:
+        raise HTTPException(500, f'Fulltext index queue has still {doc_queue} items to process')
+    mapping = get_mapping(tenant_id, schema_name)
+    if not mapping:
+        return
+    sqls = [f'merge delta of "{schema_name}"."{w}"' for w in mapping['tables'].keys()]
+    block_size = CONCURRENT_CONNECTIONS if len(sqls) > CONCURRENT_CONNECTIONS else len(sqls)
+    with DBBulkProcessing(glob.connection_pools[DBUserType.SCHEMA_MODIFY], block_size) as db_bulk:
+        try:
+            await db_bulk.execute(sqls)
+            await db_bulk.commit()
+        except HDBExceptionProgrammingError as e:
+            handle_error(f'{e.errortext}', 400)
+        except HDBException as e:
+            await db_bulk.rollback()
             handle_error(f'dbapi Error: {e.errorcode}, {e.errortext}')
 
 

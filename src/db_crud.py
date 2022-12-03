@@ -9,7 +9,6 @@ from constants import (CONCURRENT_CONNECTIONS, TYPES_B64_ENCODE, TYPES_SPATIAL,
                        DBUserType)
 import convert
 
-
 class CrudException(Exception):
     """ Exception in CRUD """
 
@@ -90,38 +89,6 @@ class CRUD():
 
         return obj_key_idx, obj_keys
 
-    '''
-    async def _classify_ids(self, ids_sql, ids_promise, obj_keys_used):
-        ids_new = {}
-        ids_on_db = {}
-        if ids_sql:
-            provided_ids = await ids_promise
-            for i, (object_type, oids) in enumerate(obj_keys_used.items()):
-                in_msg = set(oids)
-                on_db = set([w[0] for w in provided_ids[i]])
-                new = in_msg - on_db
-                if new:
-                    ids_new[object_type] = new
-                if on_db:
-                    ids_on_db[object_type] = on_db
-        return (ids_new, ids_on_db)
-
-
-    async def _classify_keys(self, sources_sql, sources_promise, obj_keys_used):
-        sources_new = {}
-        sources_on_db = {}
-        if sources_sql:
-            provided_sources = await sources_promise
-            for i, (object_type, source_keys) in enumerate(obj_keys_used.items()):
-                in_msg = set(source_keys)
-                on_db = {(w[1], w[2], w[3]):w[0] for w in provided_sources[i]}
-                new = in_msg - set(on_db)
-                if new:
-                    sources_new[object_type] = new
-                if on_db:
-                    sources_on_db[object_type] = on_db
-        return (sources_new, sources_on_db)
-'''
 
     async def _classify(self, key_sql, key_promise, access_func):
         new_keys = {}
@@ -129,14 +96,15 @@ class CRUD():
         if key_sql:
             keys_fetched = await key_promise
             for i, (object_type, ks) in enumerate(key_sql.items()):
-                #for i, (object_type, requested_keys) in enumerate(obj_keys_used.items()):
-                #in_msg = set(requested_keys)
                 on_db = access_func(keys_fetched[i])
                 new = ks['keys'] - set(on_db)
                 if new:
-                    new_keys[object_type] = new
+                    new_keys[object_type] = sorted(list(new))
                 if on_db:
-                    keys_on_db[object_type] = on_db
+                    if isinstance(on_db, set):
+                        keys_on_db[object_type] = sorted(list(on_db))
+                    else:
+                        keys_on_db[object_type] = dict(sorted(on_db.items()))
         return (new_keys, keys_on_db)
 
 
@@ -196,7 +164,7 @@ class CRUD():
                 obj[k] = v
         elif isinstance(obj, list):
             if not 'items' in entity:
-                raise CrudException(f'list expected, {str.dumps(obj)} found')
+                raise CrudException(f'list expected, {json.dumps(obj)} found')
             for o in obj:
                 self._process_associations(obj_key_idx, entity['items'], o, unknown_objects)
 
@@ -207,47 +175,59 @@ class CRUD():
             for obj in obj_list:
                 self._process_associations(\
                     obj_key_idx, self.mapping['entities'][object_type], obj, unknown_objects)
+        #if 1 == 2 and write_mode == convert.WriteMode.CREATE:
+        #    if 'id' in obj_key_idx and obj_key_idx['id']:
+        #        raise CrudException(f'Providing object key "id" is not allowed , {json.dumps(obj_key_idx["id"])} found')
+        #    for object_type, source_keys in obj_keys['source'].items():
+        #        for source_key in source_keys:
+        #            obj_key_idx[object_type][source_key]['id'] = self.id_generator.get_id('', 0)
+        #else:
 
         provided_ids_sql = {}
         for object_type, oids in obj_keys['id'].items():
             if oids:
                 table_name = self.mapping['entities'][object_type]['table_name']
-                ids_str = ', '.join([f"'{str(w)}'" for w in oids])
-                provided_ids_sql[object_type] = {'keys': set(oids), 'sql':
+                key = set(oids)
+                ids_str = ', '.join([f"'{str(w)}'" for w in key])
+                provided_ids_sql[object_type] = {'keys': key, 'sql':
                     f'select "ID" from "{self.schema_name}"."{table_name}" where "ID" in ({ids_str})'}
         provided_ids_promise = db_bulk.execute_fetchall([w['sql'] for w in provided_ids_sql.values()])\
             if provided_ids_sql else None
-
-        provided_sources_sql = {}
-        for object_type, source_list in obj_keys['source'].items():
-            table_name = self.mapping['entities'][object_type]['elements']['source']['items']['table_name']
-            where_clause = ' OR '.join(\
-            [f'("NAME" = \'{name}\' and "TYPE" = \'{type}\' and "SID" = \'{sid}\')' for name, type, sid in source_list])
-            provided_sources_sql[object_type] = {'keys': set(source_list), 'sql':
-                f'select "_ID", "NAME", "TYPE", "SID" from "{self.schema_name}"."{table_name}" where {where_clause}'}
-        provided_sources_promise = db_bulk.execute_fetchall([w['sql'] for w in provided_sources_sql.values()])\
-            if provided_sources_sql else None
 
         unknown_ids_sql = {}
         if 'id' in unknown_objects:
             for object_type, v in unknown_objects['id'].items():
                 table_name = self.mapping['entities'][object_type]['table_name']
-                ids_str = ', '.join([f"'{str(w)}'" for w in v.keys()])
-                unknown_ids_sql[object_type] = {'keys': set(v.keys()), 'sql':
+                key = set(v.keys())
+                ids_str = ', '.join([f"'{str(w)}'" for w in key])
+                unknown_ids_sql[object_type] = {'keys': key, 'sql':
                     f'select "ID" from "{self.schema_name}"."{table_name}" where "ID" in ({ids_str})'}
         unknown_ids_promise = db_bulk.execute_fetchall([w['sql'] for w in unknown_ids_sql.values()])\
             if unknown_ids_sql else None
 
+        provided_sources_sql = {}
+        for object_type, source_list in obj_keys['source'].items():
+            table_name = self.mapping['entities'][object_type]['elements']['source']['items']['table_name']
+            key = set(source_list)
+            where_clause = ' OR '.join(\
+            [f'("NAME" = \'{name}\' and "TYPE" = \'{type}\' and "SID" = \'{sid}\')' for name, type, sid in key])
+            provided_sources_sql[object_type] = {'keys': key, 'sql':
+                f'select "_ID", "NAME", "TYPE", "SID" from "{self.schema_name}"."{table_name}" where {where_clause}'}
+        provided_sources_promise = db_bulk.execute_fetchall([w['sql'] for w in provided_sources_sql.values()])\
+            if provided_sources_sql else None
+
         unknown_sources_sql = {}
         if 'source' in unknown_objects:
             for object_type, v in unknown_objects['source'].items():
+                key = set(v.keys())
                 table_name = self.mapping['entities'][object_type]['elements']['source']['items']['table_name']
                 where_clause = ' OR '.join(\
-                [f'("NAME" = \'{name}\' and "TYPE" = \'{type}\' and "SID" = \'{sid}\')' for name, type, sid in v.keys()])
-                unknown_sources_sql[object_type] = {'keys': set(v.keys()), 'sql':
+                [f'("NAME" = \'{name}\' and "TYPE" = \'{type}\' and "SID" = \'{sid}\')' for name, type, sid in key])
+                unknown_sources_sql[object_type] = {'keys': key, 'sql':
                     f'select "_ID", "NAME", "TYPE", "SID" from "{self.schema_name}"."{table_name}" where {where_clause}'}
         unknown_sources_promise = db_bulk.execute_fetchall([w['sql'] for w in unknown_sources_sql.values()])\
             if unknown_sources_sql else None
+
         provided_ids_new, provided_ids_on_db = await\
             self._classify(provided_ids_sql, provided_ids_promise,\
                 lambda a : set([w[0] for w in a]))
@@ -309,8 +289,6 @@ class CRUD():
                     err[object_type].append({'source':[{'name':name, 'type': typ, 'sid': sid}]})
             s = json.dumps(err)
             raise CrudException(f'Associated object does not exist: {s}')
-        return (provided_ids_new, provided_ids_on_db, provided_sources_new, provided_sources_on_db,\
-            unknown_ids_new, unknown_ids_on_db, unknown_sources_new, unkown_sources_on_db)
 
     async def write_data(self, objects, write_mode: convert.WriteMode):
         with DBBulkProcessing(glob.connection_pools[DBUserType.DATA_WRITE], CONCURRENT_CONNECTIONS) as db_bulk:

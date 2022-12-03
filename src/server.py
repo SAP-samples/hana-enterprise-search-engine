@@ -219,7 +219,6 @@ async def admin_tenant(tenant_id):
         retry = 10
         sql = f"select sum(QUEUE_DOCUMENT_COUNT) from sys.M_FULLTEXT_QUEUES where SCHEMA_NAME = '{schema_name}'"
         while retry:
-            print(sql)
             db.cur.execute(sql)
             res = db.cur.fetchone()[0]
             if res:

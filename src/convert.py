@@ -563,6 +563,8 @@ def object_to_dml(mapping, inserts, objects, idmapping, write_mode, id_generator
         full_table_name = entity['table_name']
     else:
         full_table_name = parent_table_name
+    if 'items' in entity:
+        raise DataException(f'list expected for {json.dumps(objects)}')
     for obj in objects:
         if write_mode == WriteMode.CREATE and subtable_level == 0 and 'id' in obj and not external_id:
             raise DataException('id is a reserved property name')

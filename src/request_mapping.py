@@ -139,7 +139,7 @@ def map_request_to_rule_set_old(schema_name: str, mapping: dict, incoming_reques
                     minFuzziness = column_fuzziness,
                     ifMissingAction = "skipRule"
                 )
-                ruleset.rule = Rule(name="rule1", column=column)
+                ruleset.rule = Rule(name="rule1", columns=[column])
 
                 # print(property_name, operator,value, db_column_name)
                 query.column.append(Column(name=db_column_name, value=value))
@@ -187,16 +187,45 @@ def map_request_to_rule_set(schema_name: str, mapping: dict, incoming_request: E
                 # column_fuzziness = mapping_table["columns"][db_column_name]["annotations"]["@Search.fuzzinessThreshold"]
                 # if column_fuzziness is None:
                 #    column_fuzziness = 0.77
+                
+                '''
                 column_fuzziness = 0.85
                 column=Column(
                     name = db_column_name,
                     minFuzziness = column_fuzziness,
                     ifMissingAction = "skipRule"
                 )
-                ruleset.rule = Rule(name="rule1", column=column)
-
+                ruleset.rule = Rule(name="rule1", columns=[column])
+                '''
                 # print(property_name, operator,value, db_column_name)
                 query.column.append(Column(name=db_column_name, value=value))
+
+
+        if incoming_request.rules:
+            for rule in incoming_request.rules:
+                # print(rule)
+                if ruleset.rules is None:
+                    ruleset.rules = []
+                rule_columns = []
+                for rule_column in rule.columns:
+                    property_name = rule_column.name
+                    # value = parameter.value.value
+
+                    db_column_name = scope_entity["elements"][property_name]["column_name"]
+                    # column_fuzziness = mapping_table["columns"][db_column_name]["annotations"]["@Search.fuzzinessThreshold"]
+                    # if column_fuzziness is None:
+                    #    column_fuzziness = 0.77
+                    # column_fuzziness = rule_column.minFuzziness if rule_column.minFuzziness is not None else 0.85
+                    column=Column(
+                        name = db_column_name,
+                        minFuzziness = rule_column.minFuzziness if rule_column.minFuzziness is not None else 0.85,
+                        ifMissingAction = rule_column.ifMissingAction if rule_column.ifMissingAction is not None else "skipRule"
+                    )
+                    rule_columns.append(column)
+                ruleset.rules.append(Rule(name=rule.name, columns=rule_columns))
+
+                # print(property_name, operator,value, db_column_name)
+                # query.column.append(Column(name=db_column_name, value=value))
 
         '''
         if incoming_request.query.searchQueryFilter is not None:
@@ -242,16 +271,18 @@ def map_request_to_rule_set(schema_name: str, mapping: dict, incoming_request: E
 
 if __name__ == "__main__":
     import esh_client
-    testEsh = EshObject()
-    testEsh.top = 23
-    testEsh.scope = ["Document"]
-    testEsh.searchQueryFilter = esh_client.Expression(items=[
+    
+    test_query = EshObject()
+    test_query.top = 23
+    test_query.scope = ["Document"]
+    test_query.searchQueryFilter = esh_client.Expression(items=[
         esh_client.Comparison(
             property=esh_client.Property(property=["title"]),
             operator=esh_client.ComparisonOperator.Search,
             value=esh_client.StringValue(value="First Document")
         )
     ])
+    testEsh = EshRequest(query=test_query)
 
     model_mapping_json = '''
         {
@@ -323,10 +354,67 @@ if __name__ == "__main__":
             }
         }
     '''
+    test_model_dict = json.loads(model_mapping_json)
+    test_schema_name = "TEST_Schema"
 
-
-    mapped_rule_set = map_request_to_rule_set("TEST_Schema", json.loads(model_mapping_json), testEsh)
+    mapped_rule_set = map_request_to_rule_set(test_schema_name, test_model_dict, testEsh)
     print(json.dumps(mapped_rule_set.dict(exclude_none=True), indent=2))
 
     search_rule_set_query= esh_objects.generate_search_rule_set_query(mapped_rule_set)
     print(esh_objects.convert_search_rule_set_query_to_string(search_rule_set_query))
+
+    test_json = '''{
+        "parameters": [
+            {
+            "name": "title",
+            "value": {
+                    "type": "StringValue",
+                    "value": "Document"
+                }
+            }
+        ],
+        "query": {
+            "top": 10,
+            "skip": 0,
+            "scope": [
+            "Document"
+            ],
+            "select": [
+            {
+                "type": "Property",
+                "property": "title"
+            }
+            ]
+        },
+        "rules": [
+            {
+            "name": "myRule1",
+            "columns": [
+                {
+                "name": "title",
+                "minFuzziness": 0.71,
+                "ifMissingAction": "skipRule"
+                }
+            ]
+            },
+            {
+            "name": "myRule2",
+            "columns": [
+                {
+                "name": "text",
+                "minFuzziness": 0.84,
+                "ifMissingAction": "skipRule"
+                }
+            ]
+            }
+        ]
+    }'''
+
+    test_esh_request = esh_client.EshRequest.parse_obj(json.loads(test_json))
+    
+    test_mapping_rule_set = map_request_to_rule_set(test_schema_name, test_model_dict, test_esh_request)
+    test_search_rule_set_query = esh_objects.generate_search_rule_set_query(test_mapping_rule_set)
+    test_search_rule_set_query_string = esh_objects.convert_search_rule_set_query_to_string(test_search_rule_set_query)
+
+    print(test_search_rule_set_query_string)
+

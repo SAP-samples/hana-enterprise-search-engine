@@ -36,6 +36,7 @@ import db_search as search
 
 # run with uvicorn src.server:app --reload
 app = FastAPI()
+app.type = "00"
 app.mount('/static', StaticFiles(directory='static'), name='static')
 
 LENGTH_ODATA_METADATA_PREFIX = len('$metadata#')
@@ -201,6 +202,20 @@ async def get_tenants():
 
 
 def get_tenants_sync():
+    if DBUserType.ADMIN not in glob.connection_pools:
+        with open('src/.config.json', encoding='utf-8') as fr:
+            config = json.load(fr)
+        for user_type_value, user_item in config['db']['user'].items():
+            if user_type_value == DBUserType.ADMIN.value:
+                user_type = DBUserType(user_type_value)
+                user_name = user_item['name']
+                user_password = user_item['password']
+                db_host = config['db']['connection']['host']
+                db_port = config['db']['connection']['port']
+                credentials = Credentials(db_host, db_port, user_name, user_password)
+                glob.connection_pools[user_type] = ConnectionPool(credentials)
+                glob.db_schema_prefix = config['deployment']['schemaPrefix']
+                glob.db_tenant_prefix = glob.db_schema_prefix + TENANT_PREFIX
     with DBConnection(glob.connection_pools[DBUserType.ADMIN]) as db:
         try:
             sql = f'select schema_name, create_time from sys.schemas \
@@ -355,21 +370,21 @@ async def get_search_by_tenant(tenant_id):
 def get_search_metadata(tenant_id, esh_version):
     schema_name = get_tenant_schema_name(tenant_id)
     return Response(
-        content=search.perform_search(esh_version, schema_name, '/$metadata', True), media_type='application/xml')
+        content=search.perform_search(esh_version, schema_name, '/$metadata', True), headers={"Access-Control-Allow-Origin":"*"}, media_type='application/xml')
 
 
 @app.get('/v1/search/{tenant_id:path}/{esh_version:path}/$metadata/{path:path}')
 def get_search_metadata_entity_set(tenant_id, esh_version, path):
     schema_name = get_tenant_schema_name(tenant_id)
     return Response(
-        content=search.perform_search(esh_version, schema_name, '/$metadata/{}' + path, True), media_type='application/xml')
+        content=search.perform_search(esh_version, schema_name, '/$metadata/{}' + path, True), headers={"Access-Control-Allow-Origin":"*"}, media_type='application/xml')
 
 
 @app.get('/v1/search/{tenant_id:path}/{esh_version:path}/$all/{path:path}')
 def get_search_all_suggestion(tenant_id, esh_version, path):
     schema_name = get_tenant_schema_name(tenant_id)
     return Response(
-        content=search.perform_search(esh_version, schema_name, f'/$all/{path}', True), media_type='application/json')
+        content=search.perform_search(esh_version, schema_name, f'/$all/{path}', True), headers={"Access-Control-Allow-Origin":"*"}, media_type='application/json')
 
 
 @app.post('/eshobject')
@@ -499,6 +514,7 @@ async def ruleset_v01(tenant_id, ruleset: SearchRuleSet):
     result = []
     with DBConnection(glob.connection_pools[DBUserType.DATA_READ]) as db:
         params = (convert_search_rule_set_query_to_string(data),)
+        print(params)
         db.cur.callproc('EXECUTE_SEARCH_RULE_SET', params)
         # search_results = [json.loads(w[0]) for w in db.cur.fetchall()]
         rows = db.cur.fetchall()
@@ -527,6 +543,9 @@ async def tile_request(path: str, response: Response):
         proxy = await client.get(f'https://sapui5.hana.ondemand.com/{sapui5_version}{path}')
     response.body = proxy.content
     response.status_code = proxy.status_code
+    if "Content-Type" in proxy.headers:
+        response.headers["Content-Type"] = proxy.headers["Content-Type"]
+    response.headers["Access-Control-Allow-Origin"] = "*"
     return response
 
 
@@ -545,9 +564,9 @@ def reindex_needed(l_versions, l_config):
 def new_version(l_versions, l_config):
     new_v = [k for k, v in l_versions.items() if k > l_config['version']]
     return len(new_v) > 0
-
-
-if __name__ == '__main__':
+config = {}
+def initialization():
+    global config
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
     with open('src/versions.json', encoding='utf-8') as fr:
         versions = json.load(fr)
@@ -601,6 +620,13 @@ if __name__ == '__main__':
             str(json.loads(db_read.cur.fetchone()[0])['apiversion'])
         #logging.info('ESH_SEARCH calls will use API-version %s', glob.esh_apiversion)
 
-    cs = config['server']
+initialization()
+
+cs = config['server']
+
+if __name__ == '__main__':
+    if 'workers' not in cs:
+        cs['workers'] = 1
+    print(f"workers: {cs['workers']}")
     uvicorn.run('server:app', host=cs['host'], port=cs['port'],
-                log_level=cs['logLevel'], reload=cs['reload'])
+                log_level=cs['logLevel'], reload=cs['reload'], workers=cs['workers'])

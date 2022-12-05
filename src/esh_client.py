@@ -295,13 +295,17 @@ class Column(BaseModel):
     value: str | None
     minFuzziness: float | None
     ifMissingAction: str | None
+# class Rule(BaseModel):
+#    name: str | None
+#    column: Column | None
+
 class Rule(BaseModel):
-    name: str | None
-    column: Column | None
+    name: str
+    columns: list[Column]
 class RuleSet(BaseModel):
     # scoreSelection currently only firstRule
     attributeView: AttributeView | None
-    rule: Rule | None
+    rules: list[Rule] | None
     # name: str
 
 class ResultSetColumn(BaseModel):
@@ -319,6 +323,10 @@ class Parameter(BaseModel):
 class SearchRuleSet(BaseModel):
     query: Query | None
 
+
+
+
 class EshRequest(BaseModel):
     parameters: list[Parameter] | None
     query: EshObject
+    rules: list[Rule] | None

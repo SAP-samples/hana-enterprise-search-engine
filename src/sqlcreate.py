@@ -36,6 +36,10 @@ def get_columns(table):
 def get_indices(tables, schema_name, hana_version):
     indices = []
     for table in tables.values():
+        if table['external_path'][-1] == 'source' and 'NAME' in table['columns'] and 'SID' in table['columns'] and 'TYPE' in table['columns']:
+            sql = f'create unique index "{table[Constants.table_name]}_SOURCE" on "{schema_name}"."{table[Constants.table_name]}"("NAME", "TYPE", "SID")'
+            indices.append(sql)
+        #CREATE UNIQUE INDEX idx3 ON t(b, c);
         for i, (prop_name, prop) in enumerate(table[Constants.columns].items()):
             if 'annotations' in prop and '@sap.esh.isText' in prop['annotations'] and prop['annotations']['@sap.esh.isText']:
                 if hana_version == 2:

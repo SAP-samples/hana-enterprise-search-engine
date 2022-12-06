@@ -47,6 +47,13 @@ entity Document {
         @UI.Identification                           : [{Position : 80}]
         @EndUserText.Label                           : 'Document type'
         @Search.defaultSearchElement
-        docType   : String(10)
+        docType   : String(10);
 
+        @UI.Identification                           : [{
+            Position : 100,
+            url      : 'docURL'
+        }]
+        @EndUserText.Label                           : 'Document URL'
+        @Search.defaultSearchElement
+        docURL    : String
 }

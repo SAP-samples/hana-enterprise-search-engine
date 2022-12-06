@@ -123,7 +123,7 @@ class ColumnView:
                     col_conf['@Search.defaultSearchElement'] = True
             elif column['type'] not in ['ST_POINT', 'ST_GEOMETRY']:
                 col_conf['@Search.defaultSearchElement'] = True
-            if not join_path_id:
+            if not join_path_id and not ('@UI.hidden' in col_conf and col_conf['@UI.hidden']):
                 col_conf['@UI.identification'] = [{'position': next(self.ui_position_gen)}]
         self.esh_config['content']['EntityType']['Properties'].append(col_conf)
 

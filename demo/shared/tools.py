@@ -23,7 +23,10 @@ def get_base_url():
     config_file = os.path.join(sys.path[-1], 'src', '.config.json')
     with open(config_file, encoding='utf-8') as f:
         config = json.load(f)
-    return  f"http://{config['server']['host']}:{config['server']['port']}"
+    host = config['server']['host']
+    port = config['server']['port']
+    host = host if host != '0.0.0.0' else '127.0.0.1'
+    return  f"http://{host}:{port}"
 
 def get_root_path():
     return sys.path[0]

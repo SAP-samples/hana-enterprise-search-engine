@@ -875,22 +875,23 @@ def generate_search_rule_set_query(search_result_set: esh_client.SearchRuleSet):
                         attributeView = ET.SubElement(ruleset, "attributeView", name=f'"{rule_set_request.attributeView.db_schema}"."{rule_set_request.attributeView.name}"')
                         keyColumn = ET.SubElement(attributeView, "keyColumn", name=rule_set_request.attributeView.key_column)
 
-                    if rule_set_request.rule is not None:
-                        rule = ET.SubElement(ruleset, "rule", name=rule_set_request.rule.name)
+                    if rule_set_request.rules is not None:
+                        for rule_definition in rule_set_request.rules:
+                            rule = ET.SubElement(ruleset, "rule", name=rule_definition.name)
 
 
-                        
-                        rule1column1 = ET.SubElement(rule, "column", name=rule_set_request.rule.column.name, minFuzziness=str(rule_set_request.rule.column.minFuzziness))
-                        ifMissing = ET.SubElement(rule1column1, "ifMissing", action=rule_set_request.rule.column.ifMissingAction)
+                            for ruleset_column in rule_definition.columns:
+                                rule1column1 = ET.SubElement(rule, "column", name=ruleset_column.name, minFuzziness=str(ruleset_column.minFuzziness))
+                                ifMissing = ET.SubElement(rule1column1, "ifMissing", action=ruleset_column.ifMissingAction)
 
 
-                        '''
-                        if search_result_set.query.ruleset.rule.column is not None:
-                            column = ET.SubElement(rule, "column", name='Rule 1')
-                            if search_result_set.query.ruleset.rule.column.ifMissingAction is not None:
-                                ifMissing = ET.SubElement(column, "ifMissing", action=search_result_set.query.ruleset.rule.column.ifMissingAction.ifMissingAction)
-                        '''
-                        # keyColumn = ET.SubElement(attributeView, "keyColumn", name='EMPLOYEE_ID')
+                            '''
+                            if search_result_set.query.ruleset.rule.column is not None:
+                                column = ET.SubElement(rule, "column", name='Rule 1')
+                                if search_result_set.query.ruleset.rule.column.ifMissingAction is not None:
+                                    ifMissing = ET.SubElement(column, "ifMissing", action=search_result_set.query.ruleset.rule.column.ifMissingAction.ifMissingAction)
+                            '''
+                            # keyColumn = ET.SubElement(attributeView, "keyColumn", name='EMPLOYEE_ID')
 
                     query.append(ruleset)
 

@@ -205,10 +205,9 @@ def addFuzzySearchOptions(item: str, searchOptions: SearchOptionsInternal) -> st
 
 class PropertyInternal(esh_client.Property):
     type: Literal['PropertyInternal'] = 'PropertyInternal'
-    property: str
 
     def to_statement(self):
-        return self.property
+        return ".".join(self.property)
 
 class OrderByInternal(esh_client.OrderBy):
     type: Literal['OrderByInternal'] = 'OrderByInternal'
@@ -709,7 +708,7 @@ def map_query(item):
                 )
             case 'Property':
                 result = PropertyInternal(
-                    property = item.property if isinstance(item.property, str) else ".".join(item.property)
+                    property = item.property
                 )
             case 'OrderBy':
                 result = OrderByInternal(
@@ -938,7 +937,7 @@ if __name__ == '__main__':
             raise e
 
 
-    mapped_object = map_query(esh_client.Property(property='aa'))
+    mapped_object = map_query(esh_client.Property(property=['aa']))
     assert mapped_object.to_statement() == 'aa'
 
     mapped_object_b = map_query(esh_client.Property(property=['bb','cc']))
@@ -953,7 +952,7 @@ if __name__ == '__main__':
     aas = map_query(esh_client.Comparison.parse_obj(comp))
     assert aas.to_statement() == 'language:EQ:Python'
 
-    comp1 = {'property': {'type':"Property", "property": "language"}, \
+    comp1 = {'property': {'type':"Property", "property": ["language"]}, \
         'operator': ':EQ:', 'value': { Constants.type: 'StringValue', 'value': 'Java'}}
     aas1 = map_query(esh_client.Comparison.parse_obj(comp1))
     assert aas1.to_statement() == 'language:EQ:Java'
@@ -983,10 +982,10 @@ if __name__ == '__main__':
         'whyfound': True,
         'select': [
                     {
-                        'property': 'id'
+                        'property': ['id']
                     },
                     {
-                        'property': 'name'
+                        'property': ['name']
                     }
                 ],
         'estimate': True,
@@ -995,28 +994,28 @@ if __name__ == '__main__':
         'scope': ['S1'],
         'facets': [
                     {
-                        'property': 'city'
+                        'property': ['city']
                     },
                     {
-                        'property': 'land'
+                        'property': ['land']
                     }],
         'filteredgroupby': False,
         'orderby': [
                 {
                     'key': {
-                        'property': 'city'
+                        'property': ['city']
                     },
                     'order': 'ASC'
                 },
                 {
                     'key': {
-                        'property': 'language'
+                        'property': ['language']
                     },
                     'order': 'DESC'
                 },
                 {
                     'key': {
-                        'property': 'land'
+                        'property': ['land']
                     }
                 }
             ],
@@ -1122,10 +1121,10 @@ if __name__ == '__main__':
             "items": [
                 {
                     "type": "Property",
-                    "property": "city"
+                    "property": ["city"]
                 },{
                     "type": "Property",
-                    "property": "country"
+                    "property": ["country"]
                 }
             ]
         }
@@ -1140,7 +1139,7 @@ if __name__ == '__main__':
     json_property = '''
         {
             "type": "Property",
-            "property": "city"
+            "property": ["city"]
         }
     '''
     deserialized_object_property_city = esh_client.Property.parse_obj(json.loads(json_property))
@@ -1159,7 +1158,7 @@ if __name__ == '__main__':
                 "type": "Comparison",
                 "property": {
                     "type": "Property",
-                    "property": "city"
+                    "property": ["city"]
                 },
                 "operator": ":",
                 "value": {
@@ -1383,7 +1382,7 @@ if __name__ == '__main__':
         print(i.to_statement())
     print(deserialized_object_expression_mapped.to_statement())
 
-    property_simple = esh_client.Property(property="someText")
+    property_simple = esh_client.Property(property=["someText"])
     property_simple_mapped = map_query(property_simple)
     assert property_simple_mapped.to_statement() == 'someText'
 
@@ -1397,11 +1396,11 @@ if __name__ == '__main__':
             operator='AND',
             items= [
                 esh_client.Comparison(
-                    property= esh_client.Property(property='lastName'),
+                    property= esh_client.Property(property=['lastName']),
                     operator= esh_client.ComparisonOperator.Search,
                     value= esh_client.StringValue(value='Doe')),
                 esh_client.Comparison(
-                    property= esh_client.Property(property='firstName'),
+                    property= esh_client.Property(property=['firstName']),
                     operator= esh_client.ComparisonOperator.Search,
                     value= esh_client.StringValue(value='Jane'))
                 ]
@@ -1448,11 +1447,11 @@ if __name__ == '__main__':
                                 operator=esh_client.LogicalOperator.AND,
                                         items= [
                                             esh_client.Comparison(
-                                                property= esh_client.Property(property='lastName'),
+                                                property= esh_client.Property(property=['lastName']),
                                                 operator= esh_client.ComparisonOperator.Search,
                                                 value= esh_client.StringValue(value='Doe')),
                                             esh_client.Comparison(
-                                                property= esh_client.Property(property='firstName'),
+                                                property= esh_client.Property(property=['firstName']),
                                                 operator= esh_client.ComparisonOperator.Search,
                                                 value= esh_client.StringValue(value='John'))
                                                 ]
@@ -1461,11 +1460,11 @@ if __name__ == '__main__':
                                 operator=esh_client.LogicalOperator.AND,
                                 items= [
                                         esh_client.Comparison(
-                                            property= esh_client.Property(property='lastName'),
+                                            property= esh_client.Property(property=['lastName']),
                                             operator= esh_client.ComparisonOperator.Search,
                                             value= esh_client.StringValue(value='Doe')),
                                         esh_client.Comparison(
-                                            property= esh_client.Property(property='firstName'),
+                                            property= esh_client.Property(property=['firstName']),
                                             operator= esh_client.ComparisonOperator.Search,
                                             value= esh_client.StringValue(value='Jane'))
                                     ]
@@ -1521,7 +1520,7 @@ if __name__ == '__main__':
                         "type": "ComparisonInternal",
                         "property": {
                             "type": "PropertyInternal",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1535,7 +1534,7 @@ if __name__ == '__main__':
     assert auth_mapped.to_statement() == 'AUTH:(city:Mannheim)'
     auth_object_mapped = AuthInternal(
         value=ComparisonInternal(
-            property=PropertyInternal(property="city"),
+            property=PropertyInternal(property=["city"]),
             operator=esh_client.ComparisonOperator.Search,
             value=StringValueInternal(value="walldorf")
         )
@@ -1549,7 +1548,7 @@ if __name__ == '__main__':
                         "type": "ComparisonInternal",
                         "property": {
                             "type": "PropertyInternal",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1570,7 +1569,7 @@ if __name__ == '__main__':
                         "type": "Comparison",
                         "property": {
                             "type": "Property",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1585,7 +1584,7 @@ if __name__ == '__main__':
     assert filter_mapped.to_statement() == 'FILTER:(city:Mannheim)'
     filter_object = esh_client.Filter(
         value=esh_client.Comparison(
-            property=esh_client.Property(property="city"),
+            property=esh_client.Property(property=["city"]),
             operator=esh_client.ComparisonOperator.Search,
             value=esh_client.StringValue(value="walldorf")
         )
@@ -1600,7 +1599,7 @@ if __name__ == '__main__':
                         "type": "Comparison",
                         "property": {
                             "type": "Property",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1623,7 +1622,7 @@ if __name__ == '__main__':
                         "type": "Comparison",
                         "property": {
                             "type": "Property",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1638,7 +1637,7 @@ if __name__ == '__main__':
     assert filterwf_mapped.to_statement() == 'FILTERWF:(city:Mannheim)'
     filterwf_object = esh_client.FilterWF(
         value=esh_client.Comparison(
-            property=esh_client.Property(property="city"),
+            property=esh_client.Property(property=["city"]),
             operator=esh_client.ComparisonOperator.Search,
             value=esh_client.StringValue(value="walldorf")
         )
@@ -1653,7 +1652,7 @@ if __name__ == '__main__':
                         "type": "Comparison",
                         "property": {
                             "type": "Property",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1677,7 +1676,7 @@ if __name__ == '__main__':
                         "type": "Comparison",
                         "property": {
                             "type": "Property",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1692,7 +1691,7 @@ if __name__ == '__main__':
     assert boost_mapped.to_statement() == 'BOOST:(city:Mannheim)'
     boost_object = esh_client.Boost(
         value=esh_client.Comparison(
-            property=esh_client.Property(property="city"),
+            property=esh_client.Property(property=["city"]),
             operator=esh_client.ComparisonOperator.Search,
             value=esh_client.StringValue(value="walldorf")
         )
@@ -1708,7 +1707,7 @@ if __name__ == '__main__':
                             "type": "Comparison",
                             "property": {
                                 "type": "Property",
-                                "property": "city"
+                                "property": ["city"]
                             },
                             "operator": ":",
                             "value": {
@@ -1733,7 +1732,7 @@ if __name__ == '__main__':
                                 "type": "Comparison",
                                 "property": {
                                     "type": "Property",
-                                    "property": "language"
+                                    "property": ["language"]
                                 },
                                 "operator": ":",
                                 "value": {
@@ -1748,7 +1747,7 @@ if __name__ == '__main__':
                                 "type": "Comparison",
                                 "property": {
                                     "type": "Property",
-                                    "property": "city"
+                                    "property": ["city"]
                                 },
                                 "operator": ":",
                                 "value": {

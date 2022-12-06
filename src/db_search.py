@@ -118,7 +118,7 @@ async def search_query(schema_name, mapping, esh_version, queries, crud):
         query_mapping.map_query(query, pathes)
         query.scope = esh_scopes
         search_object = map_query(query)
-        search_object.select = PropertyInternal(property='ID')
+        search_object.select = PropertyInternal(property=['ID'])
         esh_query = search_object.to_statement()[1:]
         uris.append(
             f'/{_get_esh_version(esh_version)}/{schema_name}/{esh_query}')

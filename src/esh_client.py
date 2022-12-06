@@ -143,7 +143,7 @@ class OrderBySorting(str, Enum):
 
 class Property(BaseModel):
     type: Literal['Property'] = 'Property'
-    property: str | list[str]
+    property: list[str]
 
 class OrderBy(BaseModel):
     type: Literal['OrderBy'] = 'OrderBy'

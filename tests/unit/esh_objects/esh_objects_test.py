@@ -54,11 +54,11 @@ class TestStringMethods(unittest.TestCase):
                 operator=esh_client.LogicalOperator.AND,
                 items= [
                     esh_client.Comparison(
-                        property= esh_client.Property(property='lastName'),
+                        property= esh_client.Property(property=['lastName']),
                         operator= esh_client.ComparisonOperator.Search,
                         value= esh_client.StringValue(value='Doe')),
                     esh_client.Comparison(
-                        property= esh_client.Property(property='firstName'),
+                        property= esh_client.Property(property=['firstName']),
                         operator= esh_client.ComparisonOperator.Search,
                         value= esh_client.StringValue(value='Jane'))
                 ]
@@ -109,7 +109,7 @@ class TestStringMethods(unittest.TestCase):
                 operator=esh_client.LogicalOperator.AND,
                 items= [
                     esh_client.Comparison(
-                        property= esh_client.Property(property='firstName'),
+                        property= esh_client.Property(property=['firstName']),
                         operator= esh_client.ComparisonOperator.Search,
                         value= esh_client.StringValue(
                             value='Jane',
@@ -131,11 +131,11 @@ class TestStringMethods(unittest.TestCase):
                                 operator=esh_client.LogicalOperator.AND,
                                         items= [
                                             esh_client.Comparison(
-                                                property= esh_client.Property(property='lastName'),
+                                                property= esh_client.Property(property=['lastName']),
                                                 operator= esh_client.ComparisonOperator.Search,
                                                 value= esh_client.StringValue(value='Doe')),
                                             esh_client.Comparison(
-                                                property= esh_client.Property(property='firstName'),
+                                                property= esh_client.Property(property=['firstName']),
                                                 operator= esh_client.ComparisonOperator.Search,
                                                 value= esh_client.StringValue(value='John'))
                                                 ]
@@ -144,11 +144,11 @@ class TestStringMethods(unittest.TestCase):
                                 operator=esh_client.LogicalOperator.AND,
                                 items= [
                                         esh_client.Comparison(
-                                            property= esh_client.Property(property='lastName'),
+                                            property= esh_client.Property(property=['lastName']),
                                             operator= esh_client.ComparisonOperator.Search,
                                             value= esh_client.StringValue(value='Doe')),
                                         esh_client.Comparison(
-                                            property= esh_client.Property(property='firstName'),
+                                            property= esh_client.Property(property=['firstName']),
                                             operator= esh_client.ComparisonOperator.Search,
                                             value= esh_client.StringValue(value='Jane'))
                                     ]

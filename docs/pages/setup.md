@@ -116,9 +116,6 @@ Linux:            ./hana-enterprise-search-engine> source .venv/bin/activate
 
 The message "Application startup complete" indicates a successful server startup.
 
-## Run end-to-end test
+## Examples
 
-```bat
-(.venv) c:\devpath\hana-enterprise-search-engine> python tests\packages\run_tests.py
-```
-The test script prints a success-message in the last output line if all tests are executed successfully.
+Run some examples to get a first impression about the supported features.

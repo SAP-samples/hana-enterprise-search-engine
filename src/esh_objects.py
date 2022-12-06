@@ -140,11 +140,11 @@ def serialize_geometry_collection(collection):
 
 # Expression = ForwardRef('Expression')       
 ExpressionValueInternal = Union[Annotated[Union["UnaryExpressionInternal",  \
-    "ExpressionInternal", "ComparisonInternal","WithinOperator", "CoveredByOperator", \
-    "IntersectsOperator",  "PointInternal", "LineStringInternal", "CircularStringInternal", "PolygonInternal", \
+    "ExpressionInternal", "ComparisonInternal","WithinOperatorInternal", "CoveredByOperatorInternal", \
+    "IntersectsOperatorInternal",  "PointInternal", "LineStringInternal", "CircularStringInternal", "PolygonInternal", \
     "MultiPointInternal", "MultiLineStringInternal", "MultiPolygonInternal", "GeometryCollectionInternal", "NumberValueInternal", \
     "BooleanValueInternal", "StringValueInternal", "AuthInternal", "FilterInternal", "FilterWFInternal", \
-    "PropertyInternal",  "MultiValuesInternal", "BoostInternal", "RangeValueInternal"], \
+    "PropertyInternal",  "MultiValuesInternal", "BoostInternal", "RangeValueInternal", "DateValueInternal"], \
     Field(discriminator="type")], str]
 
 class SearchOptionsInternal(esh_client.SearchOptions):
@@ -205,10 +205,9 @@ def addFuzzySearchOptions(item: str, searchOptions: SearchOptionsInternal) -> st
 
 class PropertyInternal(esh_client.Property):
     type: Literal['PropertyInternal'] = 'PropertyInternal'
-    property: str
 
     def to_statement(self):
-        return self.property
+        return ".".join(self.property)
 
 class OrderByInternal(esh_client.OrderBy):
     type: Literal['OrderByInternal'] = 'OrderByInternal'
@@ -267,6 +266,11 @@ class NumberValueInternal(esh_client.NumberValue):
     def to_statement(self):
         return f'{self.value}'
 
+class DateValueInternal(esh_client.DateValue):
+
+    def to_statement(self):
+        return f'{self.value}'
+
 class BooleanValueInternal(esh_client.BooleanValue):
 
     def to_statement(self):
@@ -281,12 +285,24 @@ class RangeValueInternal(esh_client.RangeValue):
     def to_statement(self):
         start_bracket = "]" if self.excludeStart else "["
         end_bracket = "[" if self.excludeEnd else "]"
-        return f'{start_bracket}{self.start.to_statement()} {self.end.to_statement()}{end_bracket}'
+
+        start_to_statement = getattr(self.start, "to_statement", None)
+        if callable(start_to_statement):
+            start_value = self.start.to_statement()
+        else:
+            start_value = self.start
+        end_to_statement = getattr(self.end, "to_statement", None)
+        if callable(end_to_statement):
+            end_value = self.end.to_statement()
+        else:
+            end_value = self.end
+
+        return f'{start_bracket}{start_value} {end_value}{end_bracket}'
 
 class ComparisonInternal(BaseModel):
     type: Literal['ComparisonInternal'] = 'ComparisonInternal'
     property: str | ExpressionValueInternal
-    operator: esh_client.ComparisonOperator
+    operator: esh_client.ComparisonOperator | ExpressionValueInternal
     value: str | ExpressionValueInternal | None
 
     def to_statement(self):
@@ -295,12 +311,17 @@ class ComparisonInternal(BaseModel):
             property = self.property.to_statement()
         else:
             property = self.property
+        operator_to_statement = getattr(self.operator, "to_statement", None)
+        if callable(operator_to_statement):
+            operator_to_statement = self.operator.to_statement()
+        else:
+            operator_to_statement = self.operator
         value_to_statement = getattr(self.value, "to_statement", None)
         if callable(value_to_statement):
             value = self.value.to_statement()
         else:
             value = self.value
-        return f'{property}{self.operator}{value}'
+        return f'{property}{operator_to_statement}{value}'
 
         
 class ExpressionInternal(esh_client.Expression):
@@ -346,9 +367,8 @@ class UnaryExpressionInternal(esh_client.UnaryExpression):
         return f"{self.operator}:({item_statement})"
 
 
-class WithinOperator(BaseModel):
-    type: Literal['WithinOperator'] = 'WithinOperator'
-    id: int | None
+class WithinOperatorInternal(esh_client.WithinOperator):
+    type: Literal['WithinOperatorInternal'] = 'WithinOperatorInternal'
 
     def to_statement(self) -> str:
         if self.id:
@@ -357,9 +377,8 @@ class WithinOperator(BaseModel):
             return ':WITHIN:'
 
 
-class CoveredByOperator(BaseModel):
-    type: Literal['CoveredByOperator'] = 'CoveredByOperator'
-    id: int | None
+class CoveredByOperatorInternal(esh_client.CoveredByOperator):
+    type: Literal['CoveredByOperatorInternal'] = 'CoveredByOperatorInternal'
 
     def to_statement(self) -> str:
         if self.id:
@@ -367,9 +386,8 @@ class CoveredByOperator(BaseModel):
         else:
             return ':COVERED_BY:'
 
-class IntersectsOperator(BaseModel):
-    type: Literal['IntersectsOperator'] = 'IntersectsOperator'
-    id: int | None
+class IntersectsOperatorInternal(esh_client.IntersectsOperator):
+    type: Literal['IntersectsOperatorInternal'] = 'IntersectsOperatorInternal'
 
     def to_statement(self) -> str:
         if self.id:
@@ -480,10 +498,9 @@ class EshObjectInternal(esh_client.EshObject):
     orderby: List[OrderByInternal] | None
     auth: AuthInternal | None
     filter: FilterInternal | FilterWFInternal | None
-    boost: BoostInternal | list[BoostInternal] | None
-    facets: PropertyInternal | list[PropertyInternal] | None
-
-    select: PropertyInternal | list[PropertyInternal] | None
+    boost: list[BoostInternal] | None
+    facets: list[PropertyInternal] | None
+    select: list[PropertyInternal] | None
     class Config:
         extra = 'forbid'
 
@@ -674,6 +691,10 @@ def map_query(item):
                 result = NumberValueInternal(
                     value= item.value
                 )
+            case 'DateValue':
+                result = DateValueInternal(
+                    value= item.value
+                )
             case 'BooleanValue':
                 result = BooleanValueInternal(
                     value=item.value
@@ -687,7 +708,7 @@ def map_query(item):
                 )
             case 'Property':
                 result = PropertyInternal(
-                    property = item.property if isinstance(item.property, str) else ".".join(item.property)
+                    property = item.property
                 )
             case 'OrderBy':
                 result = OrderByInternal(
@@ -710,6 +731,18 @@ def map_query(item):
                     weight=item.weight,
                     fuzzinessThreshold=item.fuzzinessThreshold,
                     fuzzySearchOptions=item.fuzzySearchOptions
+                )
+            case 'WithinOperator':
+                result = WithinOperatorInternal(
+                    id=item.id
+                )
+            case 'CoveredByOperator':
+                result = CoveredByOperatorInternal(
+                    id=item.id
+                )
+            case 'IntersectsOperator':
+                result = IntersectsOperatorInternal(
+                    id=item.id
                 )
             case 'Point':
                 result = PointInternal(
@@ -841,22 +874,23 @@ def generate_search_rule_set_query(search_result_set: esh_client.SearchRuleSet):
                         attributeView = ET.SubElement(ruleset, "attributeView", name=f'"{rule_set_request.attributeView.db_schema}"."{rule_set_request.attributeView.name}"')
                         keyColumn = ET.SubElement(attributeView, "keyColumn", name=rule_set_request.attributeView.key_column)
 
-                    if rule_set_request.rule is not None:
-                        rule = ET.SubElement(ruleset, "rule", name=rule_set_request.rule.name)
+                    if rule_set_request.rules is not None:
+                        for rule_definition in rule_set_request.rules:
+                            rule = ET.SubElement(ruleset, "rule", name=rule_definition.name)
 
 
-                        
-                        rule1column1 = ET.SubElement(rule, "column", name=rule_set_request.rule.column.name, minFuzziness=str(rule_set_request.rule.column.minFuzziness))
-                        ifMissing = ET.SubElement(rule1column1, "ifMissing", action=rule_set_request.rule.column.ifMissingAction)
+                            for ruleset_column in rule_definition.columns:
+                                rule1column1 = ET.SubElement(rule, "column", name=ruleset_column.name, minFuzziness=str(ruleset_column.minFuzziness))
+                                ifMissing = ET.SubElement(rule1column1, "ifMissing", action=ruleset_column.ifMissingAction)
 
 
-                        '''
-                        if search_result_set.query.ruleset.rule.column is not None:
-                            column = ET.SubElement(rule, "column", name='Rule 1')
-                            if search_result_set.query.ruleset.rule.column.ifMissingAction is not None:
-                                ifMissing = ET.SubElement(column, "ifMissing", action=search_result_set.query.ruleset.rule.column.ifMissingAction.ifMissingAction)
-                        '''
-                        # keyColumn = ET.SubElement(attributeView, "keyColumn", name='EMPLOYEE_ID')
+                            '''
+                            if search_result_set.query.ruleset.rule.column is not None:
+                                column = ET.SubElement(rule, "column", name='Rule 1')
+                                if search_result_set.query.ruleset.rule.column.ifMissingAction is not None:
+                                    ifMissing = ET.SubElement(column, "ifMissing", action=search_result_set.query.ruleset.rule.column.ifMissingAction.ifMissingAction)
+                            '''
+                            # keyColumn = ET.SubElement(attributeView, "keyColumn", name='EMPLOYEE_ID')
 
                     query.append(ruleset)
 
@@ -894,7 +928,16 @@ def convert_search_rule_set_query_to_string(search_result_set_tree: ET.ElementTr
 
 if __name__ == '__main__':
 
-    mapped_object = map_query(esh_client.Property(property='aa'))
+    def assert_got_expected(got, expected):
+        try:
+            assert got == expected
+        except Exception as e:
+            print(f'actual:   {got}')
+            print(f'expected: {expected}')
+            raise e
+
+
+    mapped_object = map_query(esh_client.Property(property=['aa']))
     assert mapped_object.to_statement() == 'aa'
 
     mapped_object_b = map_query(esh_client.Property(property=['bb','cc']))
@@ -909,7 +952,7 @@ if __name__ == '__main__':
     aas = map_query(esh_client.Comparison.parse_obj(comp))
     assert aas.to_statement() == 'language:EQ:Python'
 
-    comp1 = {'property': {'type':"Property", "property": "language"}, \
+    comp1 = {'property': {'type':"Property", "property": ["language"]}, \
         'operator': ':EQ:', 'value': { Constants.type: 'StringValue', 'value': 'Java'}}
     aas1 = map_query(esh_client.Comparison.parse_obj(comp1))
     assert aas1.to_statement() == 'language:EQ:Java'
@@ -939,10 +982,10 @@ if __name__ == '__main__':
         'whyfound': True,
         'select': [
                     {
-                        'property': 'id'
+                        'property': ['id']
                     },
                     {
-                        'property': 'name'
+                        'property': ['name']
                     }
                 ],
         'estimate': True,
@@ -951,28 +994,28 @@ if __name__ == '__main__':
         'scope': ['S1'],
         'facets': [
                     {
-                        'property': 'city'
+                        'property': ['city']
                     },
                     {
-                        'property': 'land'
+                        'property': ['land']
                     }],
         'filteredgroupby': False,
         'orderby': [
                 {
                     'key': {
-                        'property': 'city'
+                        'property': ['city']
                     },
                     'order': 'ASC'
                 },
                 {
                     'key': {
-                        'property': 'language'
+                        'property': ['language']
                     },
                     'order': 'DESC'
                 },
                 {
                     'key': {
-                        'property': 'land'
+                        'property': ['land']
                     }
                 }
             ],
@@ -1061,14 +1104,14 @@ if __name__ == '__main__':
 
 
 
-    assert WithinOperator().to_statement() == ':WITHIN:'
-    assert WithinOperator(id=4).to_statement() == ':WITHIN(4):'
+    assert WithinOperatorInternal().to_statement() == ':WITHIN:'
+    assert WithinOperatorInternal(id=4).to_statement() == ':WITHIN(4):'
 
-    assert CoveredByOperator().to_statement() == ':COVERED_BY:'
-    assert CoveredByOperator(id=5).to_statement() == ':COVERED_BY(5):'
+    assert CoveredByOperatorInternal().to_statement() == ':COVERED_BY:'
+    assert CoveredByOperatorInternal(id=5).to_statement() == ':COVERED_BY(5):'
 
-    assert IntersectsOperator().to_statement() == ':INTERSECTS:'
-    assert IntersectsOperator(id=6).to_statement() == ':INTERSECTS(6):'
+    assert IntersectsOperatorInternal().to_statement() == ':INTERSECTS:'
+    assert IntersectsOperatorInternal(id=6).to_statement() == ':INTERSECTS(6):'
 
     assert escapePhrase('aaa?bbb') == 'aaa\\?bbb'
 
@@ -1078,10 +1121,10 @@ if __name__ == '__main__':
             "items": [
                 {
                     "type": "Property",
-                    "property": "city"
+                    "property": ["city"]
                 },{
                     "type": "Property",
-                    "property": "country"
+                    "property": ["country"]
                 }
             ]
         }
@@ -1096,7 +1139,7 @@ if __name__ == '__main__':
     json_property = '''
         {
             "type": "Property",
-            "property": "city"
+            "property": ["city"]
         }
     '''
     deserialized_object_property_city = esh_client.Property.parse_obj(json.loads(json_property))
@@ -1115,7 +1158,7 @@ if __name__ == '__main__':
                 "type": "Comparison",
                 "property": {
                     "type": "Property",
-                    "property": "city"
+                    "property": ["city"]
                 },
                 "operator": ":",
                 "value": {
@@ -1339,7 +1382,7 @@ if __name__ == '__main__':
         print(i.to_statement())
     print(deserialized_object_expression_mapped.to_statement())
 
-    property_simple = esh_client.Property(property="someText")
+    property_simple = esh_client.Property(property=["someText"])
     property_simple_mapped = map_query(property_simple)
     assert property_simple_mapped.to_statement() == 'someText'
 
@@ -1353,11 +1396,11 @@ if __name__ == '__main__':
             operator='AND',
             items= [
                 esh_client.Comparison(
-                    property= esh_client.Property(property='lastName'),
+                    property= esh_client.Property(property=['lastName']),
                     operator= esh_client.ComparisonOperator.Search,
                     value= esh_client.StringValue(value='Doe')),
                 esh_client.Comparison(
-                    property= esh_client.Property(property='firstName'),
+                    property= esh_client.Property(property=['firstName']),
                     operator= esh_client.ComparisonOperator.Search,
                     value= esh_client.StringValue(value='Jane'))
                 ]
@@ -1404,11 +1447,11 @@ if __name__ == '__main__':
                                 operator=esh_client.LogicalOperator.AND,
                                         items= [
                                             esh_client.Comparison(
-                                                property= esh_client.Property(property='lastName'),
+                                                property= esh_client.Property(property=['lastName']),
                                                 operator= esh_client.ComparisonOperator.Search,
                                                 value= esh_client.StringValue(value='Doe')),
                                             esh_client.Comparison(
-                                                property= esh_client.Property(property='firstName'),
+                                                property= esh_client.Property(property=['firstName']),
                                                 operator= esh_client.ComparisonOperator.Search,
                                                 value= esh_client.StringValue(value='John'))
                                                 ]
@@ -1417,11 +1460,11 @@ if __name__ == '__main__':
                                 operator=esh_client.LogicalOperator.AND,
                                 items= [
                                         esh_client.Comparison(
-                                            property= esh_client.Property(property='lastName'),
+                                            property= esh_client.Property(property=['lastName']),
                                             operator= esh_client.ComparisonOperator.Search,
                                             value= esh_client.StringValue(value='Doe')),
                                         esh_client.Comparison(
-                                            property= esh_client.Property(property='firstName'),
+                                            property= esh_client.Property(property=['firstName']),
                                             operator= esh_client.ComparisonOperator.Search,
                                             value= esh_client.StringValue(value='Jane'))
                                     ]
@@ -1477,7 +1520,7 @@ if __name__ == '__main__':
                         "type": "ComparisonInternal",
                         "property": {
                             "type": "PropertyInternal",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1491,7 +1534,7 @@ if __name__ == '__main__':
     assert auth_mapped.to_statement() == 'AUTH:(city:Mannheim)'
     auth_object_mapped = AuthInternal(
         value=ComparisonInternal(
-            property=PropertyInternal(property="city"),
+            property=PropertyInternal(property=["city"]),
             operator=esh_client.ComparisonOperator.Search,
             value=StringValueInternal(value="walldorf")
         )
@@ -1505,7 +1548,7 @@ if __name__ == '__main__':
                         "type": "ComparisonInternal",
                         "property": {
                             "type": "PropertyInternal",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1526,7 +1569,7 @@ if __name__ == '__main__':
                         "type": "Comparison",
                         "property": {
                             "type": "Property",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1541,7 +1584,7 @@ if __name__ == '__main__':
     assert filter_mapped.to_statement() == 'FILTER:(city:Mannheim)'
     filter_object = esh_client.Filter(
         value=esh_client.Comparison(
-            property=esh_client.Property(property="city"),
+            property=esh_client.Property(property=["city"]),
             operator=esh_client.ComparisonOperator.Search,
             value=esh_client.StringValue(value="walldorf")
         )
@@ -1556,7 +1599,7 @@ if __name__ == '__main__':
                         "type": "Comparison",
                         "property": {
                             "type": "Property",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1579,7 +1622,7 @@ if __name__ == '__main__':
                         "type": "Comparison",
                         "property": {
                             "type": "Property",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1594,7 +1637,7 @@ if __name__ == '__main__':
     assert filterwf_mapped.to_statement() == 'FILTERWF:(city:Mannheim)'
     filterwf_object = esh_client.FilterWF(
         value=esh_client.Comparison(
-            property=esh_client.Property(property="city"),
+            property=esh_client.Property(property=["city"]),
             operator=esh_client.ComparisonOperator.Search,
             value=esh_client.StringValue(value="walldorf")
         )
@@ -1609,7 +1652,7 @@ if __name__ == '__main__':
                         "type": "Comparison",
                         "property": {
                             "type": "Property",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1633,7 +1676,7 @@ if __name__ == '__main__':
                         "type": "Comparison",
                         "property": {
                             "type": "Property",
-                            "property": "city"
+                            "property": ["city"]
                         },
                         "operator": ":",
                         "value": {
@@ -1648,7 +1691,7 @@ if __name__ == '__main__':
     assert boost_mapped.to_statement() == 'BOOST:(city:Mannheim)'
     boost_object = esh_client.Boost(
         value=esh_client.Comparison(
-            property=esh_client.Property(property="city"),
+            property=esh_client.Property(property=["city"]),
             operator=esh_client.ComparisonOperator.Search,
             value=esh_client.StringValue(value="walldorf")
         )
@@ -1657,26 +1700,28 @@ if __name__ == '__main__':
     assert boost_object_mapped.to_statement() == 'BOOST:(city:walldorf)'
     esh_object_with_boost_json = '''
         {
-            "boost": {
-                "type": "Boost",
-                "value": {
-                        "type": "Comparison",
-                        "property": {
-                            "type": "Property",
-                            "property": "city"
-                        },
-                        "operator": ":",
-                        "value": {
-                            "type": "StringValue",
-                            "value": "Heidelberg"
+            "boost": [
+                {
+                    "type": "Boost",
+                    "value": {
+                            "type": "Comparison",
+                            "property": {
+                                "type": "Property",
+                                "property": ["city"]
+                            },
+                            "operator": ":",
+                            "value": {
+                                "type": "StringValue",
+                                "value": "Heidelberg"
+                            }
                         }
-                    }
-            }
+                }
+            ]
         }
     '''
     esh_object_with_boost = esh_client.EshObject.parse_obj(json.loads(esh_object_with_boost_json))
     esh_object_with_boost_mapped = map_query(esh_object_with_boost)
-    assert esh_object_with_boost_mapped.to_statement() == "/$all?$top=10&$apply=filter(Search.search(query='BOOST:(city:Heidelberg)'))"  
+    assert_got_expected(esh_object_with_boost_mapped.to_statement(), "/$all?$top=10&$apply=filter(Search.search(query='BOOST:(city:Heidelberg)'))" )
 
     esh_object_with_boost_array_json = '''
         {
@@ -1687,7 +1732,7 @@ if __name__ == '__main__':
                                 "type": "Comparison",
                                 "property": {
                                     "type": "Property",
-                                    "property": "language"
+                                    "property": ["language"]
                                 },
                                 "operator": ":",
                                 "value": {
@@ -1702,7 +1747,7 @@ if __name__ == '__main__':
                                 "type": "Comparison",
                                 "property": {
                                     "type": "Property",
-                                    "property": "city"
+                                    "property": ["city"]
                                 },
                                 "operator": ":",
                                 "value": {
@@ -1804,6 +1849,78 @@ if __name__ == '__main__':
 
     bool_value_false = esh_client.BooleanValue(value=False)
     bool_value_false_mapped = map_query(bool_value_false)
-    assert bool_value_false_mapped.to_statement() == "false" 
+    assert_got_expected(bool_value_false_mapped.to_statement(), "false")
+
+    so1 = esh_client.EshObject(
+        count=True,
+        top=4,
+        scope=['Document'],
+        searchQueryFilter=esh_client.Expression(
+        operator=esh_client.LogicalOperator.AND,
+        items=[
+            esh_client.Comparison(
+                property=esh_client.Property(property=['createdAt']),
+                operator=esh_client.ComparisonOperator.BetweenCaseInsensitive,
+                value=esh_client.RangeValue(start='2022-10-01', end='2022-10-31')
+            )]
+
+    ))
+    so1_mapped = map_query(so1)
+    print(so1_mapped.to_statement())
+
+
+    so2 = esh_client.EshObject(
+        count=True,
+        top=4,
+        scope=['Document'],
+        searchQueryFilter=esh_client.Expression(
+            operator=esh_client.LogicalOperator.AND,
+            items=[
+                esh_client.Comparison(
+                    property=esh_client.Property(property=['createdAt']),
+                    operator=esh_client.ComparisonOperator.BetweenCaseInsensitive,
+                    value=esh_client.RangeValue(
+                        start=esh_client.DateValue(value='2022-12-01'),
+                        end=esh_client.DateValue(value='2022-12-31'))
+                )]
+        )
+    )
+    so2_mapped = map_query(so2)
+    print(so2_mapped.to_statement())
+
+    so_polygon = esh_client.Polygon(coordinates=[[[0.0, 0.0], [4.0, 0.0], [2.0, 2.0], [0.0, 0.0]]])
+    so_polygon_mapped = map_query(so_polygon)
+    assert_got_expected(so_polygon_mapped.to_statement(), "POLYGON((0.0 0.0,4.0 0.0,2.0 2.0,0.0 0.0))")
+
+
+    so_geo = esh_client.EshObject(
+        count=True,
+        top=6,
+        scope=['Person'],
+        searchQueryFilter=esh_client.Expression(
+            operator=esh_client.LogicalOperator.AND,
+            items=[
+                esh_client.Comparison(
+                    property=esh_client.Property(property=['relLocation', 'location', 'position']),
+                    operator=esh_client.CoveredByOperator(),
+                    value=esh_client.Polygon(coordinates=[
+                        [
+                            [-0.31173706054687506, 51.618869218965926],
+                            [0.10574340820312501, 51.63762391020278],
+                            [0.09887695312500001, 51.36920841344186],
+                            [-0.28976440429687506, 51.40348936856666],
+                            [-0.32135009765625006, 51.5693878622646],
+                            [-0.31173706054687506, 51.618869218965926]
+                        ]
+                    ])
+                )]
+        )
+    )
+
+    so_geo_mapped = map_query(so_geo)
+    # print(so_geo_mapped.to_statement())
+    assert_got_expected(so_geo_mapped.to_statement(), "/$all?$top=6&$count=true&$apply=filter(Search.search(query='SCOPE:Person relLocation.location.position:COVERED_BY:POLYGON((-0.31173706054687506 51.618869218965926,0.10574340820312501 51.63762391020278,0.09887695312500001 51.36920841344186,-0.28976440429687506 51.40348936856666,-0.32135009765625006 51.5693878622646,-0.31173706054687506 51.618869218965926))'))")
+
+
 
     print(' -----> everything fine <----- ')

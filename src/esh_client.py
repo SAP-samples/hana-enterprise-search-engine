@@ -1,6 +1,6 @@
 """Classes to define a query"""
 from enum import Enum
-from typing import List, Literal, Annotated, Union
+from typing import Any, List, Literal, Annotated, Union
 from pydantic import BaseModel, Field
 
 class LogicalOperator(str, Enum):
@@ -29,13 +29,26 @@ class ComparisonOperator(str, Enum):
     DescendantOf = ":DESCENDANT_OF:"
     ChildOf = ":CHILD_OF:"
 
+class WithinOperator(BaseModel):
+    type: Literal['WithinOperator'] = 'WithinOperator'
+    id: int | None
+
+
+class CoveredByOperator(BaseModel):
+    type: Literal['CoveredByOperator'] = 'CoveredByOperator'
+    id: int | None
+
+
+class IntersectsOperator(BaseModel):
+    type: Literal['IntersectsOperator'] = 'IntersectsOperator'
+    id: int | None
  
 ExpressionValue = Union[Annotated[Union["UnaryExpression", \
     "Expression", "Comparison", "WithinOperator", "CoveredByOperator", \
     "IntersectsOperator", "Point", "LineString", "CircularString", "Polygon", \
     "MultiPoint", "MultiLineString", "MultiPolygon", "GeometryCollection", "NumberValue", \
     "BooleanValue", "StringValue",  "Property",  "MultiValues", "Filter", "FilterWF", \
-    "Boost", "RangeValue"], \
+    "Boost", "RangeValue", "DateValue"], \
     Field(discriminator="type")], str]
 
 class NonMatchingTokens(str, Enum):
@@ -130,7 +143,7 @@ class OrderBySorting(str, Enum):
 
 class Property(BaseModel):
     type: Literal['Property'] = 'Property'
-    property: str | list[str]
+    property: list[str]
 
 class OrderBy(BaseModel):
     type: Literal['OrderBy'] = 'OrderBy'
@@ -143,6 +156,10 @@ class StringValue(BaseModel):
     isPhrase: bool | None
     escapePlaceholders: bool | None
     searchOptions: SearchOptions | None
+
+class DateValue(BaseModel):
+    type: Literal['DateValue'] = 'DateValue'
+    value: str
 
 class NumberValue(BaseModel):
     type: Literal['NumberValue'] = 'NumberValue'
@@ -162,7 +179,7 @@ class RangeValue(BaseModel):
 class Comparison(BaseModel):
     type: Literal['Comparison'] = 'Comparison'
     property: str | ExpressionValue
-    operator: ComparisonOperator
+    operator: str |  WithinOperator | CoveredByOperator | IntersectsOperator
     value: str | ExpressionValue | None
 
 class Expression(BaseModel):
@@ -185,21 +202,6 @@ class UnaryExpression(BaseModel):
     item: ExpressionValue
 
 
-class WithinOperator(BaseModel):
-    type: Literal['WithinOperator'] = 'WithinOperator'
-    id: int | None
-
-
-class CoveredByOperator(BaseModel):
-    type: Literal['CoveredByOperator'] = 'CoveredByOperator'
-    id: int | None
-
-
-class IntersectsOperator(BaseModel):
-    type: Literal['IntersectsOperator'] = 'IntersectsOperator'
-    id: int | None
-
-
 class GeometryBase(BaseModel):
     type: str
     coordinates: list
@@ -216,6 +218,7 @@ class CircularString(GeometryBase):
 
 class Polygon(GeometryBase):
     type: Literal['Polygon'] = 'Polygon'
+    coordinates: List[List[List[float]]]
 
 class MultiPoint(GeometryBase):
     type: Literal['MultiPoint'] = 'MultiPoint'
@@ -263,16 +266,16 @@ class EshObject(BaseModel):
     skip: int | None
     count: bool | None
     scope: List[str] | None
-    boost: Boost | list[Boost] | None
+    boost: list[Boost] | None
     filter: Filter | FilterWF | None
     searchQueryFilter: Expression | None
     whyfound: bool | None
-    select: Property | list[Property] | None
+    select: list[Property] | None
     orderby: list[OrderBy] | None
     estimate: bool | None
     wherefound: bool | None
     facetlimit: int | None
-    facets: Property | list[Property] | None
+    facets: list[Property] | None
     filteredgroupby: bool | None
     suggestTerm: str | None
     resourcePath:str | None
@@ -292,13 +295,17 @@ class Column(BaseModel):
     value: str | None
     minFuzziness: float | None
     ifMissingAction: str | None
+# class Rule(BaseModel):
+#    name: str | None
+#    column: Column | None
+
 class Rule(BaseModel):
-    name: str | None
-    column: Column | None
+    name: str
+    columns: list[Column]
 class RuleSet(BaseModel):
     # scoreSelection currently only firstRule
     attributeView: AttributeView | None
-    rule: Rule | None
+    rules: list[Rule] | None
     # name: str
 
 class ResultSetColumn(BaseModel):
@@ -309,5 +316,17 @@ class Query(BaseModel):
     ruleset: list[RuleSet] | None # TODO check if it can be a list
     column: list[Column] | None # TODO make it as list
     resultsetcolumn: list[ResultSetColumn] | None
+
+class Parameter(BaseModel):
+    name: str
+    value: StringValue | NumberValue | BooleanValue | DateValue | MultiValues
 class SearchRuleSet(BaseModel):
     query: Query | None
+
+
+
+
+class EshRequest(BaseModel):
+    parameters: list[Parameter] | None
+    query: EshObject
+    rules: list[Rule] | None

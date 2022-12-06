@@ -26,6 +26,18 @@ async def execute_async(self, operation):
 dbapi.Cursor.execute_async = execute_async
 
 
+def execute_fetchall(self, operation):
+    self.execute(operation)
+    return self.fetchall()
+dbapi.Cursor.execute_fetchall = execute_fetchall
+
+
+async def execute_fetchall_async(self, operation):
+    loop = get_event_loop()
+    return await loop.run_in_executor(None, partial(self.execute_fetchall, operation))
+dbapi.Cursor.execute_fetchall_async = execute_fetchall_async
+
+
 async def executemany_async(self, operation):
     loop = get_event_loop()
     return await loop.run_in_executor(None, partial(self.executemany, operation[0], operation[1]))
@@ -135,6 +147,16 @@ class DBBulkProcessing():
         else:
             for block in DBBulkProcessing.blockify(operations, self.block_size):
                 await gather(*[self.connections[i].cur.execute_async(sql) for i, sql in enumerate(block)])
+
+    async def execute_fetchall(self, operations: List[str]):
+        res = []
+        if self.block_size == 1:
+            for operation in operations:
+                res.append(self.connections[0].cur.execute_fetchall(operation))
+        else:
+            for block in DBBulkProcessing.blockify(operations, self.block_size):
+                res.extend(await gather(*[self.connections[i].cur.execute_fetchall_async(sql) for i, sql in enumerate(block)]))
+        return res
 
     async def executemany(self, operations: List[Tuple[str, dict]]):
         if self.block_size == 1:

@@ -33,7 +33,6 @@ def get_user_name(db_schema_prefix:str, user_type:DBUserType): #pylint: disable=
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
-    #logging.getLogger().setLevel(logging.INFO)
     config_file_full_name = os.path.join(sys.path[0], CONFIG_FILE_NAME)
     parser = ArgumentParser(description='Runs test cases for mapper')
     parser.add_argument('--action', type=str, choices=['install', 'delete'], default='install',\
@@ -149,6 +148,7 @@ if __name__ == '__main__':
                             db.cur.execute(sql)
                     with open(config_file_full_name, 'w', encoding = 'utf-8') as fw:
                         json.dump(config, fw, indent = 4)
+                    db.con.commit()
                 logging.info('Successfully completed')
             case SetupAction.DELETE:
                 if not os.path.exists(config_file_full_name):
@@ -174,11 +174,9 @@ if __name__ == '__main__':
                     os.remove(config_file_full_name)
                     logging.info('Deletion successful')
     except HDBException as e:
-        db.con.rollback()
         if e.errorcode == 10:
             logging.error('Authentication failed. Check provided user and passord')
         elif e.errorcode == 258:
             logging.error('Insufficient privilege')
         else:
-            logging.error(e.errorcode, e.errortext)
-    db.con.commit()
+            logging.error((e.errorcode, e.errortext))

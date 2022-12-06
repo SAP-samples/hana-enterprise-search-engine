@@ -38,10 +38,11 @@ def extract_pathes(query: esh.EshObject):
 
 
 def _map_property_object(prop, pathes):
-    if isinstance(prop.property, str):
-        prop.property = pathes[(prop.property,)]
-    else:
-        prop.property = pathes[tuple(prop.property)]
+    # if isinstance(prop.property, str):
+    #    prop.property = pathes[(prop.property,)]
+    # else:
+    #    prop.property = pathes[tuple(prop.property)]
+    prop.property = [pathes[tuple(prop.property)]]
 
 
 

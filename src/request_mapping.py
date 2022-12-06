@@ -264,7 +264,8 @@ def map_request_to_rule_set(schema_name: str, mapping: dict, incoming_request: E
         for select_property in incoming_request.query.select:
             if query.resultsetcolumn is None:
                 query.resultsetcolumn = []
-            query.resultsetcolumn.append(ResultSetColumn(name=scope_entity["elements"][select_property.property]["column_name"]))
+            # TODO select_property.property select_property.to_statement()
+            query.resultsetcolumn.append(ResultSetColumn(name=scope_entity["elements"][select_property.property[0]]["column_name"]))
 
     return_value = SearchRuleSet(query=query)
     return return_value
@@ -377,12 +378,12 @@ if __name__ == "__main__":
             "top": 10,
             "skip": 0,
             "scope": [
-            "Document"
+                "Document"
             ],
             "select": [
             {
                 "type": "Property",
-                "property": "title"
+                "property": ["title"]
             }
             ]
         },

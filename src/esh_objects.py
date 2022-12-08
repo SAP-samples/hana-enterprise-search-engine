@@ -485,7 +485,6 @@ class FilterWFInternal(EshLanguageOperators):
 class BoostInternal(EshLanguageOperators):
     type: Literal['BoostInternal'] = 'BoostInternal'  
     operator: str = "BOOST:"
-    
 
 ComparisonInternal.update_forward_refs()
 ExpressionInternal.update_forward_refs()

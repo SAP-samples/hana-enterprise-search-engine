@@ -291,7 +291,7 @@ class AttributeView(BaseModel):
     key_column: str | None
 
 class Column(BaseModel):
-    name: str | None
+    name: str | Property | None
     value: str | None
     minFuzziness: float | None
     ifMissingAction: str | None
@@ -318,7 +318,7 @@ class Query(BaseModel):
     resultsetcolumn: list[ResultSetColumn] | None
 
 class Parameter(BaseModel):
-    name: str
+    name: str | Property
     value: StringValue | NumberValue | BooleanValue | DateValue | MultiValues
 class SearchRuleSet(BaseModel):
     query: Query | None

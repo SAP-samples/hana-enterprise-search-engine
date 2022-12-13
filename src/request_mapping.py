@@ -161,6 +161,10 @@ def map_request_to_rule_set_old(schema_name: str, mapping: dict, incoming_reques
     return_value = SearchRuleSet(query=query)
     return return_value
 
+
+def get_view_column_name(property: list[str]):
+    return "_".join(list(map(lambda i: i.upper(), property)))
+
 def map_request_to_rule_set(schema_name: str, mapping: dict, incoming_request: EshRequest):
     query = Query()
 
@@ -171,7 +175,6 @@ def map_request_to_rule_set(schema_name: str, mapping: dict, incoming_request: E
         ruleset = RuleSet()
         scope_entity = mapping["entities"][scope]
         table_name = scope_entity["table_name"]
-        # view_name = table_name.replace("ENTITY/", "VIEW/") # TODO only temp
         view_name = VIEW_PREFIX + table_name[len(ENTITY_PREFIX):]
         mapping_table = mapping["tables"][table_name]
 
@@ -180,42 +183,21 @@ def map_request_to_rule_set(schema_name: str, mapping: dict, incoming_request: E
                 print(parameter)
                 if query.column is None:
                     query.column = []
-                property_name = parameter.name
+                if isinstance(parameter.name, str):
+                    db_column_name = parameter.name
+                else: # it is Property Object
+                    db_column_name = get_view_column_name(parameter.name.property)
                 value = parameter.value.value
-
-                db_column_name = scope_entity["elements"][property_name]["column_name"]
-                # column_fuzziness = mapping_table["columns"][db_column_name]["annotations"]["@Search.fuzzinessThreshold"]
-                # if column_fuzziness is None:
-                #    column_fuzziness = 0.77
-                
-                '''
-                column_fuzziness = 0.85
-                column=Column(
-                    name = db_column_name,
-                    minFuzziness = column_fuzziness,
-                    ifMissingAction = "skipRule"
-                )
-                ruleset.rule = Rule(name="rule1", columns=[column])
-                '''
-                # print(property_name, operator,value, db_column_name)
                 query.column.append(Column(name=db_column_name, value=value))
 
 
         if incoming_request.rules:
             for rule in incoming_request.rules:
-                # print(rule)
                 if ruleset.rules is None:
                     ruleset.rules = []
                 rule_columns = []
                 for rule_column in rule.columns:
-                    property_name = rule_column.name
-                    # value = parameter.value.value
-
-                    db_column_name = scope_entity["elements"][property_name]["column_name"]
-                    # column_fuzziness = mapping_table["columns"][db_column_name]["annotations"]["@Search.fuzzinessThreshold"]
-                    # if column_fuzziness is None:
-                    #    column_fuzziness = 0.77
-                    # column_fuzziness = rule_column.minFuzziness if rule_column.minFuzziness is not None else 0.85
+                    db_column_name = get_view_column_name(rule_column.name.property)
                     column=Column(
                         name = db_column_name,
                         minFuzziness = rule_column.minFuzziness if rule_column.minFuzziness is not None else 0.85,
@@ -223,34 +205,6 @@ def map_request_to_rule_set(schema_name: str, mapping: dict, incoming_request: E
                     )
                     rule_columns.append(column)
                 ruleset.rules.append(Rule(name=rule.name, columns=rule_columns))
-
-                # print(property_name, operator,value, db_column_name)
-                # query.column.append(Column(name=db_column_name, value=value))
-
-        '''
-        if incoming_request.query.searchQueryFilter is not None:
-            for item in incoming_request.query.searchQueryFilter.items:
-                if query.column is None:
-                    query.column = []
-                property_name = item.property.property[0]
-                operator = item.operator
-                value = item.value.value
-
-                db_column_name = scope_entity["elements"][property_name]["column_name"]
-                # column_fuzziness = mapping_table["columns"][db_column_name]["annotations"]["@Search.fuzzinessThreshold"]
-                # if column_fuzziness is None:
-                #    column_fuzziness = 0.77
-                column_fuzziness = 0.85
-                column=Column(
-                    name = db_column_name,
-                    minFuzziness = column_fuzziness,
-                    ifMissingAction = "skipRule"
-                )
-                ruleset.rule = Rule(name="rule1", column=column)
-
-                # print(property_name, operator,value, db_column_name)
-                query.column.append(Column(name=db_column_name, value=value))
-        '''
         primary_key_column = mapping_table["pk"]
         ruleset.attributeView = AttributeView(schema=schema_name,name=view_name,key_column=primary_key_column)
         query.ruleset = [ruleset]
@@ -264,8 +218,8 @@ def map_request_to_rule_set(schema_name: str, mapping: dict, incoming_request: E
         for select_property in incoming_request.query.select:
             if query.resultsetcolumn is None:
                 query.resultsetcolumn = []
-            # TODO select_property.property select_property.to_statement()
-            query.resultsetcolumn.append(ResultSetColumn(name=scope_entity["elements"][select_property.property[0]]["column_name"]))
+            db_column_name = get_view_column_name(select_property.property)
+            query.resultsetcolumn.append(ResultSetColumn(name=db_column_name))
 
     return_value = SearchRuleSet(query=query)
     return return_value
@@ -367,7 +321,10 @@ if __name__ == "__main__":
     test_json = '''{
         "parameters": [
             {
-            "name": "title",
+            "name": {
+                "type": "Property",
+                "property": ["title"]
+            },
             "value": {
                     "type": "StringValue",
                     "value": "Document"
@@ -392,7 +349,10 @@ if __name__ == "__main__":
             "name": "myRule1",
             "columns": [
                 {
-                "name": "title",
+                "name": {
+                "type": "Property",
+                "property": ["title"]
+            },
                 "minFuzziness": 0.71,
                 "ifMissingAction": "skipRule"
                 }
@@ -402,7 +362,10 @@ if __name__ == "__main__":
             "name": "myRule2",
             "columns": [
                 {
-                "name": "text",
+                "name": {
+                "type": "Property",
+                "property": ["text"]
+            },
                 "minFuzziness": 0.84,
                 "ifMissingAction": "skipRule"
                 }
@@ -418,4 +381,64 @@ if __name__ == "__main__":
     test_search_rule_set_query_string = esh_objects.convert_search_rule_set_query_to_string(test_search_rule_set_query)
 
     print(test_search_rule_set_query_string)
+
+
+    mapping_rule_set_definition= '''{
+        "entities": {
+            "example.Person": {
+                "elements": {
+                    "firstName": {
+                        "column_name": "FIRSTNAME"
+                    },
+                    "lastName": {
+                        "column_name": "LASTNAME"
+                    },
+                    "address": {
+                        "elements": {
+                            "name": {
+                                "column_name": "ADDRESS_NAME"
+                            },
+                            "type": {
+                                "column_name": "ADDRESS_TYPE"
+                            },
+                            "sid": {
+                                "column_name": "ADDRESS_SID"
+                            }
+                        }
+                    },
+                    "contacts": {
+                        "items": {
+                            "elements": {
+                                "contactname": {
+                                    "column_name": "CONTACTNAME"
+                                },
+                                "contactinfo": {
+                                    "elements": {
+                                        "group": {
+                                            "column_name": "CONTACTINFO_GROUP"
+                                        }
+                                    }
+                                }
+                            },
+                        "table_name": "ENTITY/EXAMPLEPERSON_CONTACTS"
+                        }
+                    },
+                    "tags": {
+                        "items": {
+                            "elements": {},
+                            "table_name": "ENTITY/DATATYPE_TAGS",
+                            "column_name": "_VALUE"
+                        }
+                    }
+                }
+            }
+            }
+        }
+    '''
+
+    
+    assert get_view_column_name(["address", "name"]) == "ADDRESS_NAME"
+    assert get_view_column_name(["contacts", "contactname"]) == "CONTACTS_CONTACTNAME"
+    assert get_view_column_name(["contacts", "contactinfo", "group"]) == "CONTACTS_CONTACTINFO_GROUP"
+    assert get_view_column_name(["tags"]) == "TAGS"
 

@@ -1,53 +1,45 @@
 import unittest
 import json
 
-from src import esh_client
-from src import esh_objects
+import esh_client
+import esh_objects
 
 
 class TestStringMethods(unittest.TestCase):
 
     
     def test_term(self):
-        term = esh_objects.TermInternal(term="Heidelberg")
+        term = esh_objects.StringValueInternal(value="Heidelberg")
         self.assertEqual(term.to_statement(), 'Heidelberg')
 
         term_json = '''
             {
-                "type": "Term",
-                "term": "Heidelberg"
+                "type": "StringValue",
+                "value": "Heidelberg"
             }
         '''
         term_dict = json.loads(term_json)
-        term2 = esh_client.Term.parse_obj(term_dict)
+        term2 = esh_client.StringValue.parse_obj(term_dict)
         self.assertEqual(term2.dict(exclude_none=True), term_dict)
 
 
     def test_phrase(self):
-        phrase = esh_client.Phrase(phrase="Mannheim")
+        phrase = esh_client.StringValue(value="Mannheim", isPhrase=True)
         phrase_mapped = esh_objects.map_query(phrase)
         self.assertEqual(phrase_mapped.to_statement(), '"Mannheim"')
 
         phrase_json = '''
             {
-                "type": "Phrase",
-                "phrase": "Mannheim"
+                "type": "StringValue",
+                "value": "Mannheim",
+                "isPhrase": true
             }
         '''
         phrase_dict = json.loads(phrase_json)
-        phrase2 = esh_client.Phrase.parse_obj(phrase_dict)
+        phrase2 = esh_client.StringValue.parse_obj(phrase_dict)
         phrase2_mapped = esh_objects.map_query(phrase2)
         self.assertEqual(phrase2.dict(exclude_none=True), phrase_dict)
 
-        phrase3_json = '''
-            {
-                "type": "Phrase",
-                "phrase": "Mannheim",
-                "doEshEscaping": false
-            }
-        '''
-        phrase3 = esh_client.Phrase.parse_obj(json.loads(phrase3_json))
-        self.assertEqual(phrase3.dict(exclude_none=True), json.loads(phrase3_json))
 
     def test_expression(self):
         expression_object = esh_client.Expression(
@@ -72,7 +64,7 @@ class TestStringMethods(unittest.TestCase):
                         "type": "Comparison",
                         "property": {
                             "type": "Property",
-                            "property": "lastName"
+                            "property": ["lastName"]
                         },
                         "operator": ":",
                         "value": {
@@ -84,7 +76,7 @@ class TestStringMethods(unittest.TestCase):
                         "type": "Comparison",
                         "property": {
                             "type": "Property",
-                            "property": "firstName"
+                            "property": ["firstName"]
                         },
                         "operator": ":",
                         "value": {
@@ -115,7 +107,7 @@ class TestStringMethods(unittest.TestCase):
                             value='Jane',
                             searchOptions=esh_client.SearchOptions(fuzzinessThreshold=0.7)))]))
         so_mapped = esh_objects.map_query(so)
-        print(so_mapped.to_statement())
+        # print(so_mapped.to_statement())
         # TODO
         # self.assertEqual(so_mapped.to_statement(),"/$all?$top=1&$count=true&$apply=filter(Search.search(query='SCOPE:Person AND firstName:Jane~0.7'))")
 
@@ -123,7 +115,7 @@ class TestStringMethods(unittest.TestCase):
         so = esh_client.EshObject(
             count=True,
             top=10,
-            scope='Person',
+            scope=['Person'],
             searchQueryFilter=esh_client.Expression(
                         operator=esh_client.LogicalOperator.OR,
                         items=[
@@ -158,9 +150,9 @@ class TestStringMethods(unittest.TestCase):
         )
         so_mapped = esh_objects.map_query(so)
         #print(f'ESH query statement: {so_mapped.to_statement()}')
-        print('-----cccc-----')
-        print(json.dumps(so_mapped.dict(exclude_none=True), indent=2))
-        print(so_mapped.to_statement())
+        #print('-----cccc-----')
+        #print(json.dumps(so_mapped.dict(exclude_none=True), indent=2))
+        #print(so_mapped.to_statement())
         assert so_mapped.to_statement() == "/$all?$top=10&$count=true&$apply=filter(Search.search(query='SCOPE:Person ((lastName:Doe AND firstName:John) OR (lastName:Doe AND firstName:Jane))'))"
         
 

@@ -63,8 +63,8 @@ class TestStringMethods(unittest.TestCase):
 
 
     def test_phrase(self):
-        #cv = db_search._get_column_view(json.loads(self.mapping_rule_set_definition), "example.Person", "PLCSCHEMA", ["firstName"])
-        #print(cv.column_name_by_path(["firstName"]))
+        # cv = db_search._get_column_view(json.loads(self.mapping_rule_set_definition), "example.Person", "PLCSCHEMA", ["firstName"])
+        # print(cv.column_name_by_path(["firstName"]))
         self.assertEqual("a", "a")
         
     ''' 

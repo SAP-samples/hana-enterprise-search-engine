@@ -43,7 +43,7 @@ def get_indices(tables, schema_name, hana_version):
         for i, (prop_name, prop) in enumerate(table[Constants.columns].items()):
             if 'annotations' in prop and '@sap.esh.isText' in prop['annotations'] and prop['annotations']['@sap.esh.isText']:
                 if hana_version == 2:
-                    indices.append(f'create fulltext index "{table[Constants.table_name]}_{i}" on "{schema_name}"."{table[Constants.table_name]}" ("{prop_name}") fast preprocess off fuzzy search index on search only off async')
+                    indices.append(f'create fulltext index "{table[Constants.table_name]}_{i}" on "{schema_name}"."{table[Constants.table_name]}" ("{prop_name}") fast preprocess on fuzzy search index on search only off async')
                 elif hana_version == 4:
                     indices.append(f'create fuzzy search index "{table[Constants.table_name]}_{i}" on "{schema_name}"."{table[Constants.table_name]}" ("{prop_name}") search mode text')
                 else:

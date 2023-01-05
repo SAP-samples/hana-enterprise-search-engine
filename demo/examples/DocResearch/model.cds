@@ -4,6 +4,14 @@ using {sap.esh.Identifier} from '../../../model/esh';
 @EnterpriseSearch.enabled
 @EndUserText.Label : 'Document'
 @EnterpriseSearchHana.passThroughAllAnnotations
+@UI.headerInfo.typeName: 'Document'
+@UI.headerInfo.typeNamePlural: 'Documents'
+@UI.headerInfo: {
+          title: {
+            value: 'title',
+            url: 'docURL'
+          }
+        }
 entity Document {
     key id        : UUID;
         @UI.Identification                           : [{Position : 10}]

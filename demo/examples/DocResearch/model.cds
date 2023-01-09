@@ -32,6 +32,7 @@ entity Document {
         @sap.esh.isText
         @UI.Identification                           : [{Position : 90}]
         @Search.defaultSearchElement
+        @EnterpriseSearch.filteringFacet.default     : true
         author    : String; //author
 
         @EndUserText.Label                           : 'Text'
@@ -40,6 +41,7 @@ entity Document {
         @EnterpriseSearch.snippets.enabled
         @EnterpriseSearch.snippets.maximumLength     : 800
         @Search.defaultSearchElement
+        @Search.fuzzinessThreshold                   : 0.80
         text      : LargeBinary; //text
 
         @UI.Identification                           : [{Position : 60}]
@@ -55,6 +57,7 @@ entity Document {
         @UI.Identification                           : [{Position : 80}]
         @EndUserText.Label                           : 'Document type'
         @Search.defaultSearchElement
+        @EnterpriseSearch.filteringFacet.default     : true
         docType   : String(10);
 
         @UI.Identification                           : [{

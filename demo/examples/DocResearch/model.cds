@@ -4,11 +4,11 @@ using {sap.esh.Identifier} from '../../../model/esh';
 @EnterpriseSearch.enabled
 @EndUserText.Label : 'Document'
 @EnterpriseSearchHana.passThroughAllAnnotations
-@UI.headerInfo.typeName: 'Document'
-@UI.headerInfo.typeNamePlural: 'Documents'
-@UI.headerInfo: {
-          title: {
-            value: 'title',
+@UI.HeaderInfo.TypeName: 'Document'
+@UI.HeaderInfo.TypeNamePlural: 'Documents'
+@UI.HeaderInfo: {
+          Title: {
+            Value: 'title',
             url: 'docURL'
           }
         }

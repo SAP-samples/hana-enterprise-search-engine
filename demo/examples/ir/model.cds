@@ -1,6 +1,6 @@
 using {sap.esh.Identifier} from '../../../model/esh';
 
-@EnterpriseSearch.enabled : false
+// @EnterpriseSearch.enabled : false
 entity RelTypeCode : Identifier {
     description : String(256)
 }
@@ -10,15 +10,15 @@ entity Cases : Identifier {
     @Search.defaultSearchElement : true
     @sap.esh.isText
     entityDesc    : String;
-    entityTime    : String;
+    entityTime    : Time;
     caseType      : String;
     priority      : String;
     status        : String;
     caseCategory  : String;
     caseStartDate : Date;
-    caseStartTime : String;
+    caseStartTime : Time;
     caseEndDate   : Date;
-    caseEndTime   : String;
+    caseEndTime   : Time;
     @sap.esh.isText
     caseSummary   : String;
     @sap.esh.isVirtual
@@ -39,7 +39,7 @@ entity Person : Identifier {
     firstName         : String;
     @Search.defaultSearchElement : true
     lastName          : String;
-    dob               : String;
+    dob               : Date;
     age               : Integer;
     complexion        : String;
     ethnicity         : String;
@@ -104,7 +104,7 @@ entity RelPersonObject : Identifier {
 entity Activity : Identifier {
     @sap.esh.isText
     entityDesc        : String;
-    entityTime        : String;
+    entityTime        : Time;
     origin            : String;
     location          : String;
     activityStartDate : Date;
@@ -144,7 +144,7 @@ entity Location : Identifier {
     entityDesc       : String;
     position         : hana.ST_POINT(4326); //Position
     locationCategory : String;
-    houseNumber      : String;
+    houseNumber      : Integer;
     street           : String;
     city             : String;
     @Search.defaultSearchElement : true
@@ -176,7 +176,7 @@ entity RelLocationPerson : Identifier {
 entity Incidents : Identifier {
     @sap.esh.isText
     entityDesc  : String;
-    entityTime  : String;
+    entityTime  : Time;
     position    : hana.ST_POINT; //Position
     @sap.esh.isText
     location    : String;
@@ -213,7 +213,7 @@ entity RelCasesIncident : Identifier {
 entity Leads : Identifier {
     @sap.esh.isText
     entityDesc  : String;
-    entityTime  : String;
+    entityTime  : Time;
     @sap.esh.isText
     leadSummary : String;
     leadStatus  : String;
